@@ -1,0 +1,13 @@
+# Local dev and secrets — never commit
+.dev/
+*.key
+*.pem
+.env
+.env.local
+*.env.*.local
+# Vault payloads with secret values
+vault-payload-*.json
+vault-payload-*.yaml
+# Greenfield identity list (real names/emails; use identities.example.yaml as template)
+identities.yaml
+identities.ldif

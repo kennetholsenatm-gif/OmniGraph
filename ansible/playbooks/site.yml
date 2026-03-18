@@ -1,0 +1,12 @@
+---
+# Master playbook: host hardening (FIPS/firewalld) then mesh deployment.
+# Run from devsecops-pipeline/ansible: ansible-playbook -i inventory.yml playbooks/site.yml
+- name: Harden host (FIPS, firewalld)
+  hosts: ai_mesh_nodes
+  become: true
+  roles:
+    - role: os_hardening_fips
+      vars:
+        devsecops_cidr: "100.64.0.0/10"
+
+- import_playbook: deploy-devsecops-mesh.yml

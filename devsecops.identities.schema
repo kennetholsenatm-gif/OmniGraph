@@ -1,0 +1,69 @@
+# VARLOCK Identity & Privilege Schema — Greenfield
+# Defines who has access and at what level. No secrets (passwords/keys) here; those live in Vault keyed by uid.
+# LDAP-friendly attributes (ou, cn, uid, memberOf) so this can drive Keycloak and/or LDIF export.
+
+@version: "1.0"
+@description: "Identity and privilege level definitions for Zero Trust DevSecOps pipeline"
+@compliance: "CMMC Level 2"
+
+# --- Privilege levels (canonical) ---
+# Tooling reads privilege_levels.json for @keycloak-role and @ldap-ou per level.
+@privilege-levels: DEFINITION
+@description: "Allowed privilege levels; map to Keycloak realm roles and LDAP groups"
+@validation: "admin | operator | developer | viewer | auditor"
+
+@privilege-level: admin
+@keycloak-role: realm-admin
+@ldap-ou: admins
+
+@privilege-level: operator
+@keycloak-role: operator
+@ldap-ou: operators
+
+@privilege-level: developer
+@keycloak-role: developer
+@ldap-ou: developers
+
+@privilege-level: viewer
+@keycloak-role: view-only
+@ldap-ou: viewers
+
+@privilege-level: auditor
+@keycloak-role: auditor
+@ldap-ou: auditors
+
+# --- Registration state (for cert-based self-registration; see CERT_SELF_REGISTRATION.md) ---
+@registration-state: PENDING | APPROVED | REJECTED
+@description: "Pending = no privileges until Zammad ticket approved; approved = identity synced to Keycloak/LDAP."
+
+# --- Identities (one block per user; secrets in Vault by uid) ---
+@identity-spec: IDENTITIES
+@description: "List of identities; password and SSH key for each stored in Vault at secret/devsecops or secret/devsecops/users/<uid>. Approved cert registrations may include cert_fingerprint."
+# Optional: cert_fingerprint (after cert-based self-registration approval)
+# cert_fingerprint: string (SHA-256 fingerprint of client cert; for audit and binding)
+
+# --- Example: admin ---
+uid: kbolsen
+@description: "Bootstrap admin; password and admin_ssh_public_key in Vault secret/devsecops"
+privilege_level: admin
+@validation: "admin | operator | developer | viewer | auditor"
+ou: admins
+cn: "Kenneth Olsen"
+mail: kenneth.olsen.atm@gmail.com
+# Optional LDAP-style dn for export (tooling can derive from ou + uid + dc)
+# dn: uid=kbolsen,ou=admins,dc=devsecops,dc=local
+# memberOf: cn=realm-admin,ou=roles,dc=devsecops,dc=local
+
+# --- Example: second user (uncomment and duplicate block for more users) ---
+# uid: jdoe
+# privilege_level: developer
+# ou: developers
+# cn: "Jane Doe"
+# mail: jane.doe@example.com
+
+# --- Example: operator ---
+# uid: ops1
+# privilege_level: operator
+# ou: operators
+# cn: "Ops One"
+# mail: ops1@example.com

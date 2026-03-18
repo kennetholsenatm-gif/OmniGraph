@@ -1,0 +1,7 @@
+---
+mtls_certs_dest: "/opt/mesh_secrets/certs"
+mtls_certs_src: "{{ playbook_dir }}/../../files/crypto"
+mtls_cert_files:
+  - root_ca.crt
+  - node_client.key
+  - node_client.crt

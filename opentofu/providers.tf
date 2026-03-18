@@ -1,0 +1,14 @@
+# OpenTofu Docker provider for DevSecOps pipeline networks.
+# Run from devsecops-pipeline/opentofu: tofu init && tofu apply
+
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    docker = {
+      source  = "kreuzwerker/docker"
+      version = "~> 3.0"
+    }
+  }
+}
+
+provider "docker" {}

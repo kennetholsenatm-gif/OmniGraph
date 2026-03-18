@@ -1,0 +1,143 @@
+{
+  "name": "Security Audit",
+  "nodes": [
+    {
+      "id": "f115e5cb-cd8b-4824-9c1b-d3ef333da2c1",
+      "name": "Pull Request Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "parameters": {
+        "path": "pull-request",
+        "httpMethod": "POST",
+        "options": {}
+      },
+      "webhookId": "security-audit-pr"
+    },
+    {
+      "id": "71b18546-31cb-4131-ba7c-93380505453f",
+      "name": "CMMC Compliance Validator",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [240, 0],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json }}",
+        "options": {
+          "systemMessage": "You are a cybersecurity compliance auditor. Analyze the incoming pull request code for CMMC 2.0 Level 2 compliance. Check for: Access Control (AC), Identification and Authentication (IA), Audit and Accountability (AU), Configuration Management (CM). Validate against NIST 800-171 controls. Return a detailed compliance report with any violations and remediation steps."
+        }
+      }
+    },
+    {
+      "id": "4d21ba45-fb45-4d87-9963-e94856af19b1",
+      "name": "PQC Readiness Assessment",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [480, 0],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json }}",
+        "options": {
+          "systemMessage": "You are a post-quantum cryptography specialist. Audit the incoming code for PQC readiness. Check for: CRQC threats, HNDL vulnerabilities, NIST PQC standards compliance (FIPS 203/204/205). Verify hybrid cipher suite implementations. Return a PQC readiness assessment with any cryptographic vulnerabilities."
+        }
+      }
+    },
+    {
+      "id": "7533ddb0-cd92-4fdf-84db-e8df6b141786",
+      "name": "Generate Security Report",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [720, 0],
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "multiplex",
+        "options": {}
+      }
+    },
+    {
+      "id": "daa2c1e1-afb4-47af-ac29-ef47e8436881",
+      "name": "Decision Logic",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [960, 0],
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "outputKey": "critical",
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.severity }}",
+                    "rightValue": "critical",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "5e8aac99-dd9c-49b2-898a-adcc3b0e06f2",
+      "name": "Deny Pull Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, -100],
+      "parameters": {
+        "url": "={{ $env.GITEA_URL || 'http://gitea:3000' }}/api/v1/repos/{{ $json.repository.full_name }}/pulls/{{ $json.pull_request.number }}/comments",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ body: 'Security audit failed: ' + ($json.recommendations || []).join('; ') }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "gitea_api", "name": "Gitea API" }
+      }
+    },
+    {
+      "id": "6370280f-fc1b-4db7-bee4-f15541c40c88",
+      "name": "Approve Pull Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 100],
+      "parameters": {
+        "url": "={{ $env.GITEA_URL || 'http://gitea:3000' }}/api/v1/repos/{{ $json.repository.full_name }}/pulls/{{ $json.pull_request.number }}/reviews",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ event: 'APPROVE', body: 'CMMC and PQC checks passed.' }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "gitea_api", "name": "Gitea API" }
+      }
+    }
+  ],
+  "connections": {
+    "Pull Request Trigger": {
+      "main": [[{ "node": "CMMC Compliance Validator", "type": "main", "index": 0 }]]
+    },
+    "CMMC Compliance Validator": {
+      "main": [[{ "node": "PQC Readiness Assessment", "type": "main", "index": 0 }]]
+    },
+    "PQC Readiness Assessment": {
+      "main": [[{ "node": "Generate Security Report", "type": "main", "index": 0 }]]
+    },
+    "Generate Security Report": {
+      "main": [[{ "node": "Decision Logic", "type": "main", "index": 0 }]]
+    },
+    "Decision Logic": {
+      "main": [
+        [{ "node": "Deny Pull Request", "type": "main", "index": 0 }],
+        [{ "node": "Approve Pull Request", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v2"
+  },
+  "staticData": null,
+  "pinData": {}
+}

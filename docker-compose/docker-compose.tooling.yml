@@ -1,0 +1,104 @@
+# Tooling: Gitea, n8n, Zammad on isolated networks (100.64.1/2/3.0/24).
+# Create networks first or use OpenTofu/Ansible. No lateral attachment.
+
+services:
+  gitea:
+    image: gitea/gitea:1.21.4
+    container_name: devsecops-gitea
+    hostname: gitea
+    networks:
+      - gitea_net
+    ports:
+      - "3000:3000"
+      - "2222:22"
+    volumes:
+      # Canonical Gitea data location on host (repos, DB, config). Override with GITEA_DATA_PATH in .env.
+      - "${GITEA_DATA_PATH:-C:/GiTeaRepos}:/data"
+    environment:
+      USER_UID: "1000"
+      USER_GID: "1000"
+      GITEA__security__INSTALL_LOCK: "true"
+    restart: unless-stopped
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: devsecops-n8n
+    hostname: n8n
+    networks:
+      - n8n_net
+      - msg_backbone_net
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    environment:
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      WEBHOOK_URL: "http://n8n:5678"
+      GITEA_API_TOKEN: "${GITEA_API_TOKEN}"
+      SOLACE_PASSWORD: "${SOLACE_PASSWORD}"
+      ZAMMAD_API_TOKEN: "${ZAMMAD_API_TOKEN}"
+      N8N_LICENSE_ACTIVATION_KEY: "${N8N_LICENSE_ACTIVATION_KEY}"
+    restart: unless-stopped
+
+  zammad:
+    image: zammad/zammad:latest
+    container_name: devsecops-zammad
+    hostname: zammad
+    networks:
+      - zammad_net
+    ports:
+      - "8080:8080"
+    environment:
+      POSTGRES_HOST: zammad-postgres
+      POSTGRES_USER: zammad
+      POSTGRES_PASSWORD: ${ZAMMAD_POSTGRES_PASSWORD:?Set ZAMMAD_POSTGRES_PASSWORD}
+      POSTGRES_DB: zammad_production
+      REDIS_URL: redis://zammad-redis:6379
+      ZAMMAD_WEBSOCKET_PORT: 6042
+    depends_on:
+      zammad-postgres:
+        condition: service_healthy
+      zammad-redis:
+        condition: service_started
+    restart: unless-stopped
+
+  zammad-postgres:
+    image: postgres:15-alpine
+    container_name: devsecops-zammad-db
+    hostname: zammad-postgres
+    networks:
+      - zammad_net
+    environment:
+      POSTGRES_USER: zammad
+      POSTGRES_PASSWORD: ${ZAMMAD_POSTGRES_PASSWORD:?Set ZAMMAD_POSTGRES_PASSWORD}
+      POSTGRES_DB: zammad_production
+    volumes:
+      - zammad_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zammad -d zammad_production"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  zammad-redis:
+    image: redis:7-alpine
+    container_name: devsecops-zammad-redis
+    hostname: zammad-redis
+    networks:
+      - zammad_net
+    restart: unless-stopped
+
+networks:
+  gitea_net:
+    external: true
+  n8n_net:
+    external: true
+  zammad_net:
+    external: true
+  msg_backbone_net:
+    external: true
+
+volumes:
+  n8n_data:
+  zammad_postgres_data:

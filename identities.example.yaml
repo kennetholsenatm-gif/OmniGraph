@@ -1,0 +1,29 @@
+# Example identity list for greenfield (VARLOCK-aligned).
+# Schema: devsecops.identities.schema (privilege_level = admin | operator | developer | viewer | auditor).
+# No secrets here; passwords/keys in Vault keyed by uid or at secret/devsecops.
+# Copy to identities.yaml (gitignored) or feed to bootstrap/Keycloak/LDIF tooling.
+
+identities:
+  - uid: kbolsen
+    privilege_level: admin
+    ou: admins
+    cn: "Kenneth Olsen"
+    mail: kenneth.olsen.atm@gmail.com
+
+  - uid: jdoe
+    privilege_level: developer
+    ou: developers
+    cn: "Jane Doe"
+    mail: jane.doe@example.com
+
+  - uid: ops1
+    privilege_level: operator
+    ou: operators
+    cn: "Ops One"
+    mail: ops1@example.com
+
+# Optional: LDAP base for LDIF export (use -BaseDn in export-identities-to-ldif.ps1)
+# ldap_base_dn: "dc=devsecops,dc=local"
+#
+# Sync to Keycloak:  .\scripts\sync-identities-to-keycloak.ps1
+# Export to LDIF:    .\scripts\export-identities-to-ldif.ps1 -OutputPath identities.ldif
