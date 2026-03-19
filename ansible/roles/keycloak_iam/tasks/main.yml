@@ -1,0 +1,101 @@
+---
+# Keycloak IAM as code: automation client + OIDC clients (gitea, n8n, zammad).
+# Requires: community.general; auth from devsecops_secrets (keycloak_username, keycloak_password) or
+# KEYCLOAK_AUTOMATION_CLIENT_ID/SECRET for token auth. Run after IAM stack is up.
+# See docs/IAM_IAC.md and docs/IAM_LDAP_AND_AUTOMATION.md.
+
+- name: Keycloak IAM — ensure automation client (service account)
+  community.general.keycloak_client:
+    auth_keycloak_url: "{{ keycloak_iam_url }}"
+    auth_realm: "{{ keycloak_iam_realm }}"
+    auth_username: "{{ keycloak_iam_username }}"
+    auth_password: "{{ keycloak_iam_password }}"
+    realm: "{{ keycloak_iam_realm }}"
+    client_id: "{{ keycloak_iam_automation_client_id }}"
+    name: "{{ keycloak_iam_automation_client_id }}"
+    enabled: true
+    client_authenticator_type: client-secret
+    public_client: false
+    standard_flow_enabled: false
+    direct_access_grants_enabled: false
+    service_accounts_enabled: true
+    protocol: openid-connect
+    full_scope_allowed: false
+    validate_certs: "{{ keycloak_iam_validate_certs }}"
+  when: keycloak_iam_username is defined and keycloak_iam_password is defined
+
+- name: Keycloak IAM — ensure OIDC client gitea
+  community.general.keycloak_client:
+    auth_keycloak_url: "{{ keycloak_iam_url }}"
+    auth_realm: "{{ keycloak_iam_realm }}"
+    auth_username: "{{ keycloak_iam_username }}"
+    auth_password: "{{ keycloak_iam_password }}"
+    realm: "{{ keycloak_iam_realm }}"
+    client_id: "gitea"
+    name: "gitea"
+    enabled: true
+    client_authenticator_type: client-secret
+    public_client: false
+    standard_flow_enabled: true
+    direct_access_grants_enabled: false
+    service_accounts_enabled: false
+    redirect_uris:
+      - "{{ keycloak_iam_gitea_redirect }}"
+    web_origins:
+      - "+"
+    protocol: openid-connect
+    full_scope_allowed: false
+    validate_certs: "{{ keycloak_iam_validate_certs }}"
+  when: keycloak_iam_username is defined and keycloak_iam_password is defined
+
+- name: Keycloak IAM — ensure OIDC client n8n
+  community.general.keycloak_client:
+    auth_keycloak_url: "{{ keycloak_iam_url }}"
+    auth_realm: "{{ keycloak_iam_realm }}"
+    auth_username: "{{ keycloak_iam_username }}"
+    auth_password: "{{ keycloak_iam_password }}"
+    realm: "{{ keycloak_iam_realm }}"
+    client_id: "n8n"
+    name: "n8n"
+    enabled: true
+    client_authenticator_type: client-secret
+    public_client: false
+    standard_flow_enabled: true
+    direct_access_grants_enabled: false
+    service_accounts_enabled: false
+    redirect_uris:
+      - "{{ keycloak_iam_n8n_redirect }}"
+    web_origins:
+      - "+"
+    protocol: openid-connect
+    full_scope_allowed: false
+    validate_certs: "{{ keycloak_iam_validate_certs }}"
+  when: keycloak_iam_username is defined and keycloak_iam_password is defined
+
+- name: Keycloak IAM — ensure OIDC client zammad
+  community.general.keycloak_client:
+    auth_keycloak_url: "{{ keycloak_iam_url }}"
+    auth_realm: "{{ keycloak_iam_realm }}"
+    auth_username: "{{ keycloak_iam_username }}"
+    auth_password: "{{ keycloak_iam_password }}"
+    realm: "{{ keycloak_iam_realm }}"
+    client_id: "zammad"
+    name: "zammad"
+    enabled: true
+    public_client: true
+    standard_flow_enabled: true
+    direct_access_grants_enabled: false
+    service_accounts_enabled: false
+    redirect_uris:
+      - "{{ keycloak_iam_zammad_redirect }}"
+    web_origins:
+      - "+"
+    protocol: openid-connect
+    full_scope_allowed: false
+    validate_certs: "{{ keycloak_iam_validate_certs }}"
+  when: keycloak_iam_username is defined and keycloak_iam_password is defined
+
+- name: Keycloak IAM — remind to copy automation client secret to Vault
+  ansible.builtin.debug:
+    msg: "After first run, copy the client secret for '{{ keycloak_iam_automation_client_id }}' from Keycloak Admin (Clients -> Credentials) to Vault as KEYCLOAK_AUTOMATION_CLIENT_SECRET. Assign realm-management roles to the service account (Service account roles -> realm-management -> realm-admin)."
+  when: keycloak_iam_username is defined and keycloak_iam_password is defined

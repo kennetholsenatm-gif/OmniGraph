@@ -12,7 +12,21 @@
     tooling_gitea_cidr: "100.64.1.0/24"
     tooling_n8n_cidr: "100.64.2.0/24"
     tooling_zammad_cidr: "100.64.3.0/24"
+    tooling_bitwarden_cidr: "100.64.4.0/24"
+    tooling_gateway_cidr: "100.64.5.0/24"
+    tooling_portainer_cidr: "100.64.6.0/24"
+    llm_net_cidr: "100.64.7.0/24"
+    chatops_net_cidr: "100.64.8.0/24"
     msg_backbone_cidr: "100.64.10.0/24"
+    iam_cidr: "100.64.20.0/24"
+    freeipa_cidr: "100.64.21.0/24"
+    agent_mesh_cidr: "100.64.30.0/24"
+    discovery_net_cidr: "100.64.40.0/24"
+    sdn_lab_net_cidr: "100.64.50.0/24"
+    telemetry_net_cidr: "100.64.51.0/24"
+    docs_net_cidr: "100.64.52.0/24"
+    sonarqube_net_cidr: "100.64.53.0/24"
+    siem_net_cidr: "100.64.54.0/24"
     internal_range: "100.64.0.0/10"
 
   tasks:
@@ -54,12 +68,110 @@
         ipam_config:
           - subnet: "{{ tooling_zammad_cidr }}"
 
+    - name: Create Docker network bitwarden_net
+      community.docker.docker_network:
+        name: bitwarden_net
+        driver: bridge
+        ipam_config:
+          - subnet: "{{ tooling_bitwarden_cidr }}"
+
     - name: Create Docker network msg_backbone_net
       community.docker.docker_network:
         name: msg_backbone_net
         driver: bridge
         ipam_config:
           - subnet: "{{ msg_backbone_cidr }}"
+
+    - name: Create Docker network gateway_net
+      community.docker.docker_network:
+        name: gateway_net
+        driver: bridge
+        ipam_config:
+          - subnet: "{{ tooling_gateway_cidr }}"
+
+    - name: Create Docker network portainer_net
+      community.docker.docker_network:
+        name: portainer_net
+        driver: bridge
+        ipam_config:
+          - subnet: "{{ tooling_portainer_cidr }}"
+
+    - name: Create Docker network iam_net
+      community.docker.docker_network:
+        name: iam_net
+        driver: bridge
+        ipam_config:
+          - subnet: "{{ iam_cidr }}"
+
+    - name: Create Docker network agent_mesh_net
+      community.docker.docker_network:
+        name: agent_mesh_net
+        driver: bridge
+        ipam_config:
+          - subnet: "{{ agent_mesh_cidr }}"
+
+    - name: Create Docker network llm_net
+      community.docker.docker_network:
+        name: llm_net
+        driver: bridge
+        ipam_config:
+          - subnet: "{{ llm_net_cidr }}"
+
+    - name: Create Docker network chatops_net
+      community.docker.docker_network:
+        name: chatops_net
+        driver: bridge
+        ipam_config:
+          - subnet: "{{ chatops_net_cidr }}"
+
+    - name: Create Docker network freeipa_net
+      community.docker.docker_network:
+        name: freeipa_net
+        driver: bridge
+        ipam_config:
+          - subnet: "{{ freeipa_cidr }}"
+
+    - name: Create Docker network discovery_net
+      community.docker.docker_network:
+        name: discovery_net
+        driver: bridge
+        ipam_config:
+          - subnet: "{{ discovery_net_cidr }}"
+
+    - name: Create Docker network sdn_lab_net
+      community.docker.docker_network:
+        name: sdn_lab_net
+        driver: bridge
+        ipam_config:
+          - subnet: "{{ sdn_lab_net_cidr }}"
+
+    - name: Create Docker network telemetry_net
+      community.docker.docker_network:
+        name: telemetry_net
+        driver: bridge
+        ipam_config:
+          - subnet: "{{ telemetry_net_cidr }}"
+
+    - name: Create Docker network docs_net
+      community.docker.docker_network:
+        name: docs_net
+        driver: bridge
+        ipam_config:
+          - subnet: "{{ docs_net_cidr }}"
+
+    - name: Create Docker network sonarqube_net
+      community.docker.docker_network:
+        name: sonarqube_net
+        driver: bridge
+        ipam_config:
+          - subnet: "{{ sonarqube_net_cidr }}"
+
+    - name: Create Docker network siem_net
+      community.docker.docker_network:
+        name: siem_net
+        driver: bridge
+        ipam_config:
+          - subnet: "{{ siem_net_cidr }}"
 
     - name: UFW default deny incoming
       community.general.ufw:
@@ -68,7 +180,7 @@
         policy: deny
       when: ansible_os_family == "Debian"
 
-    - name: UFW allow from internal range (Solace, n8n, Gitea, Zammad, Teleport)
+    - name: UFW allow from internal range (Solace, n8n, Gitea, Zammad, Bitwarden, Teleport)
       community.general.ufw:
         rule: allow
         from_ip: "{{ internal_range }}"
@@ -81,9 +193,13 @@
         - "55555"
         - "8008"
         - "8080"
+        - "8484"
         - "3023"
         - "3024"
         - "3025"
+        - "3080"
+        - "8000"
+        - "8081"
         - "80"
         - "443"
       when: ansible_os_family == "Debian"
@@ -124,4 +240,4 @@
       ansible.builtin.set_fact:
         zammad_deploy_standalone: false
       # Zammad full stack is better via docker-compose; this playbook creates the network.
-      # Use devsecops-pipeline/docker-compose/docker-compose.zammad.yml for Zammad services.
+      # Use docker-compose/docker-compose.tooling.yml (Zammad included) or a dedicated Zammad compose if added.

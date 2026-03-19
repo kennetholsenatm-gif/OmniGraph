@@ -1,0 +1,17 @@
+---
+# Keycloak IAM as code: create automation client + OIDC clients (gitea, n8n, zammad).
+# Run after IAM stack is up (Keycloak reachable). Auth from devsecops_secrets (bootstrap admin).
+# From ansible/: ansible-playbook -i inventory.yml playbooks/keycloak-iam.yml -e @group_vars/ai_mesh_nodes/devsecops_secrets.yml
+# With Vault: run playbooks/start-containers-with-vault.yml first to set devsecops_secrets, then:
+#   ansible-playbook -i inventory.yml playbooks/keycloak-iam.yml
+- name: Configure Keycloak clients (automation + OIDC)
+  hosts: ai_mesh_nodes
+  gather_facts: true
+  vars:
+    keycloak_iam_username: "{{ devsecops_secrets.KEYCLOAK_ADMIN | default(omit) }}"
+    keycloak_iam_password: "{{ devsecops_secrets.KEYCLOAK_ADMIN_PASSWORD | default(omit) }}"
+    keycloak_iam_url: "{{ devsecops_secrets.KEYCLOAK_PUBLIC_URL | default('http://127.0.0.1:8180') }}"
+    keycloak_iam_gateway_base_url: "{{ devsecops_secrets.GATEWAY_BASE_URL | default('http://localhost') }}"
+  roles:
+    - role: keycloak_iam
+  when: devsecops_secrets is defined and devsecops_secrets.KEYCLOAK_ADMIN is defined and devsecops_secrets.KEYCLOAK_ADMIN_PASSWORD is defined

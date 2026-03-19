@@ -8,9 +8,22 @@
   No static file; the only "initial" value is the token (env or keystore).
 .PARAMETER VaultAddr
   Vault address (default http://127.0.0.1:8200 or env VAULT_ADDR).
+.PARAMETER IncludeSdnTelemetry
+  Pass to docker-compose/launch-stack.ps1: prepend SDN + telemetry compose files to the merged core stack.
+  Same effect as env DEVSECOPS_INCLUDE_SDN_TELEMETRY=1.
+.PARAMETER SkipLlm
+  Pass to launch-stack.ps1 (default is to start LLM compose unless DEVSECOPS_INCLUDE_LLM=0).
+.PARAMETER IncludeDiscovery / IncludeAiOrchestration / IncludeIdentity / IncludeSiem
+  Pass through to launch-stack.ps1. Same effect as env DEVSECOPS_INCLUDE_DISCOVERY=1, DEVSECOPS_INCLUDE_AI_ORCHESTRATION=1, DEVSECOPS_INCLUDE_IDENTITY=1, DEVSECOPS_INCLUDE_SIEM=1.
 #>
 param(
-    [string]$VaultAddr = $env:VAULT_ADDR
+    [string]$VaultAddr = $env:VAULT_ADDR,
+    [switch]$IncludeSdnTelemetry = $false,
+    [switch]$SkipLlm = $false,
+    [switch]$IncludeDiscovery = $false,
+    [switch]$IncludeAiOrchestration = $false,
+    [switch]$IncludeIdentity = $false,
+    [switch]$IncludeSiem = $false
 )
 if (-not $VaultAddr) { $VaultAddr = "http://127.0.0.1:8200" }
 
@@ -72,9 +85,17 @@ foreach ($k in $data.PSObject.Properties.Name) {
 }
 
 Write-Host "Exported pipeline secrets from Vault to environment. Starting stack..."
+$launch = Join-Path $composeDir "launch-stack.ps1"
+$launchArgs = @{}
+if ($IncludeSdnTelemetry -or ($env:DEVSECOPS_INCLUDE_SDN_TELEMETRY -eq "1")) { $launchArgs["IncludeSdnTelemetry"] = $true }
+if ($SkipLlm) { $launchArgs["SkipLlm"] = $true }
+if ($IncludeDiscovery) { $launchArgs["IncludeDiscovery"] = $true }
+if ($IncludeAiOrchestration) { $launchArgs["IncludeAiOrchestration"] = $true }
+if ($IncludeIdentity) { $launchArgs["IncludeIdentity"] = $true }
+if ($IncludeSiem -or ($env:DEVSECOPS_INCLUDE_SIEM -eq "1")) { $launchArgs["IncludeSiem"] = $true }
 Push-Location $composeDir
 try {
-    & (Join-Path $composeDir "launch-stack.ps1")
+    & $launch @launchArgs
 } finally {
     Pop-Location
 }

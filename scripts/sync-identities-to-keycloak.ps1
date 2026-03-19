@@ -5,21 +5,28 @@
   Reads privilege_levels.json for keycloak_role per privilege_level, creates realm roles if missing,
   creates/updates users, and assigns the corresponding realm role. User passwords from Vault (secret/devsecops or users/<uid>)
   or generated and stored in Vault.
+  Prefers service-account token (KEYCLOAK_AUTOMATION_CLIENT_ID/SECRET). See docs/IAM_LDAP_AND_AUTOMATION.md.
 .PARAMETER IdentityFile
   Path to identities list: identities.yaml or identities.json (default: identities.yaml then identities.json).
 .PARAMETER KeycloakUrl
   Keycloak base URL (default http://127.0.0.1:8180).
 .PARAMETER Realm
   Realm name (default master).
+.PARAMETER AutomationClientId
+  Service-account client ID (default env KEYCLOAK_AUTOMATION_CLIENT_ID or Vault).
+.PARAMETER AutomationClientSecret
+  Service-account client secret (default env KEYCLOAK_AUTOMATION_CLIENT_SECRET or Vault).
 .PARAMETER KeycloakAdmin
-  Admin username (default from env KEYCLOAK_ADMIN).
+  (Deprecated) Admin username; used only if automation client not set.
 .PARAMETER KeycloakAdminPassword
-  Admin password (default from env KEYCLOAK_ADMIN_PASSWORD or Vault).
+  (Deprecated) Admin password; used only if automation client not set.
 #>
 param(
     [string]$IdentityFile = "",
     [string]$KeycloakUrl = "http://127.0.0.1:8180",
     [string]$Realm = "master",
+    [string]$AutomationClientId = $env:KEYCLOAK_AUTOMATION_CLIENT_ID,
+    [string]$AutomationClientSecret = $env:KEYCLOAK_AUTOMATION_CLIENT_SECRET,
     [string]$KeycloakAdmin = $env:KEYCLOAK_ADMIN,
     [string]$KeycloakAdminPassword = $env:KEYCLOAK_ADMIN_PASSWORD,
     [string]$VaultAddr = $env:VAULT_ADDR,
@@ -31,6 +38,17 @@ $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $pipelineRoot = Split-Path -Parent $scriptDir
 
+# Prefer automation client (token); fall back to admin password (deprecated)
+if (-not $AutomationClientId -or -not $AutomationClientSecret) {
+    if ($VaultAddr -and $VaultToken) {
+        try {
+            $r = Invoke-RestMethod -Uri "$VaultAddr/v1/secret/data/devsecops" -Headers @{ "X-Vault-Token" = $VaultToken } -ErrorAction Stop
+            $d = $r.data.data
+            if (-not $AutomationClientId) { $AutomationClientId = $d.KEYCLOAK_AUTOMATION_CLIENT_ID }
+            if (-not $AutomationClientSecret) { $AutomationClientSecret = $d.KEYCLOAK_AUTOMATION_CLIENT_SECRET }
+        } catch {}
+    }
+}
 if (-not $KeycloakAdmin -or -not $KeycloakAdminPassword) {
     if ($VaultAddr -and $VaultToken) {
         try {
@@ -41,7 +59,10 @@ if (-not $KeycloakAdmin -or -not $KeycloakAdminPassword) {
         } catch {}
     }
     if (-not $KeycloakAdmin) { $KeycloakAdmin = "admin" }
-    if (-not $KeycloakAdminPassword) { Write-Error "Set KEYCLOAK_ADMIN_PASSWORD or VAULT_TOKEN and run with Vault holding secret/devsecops"; exit 1 }
+}
+$useAutomationClient = ($AutomationClientId -and $AutomationClientSecret)
+if (-not $useAutomationClient -and (-not $KeycloakAdminPassword)) {
+    Write-Error "Set KEYCLOAK_AUTOMATION_CLIENT_ID and KEYCLOAK_AUTOMATION_CLIENT_SECRET (env or Vault), or (deprecated) KEYCLOAK_ADMIN_PASSWORD. See docs/IAM_LDAP_AND_AUTOMATION.md."
 }
 
 # Resolve identity file
@@ -91,8 +112,13 @@ if (-not $levelsPath) { $levelsPath = Join-Path $pipelineRoot "privilege_levels.
 if (-not (Test-Path $levelsPath)) { Write-Error "privilege_levels.json not found at $levelsPath"; exit 1 }
 $levelMap = Get-Content $levelsPath -Raw | ConvertFrom-Json
 
-# Keycloak token
-$tokenBody = "grant_type=password&client_id=admin-cli&username=$([uri]::EscapeDataString($KeycloakAdmin))&password=$([uri]::EscapeDataString($KeycloakAdminPassword))"
+# Keycloak token: service account (preferred) or admin password (deprecated)
+if ($useAutomationClient) {
+    $tokenBody = "grant_type=client_credentials&client_id=$([uri]::EscapeDataString($AutomationClientId))&client_secret=$([uri]::EscapeDataString($AutomationClientSecret))"
+} else {
+    Write-Warning "Using KEYCLOAK_ADMIN/KEYCLOAK_ADMIN_PASSWORD is deprecated. Prefer KEYCLOAK_AUTOMATION_CLIENT_ID and KEYCLOAK_AUTOMATION_CLIENT_SECRET. See docs/IAM_LDAP_AND_AUTOMATION.md."
+    $tokenBody = "grant_type=password&client_id=admin-cli&username=$([uri]::EscapeDataString($KeycloakAdmin))&password=$([uri]::EscapeDataString($KeycloakAdminPassword))"
+}
 $tokenResp = Invoke-RestMethod -Uri "$KeycloakUrl/realms/$Realm/protocol/openid-connect/token" -Method Post -Body $tokenBody -ContentType "application/x-www-form-urlencoded"
 $accessToken = $tokenResp.access_token
 $headers = @{ "Authorization" = "Bearer $accessToken"; "Content-Type" = "application/json" }

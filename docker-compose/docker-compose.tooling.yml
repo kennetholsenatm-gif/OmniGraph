@@ -1,4 +1,4 @@
-# Tooling: Gitea, n8n, Zammad on isolated networks (100.64.1/2/3.0/24).
+# Tooling: Gitea, n8n, Zammad, Bitwarden (Vaultwarden), Docsify (Nginx + git sync) on isolated networks.
 # Create networks first or use OpenTofu/Ansible. No lateral attachment.
 
 services:
@@ -8,6 +8,7 @@ services:
     hostname: gitea
     networks:
       - gitea_net
+    # For single ingress (production): comment out ports; access only via Traefik at /gitea/. Keep 2222:22 if Git over SSH is required.
     ports:
       - "3000:3000"
       - "2222:22"
@@ -18,6 +19,13 @@ services:
       USER_UID: "1000"
       USER_GID: "1000"
       GITEA__security__INSTALL_LOCK: "true"
+      # When behind Single Pane of Glass at http://localhost/gitea/
+      GITEA__server__ROOT_URL: "${GITEA__server__ROOT_URL:-http://localhost/gitea/}"
+      # Phase 2 IAM: Keycloak OIDC — use these when configuring Admin → Authentication → OAuth2 Source (OpenID Connect)
+      KEYCLOAK_PUBLIC_URL: "${KEYCLOAK_PUBLIC_URL:-http://localhost/keycloak}"
+      KEYCLOAK_REALM: "${KEYCLOAK_REALM:-master}"
+      GITEA_OIDC_CLIENT_ID: "${GITEA_OIDC_CLIENT_ID:-gitea}"
+      GITEA_OIDC_CLIENT_SECRET: "${GITEA_OIDC_CLIENT_SECRET:-}"
     restart: unless-stopped
 
   n8n:
@@ -27,17 +35,28 @@ services:
     networks:
       - n8n_net
       - msg_backbone_net
+      # SDN / telemetry: reach VyOS, OVS-side services, sflow-rt via Docker DNS on sdn_lab_net
+      - sdn_lab_net
+    # For single ingress (production): comment out ports; access only via Traefik at /n8n/.
     ports:
       - "5678:5678"
     volumes:
       - n8n_data:/home/node/.n8n
     environment:
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
-      WEBHOOK_URL: "http://n8n:5678"
+      # When behind Single Pane of Glass at http://localhost/n8n/
+      N8N_PATH: "${N8N_PATH:-/n8n}"
+      N8N_EDITOR_BASE_URL: "${N8N_EDITOR_BASE_URL:-http://localhost/n8n}"
+      WEBHOOK_URL: "${WEBHOOK_URL:-http://n8n:5678}"
       GITEA_API_TOKEN: "${GITEA_API_TOKEN}"
       SOLACE_PASSWORD: "${SOLACE_PASSWORD}"
       ZAMMAD_API_TOKEN: "${ZAMMAD_API_TOKEN}"
       N8N_LICENSE_ACTIVATION_KEY: "${N8N_LICENSE_ACTIVATION_KEY}"
+      # Phase 2 IAM: Keycloak OIDC — use in Settings → SSO → OIDC (Discovery, Client ID, Secret)
+      KEYCLOAK_PUBLIC_URL: "${KEYCLOAK_PUBLIC_URL:-http://localhost/keycloak}"
+      KEYCLOAK_REALM: "${KEYCLOAK_REALM:-master}"
+      N8N_OIDC_CLIENT_ID: "${N8N_OIDC_CLIENT_ID:-n8n}"
+      N8N_OIDC_CLIENT_SECRET: "${N8N_OIDC_CLIENT_SECRET:-}"
     restart: unless-stopped
 
   zammad:
@@ -46,6 +65,7 @@ services:
     hostname: zammad
     networks:
       - zammad_net
+    # For single ingress (production): comment out ports; access only via Traefik at /zammad/.
     ports:
       - "8080:8080"
     environment:
@@ -55,6 +75,8 @@ services:
       POSTGRES_DB: zammad_production
       REDIS_URL: redis://zammad-redis:6379
       ZAMMAD_WEBSOCKET_PORT: 6042
+      # Phase 2 IAM: base URL for OIDC redirects; configure Admin → Settings → Security → OpenID Connect with Keycloak issuer and client zammad
+      ZAMMAD_PUBLIC_URL: "${ZAMMAD_PUBLIC_URL:-http://localhost/zammad}"
     depends_on:
       zammad-postgres:
         condition: service_healthy
@@ -89,6 +111,108 @@ services:
       - zammad_net
     restart: unless-stopped
 
+  bitwarden:
+    image: vaultwarden/server:latest
+    container_name: devsecops-bitwarden
+    hostname: bitwarden
+    networks:
+      - bitwarden_net
+    ports:
+      - "${BITWARDEN_PORT:-8484}:80"
+    volumes:
+      - bitwarden_data:/data
+    environment:
+      DOMAIN: "${BITWARDEN_DOMAIN:-http://localhost/bitwarden}"
+      ADMIN_TOKEN: "${BITWARDEN_ADMIN_TOKEN:-}"
+      SIGNUPS_ALLOWED: "${BITWARDEN_SIGNUPS_ALLOWED:-true}"
+      INVITATIONS_ALLOWED: "${BITWARDEN_INVITATIONS_ALLOWED:-true}"
+      WEBSOCKET_ENABLED: "true"
+    restart: unless-stopped
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: devsecops-portainer
+    hostname: portainer
+    networks:
+      - portainer_net
+    ports:
+      - "${PORTAINER_HTTP_PORT:-9000}:9000"
+      - "${PORTAINER_HTTPS_PORT:-9443}:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    environment:
+      # When behind Single Pane of Glass at http://localhost/portainer/
+      PORTAINER_EDGE: "0"
+    restart: unless-stopped
+
+  # Docsify: one-shot git sync into shared volume; Nginx serves static site (Traefik /docs on docs_net).
+  docs-sync:
+    image: alpine/git:v2.47.1
+    container_name: devsecops-docs-sync
+    hostname: docs-sync
+    networks:
+      - gitea_net
+    depends_on:
+      gitea:
+        condition: service_started
+    environment:
+      DOCS_GIT_REPO: "${DOCS_GIT_REPO:-http://gitea:3000/DevSecOps/architecture-docs.git}"
+      DOCS_GIT_BRANCH: "${DOCS_GIT_BRANCH:-main}"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        REPO="$$DOCS_GIT_REPO"
+        BRANCH="$$DOCS_GIT_BRANCH"
+        if [ -z "$$REPO" ]; then echo "DOCS_GIT_REPO is empty"; exit 1; fi
+        if [ -d /data/docs/.git ]; then
+          git -C /data/docs fetch origin "$$BRANCH" && git -C /data/docs reset --hard "origin/$$BRANCH"
+        else
+          # Volume may hold stale non-repo files (no .git); git clone refuses non-empty targets
+          rm -rf /data/docs/* 2>/dev/null || true
+          rm -rf /data/docs/.[!.]* /data/docs/..?* 2>/dev/null || true
+          git clone --depth 1 -b "$$BRANCH" "$$REPO" /data/docs
+        fi
+    volumes:
+      - docs_data:/data/docs
+    restart: "no"
+
+  docs:
+    image: nginx:1.27-alpine
+    container_name: devsecops-docs
+    hostname: docs
+    networks:
+      - docs_net
+    depends_on:
+      docs-sync:
+        condition: service_completed_successfully
+    volumes:
+      - docs_data:/usr/share/nginx/html:ro
+    restart: unless-stopped
+
+  # SonarQube: JDBC to messaging Postgres (msg_backbone_net); UI via Traefik /sonarqube (sonarqube_net).
+  # Start messaging (postgres + sonar-db-init) before tooling. Keycloak OIDC: see docs/SONARQUBE_KEYCLOAK.md
+  sonarqube:
+    image: sonarqube:10.6.0-community
+    container_name: devsecops-sonarqube
+    hostname: sonarqube
+    networks:
+      - sonarqube_net
+      - msg_backbone_net
+    environment:
+      SONAR_JDBC_URL: "jdbc:postgresql://postgres:5432/${SONAR_JDBC_DB:-sonar}"
+      SONAR_JDBC_USERNAME: ${SONAR_JDBC_USERNAME:-sonar}
+      SONAR_JDBC_PASSWORD: ${SONAR_JDBC_PASSWORD:-}
+      SONAR_WEB_CONTEXT: ${SONAR_WEB_CONTEXT:-/sonarqube}
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+      SONAR_WEB_JAVAOPTS: "${SONAR_WEB_JAVAOPTS:--Xmx2g -Xms512m}"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    restart: unless-stopped
+
 networks:
   gitea_net:
     external: true
@@ -96,9 +220,26 @@ networks:
     external: true
   zammad_net:
     external: true
+  bitwarden_net:
+    external: true
+  portainer_net:
+    external: true
   msg_backbone_net:
+    external: true
+  sdn_lab_net:
+    external: true
+  docs_net:
+    external: true
+  sonarqube_net:
     external: true
 
 volumes:
   n8n_data:
   zammad_postgres_data:
+  bitwarden_data:
+  portainer_data:
+  docs_data:
+    name: devsecops_docs_volume
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:

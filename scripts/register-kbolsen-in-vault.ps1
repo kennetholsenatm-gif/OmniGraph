@@ -1,7 +1,7 @@
 # Register admin user kbolsen and SSH public key in Vault (Varlock).
 # Prerequisites: SSH key in .dev/kbolsen_admin(.pub); Vault CLI and VAULT_ADDR/VAULT_TOKEN set.
 # MFA is set to admin_mfa_email (default kenneth.olsen.atm@gmail.com) for OTP/recovery.
-# Run from repo root or devsecops-pipeline.
+# Run from repo root (e.g. C:\GiTeaRepos\devsecops-pipeline).
 
 $ErrorActionPreference = "Stop"
 $adminMfaEmail = $env:ADMIN_MFA_EMAIL

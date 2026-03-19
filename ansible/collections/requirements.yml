@@ -1,0 +1,11 @@
+---
+# Install: ansible-galaxy collection install -r collections/requirements.yml
+collections:
+  - name: cisco.ios
+    version: ">=6.0.0"
+  - name: ansible.netcommon
+    version: ">=5.0.0"
+  - name: community.general
+    version: ">=8.0.0"
+  - name: community.docker
+    version: ">=3.0.0"

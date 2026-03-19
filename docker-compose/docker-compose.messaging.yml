@@ -1,4 +1,5 @@
 # Messaging backbone: Solace, NiFi, RabbitMQ, Kafka (100.64.10.0/24).
+# Slim dev variant (Postgres + RabbitMQ only): docker-compose.messaging.slim.yml
 # Create network first: docker network create --driver bridge --subnet 100.64.10.0/24 msg_backbone_net
 # Use: docker compose -f docker-compose.messaging.yml --env-file ../.env.schema up -d
 
@@ -13,6 +14,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-qminiwasm_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # Phase 4: pipeline_events schema (runs on first init when volume is empty)
+      - ./init-scripts/init-pipeline-events.sql:/docker-entrypoint-initdb.d/10-pipeline-events.sql:ro
     networks:
       - msg_backbone_net
     healthcheck:
@@ -21,6 +24,28 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+
+  # Idempotent: create SonarQube DB role + database (see docker-compose.tooling.yml sonarqube).
+  sonar-db-init:
+    image: pgvector/pgvector:pg16
+    container_name: devsecops-sonar-db-init
+    hostname: sonar-db-init
+    networks:
+      - msg_backbone_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-qminiwasm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      SONAR_JDBC_PASSWORD: ${SONAR_JDBC_PASSWORD:-}
+      SONAR_JDBC_USERNAME: ${SONAR_JDBC_USERNAME:-sonar}
+      SONAR_JDBC_DB: ${SONAR_JDBC_DB:-sonar}
+    volumes:
+      - ./init-scripts/ensure-sonar-db.sh:/ensure-sonar-db.sh:ro
+    entrypoint: ["/bin/bash", "/ensure-sonar-db.sh"]
+    restart: "no"
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -67,6 +92,36 @@ services:
       - msg_backbone_net
     restart: unless-stopped
 
+  # Phase 4: Optional. Deploy JDBC Sink connector via REST after start (see docs/DATA_FABRIC_PHASE4.md).
+  kafka-connect:
+    image: confluentinc/cp-kafka-connect:7.5.3
+    container_name: devsecops-kafka-connect
+    hostname: kafka-connect
+    depends_on:
+      - kafka
+      - postgres
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: kafka:9092
+      CONNECT_GROUP_ID: devsecops-connect
+      CONNECT_CONFIG_STORAGE_TOPIC: _connect-config
+      CONNECT_OFFSET_STORAGE_TOPIC: _connect-offset
+      CONNECT_STATUS_STORAGE_TOPIC: _connect-status
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
+      # Postgres for JDBC Sink (substitute password when creating connector)
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-qminiwasm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-qminiwasm_db}
+    networks:
+      - msg_backbone_net
+    restart: unless-stopped
+
   nifi:
     image: apache/nifi:latest
     container_name: devsecops-nifi
@@ -75,6 +130,12 @@ services:
       NIFI_JVM_HEAP_INIT: ${NIFI_JVM_HEAP_INIT:-2g}
       NIFI_JVM_HEAP_MAX: ${NIFI_JVM_HEAP_MAX:-4g}
       NIFI_WEB_HTTP_PORT: 8080
+      # Phase 4: Postgres connection for pipeline_events logging (DBCP / PutDatabaseRecord)
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-qminiwasm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-qminiwasm_db}
     volumes:
       - nifi_data:/opt/nifi/nifi-current/database/repository
       - nifi_state:/opt/nifi/nifi-current/state

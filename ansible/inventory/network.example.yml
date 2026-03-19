@@ -1,0 +1,23 @@
+---
+# Copy to network.yml (gitignored locally) or merge into inventory.yml.
+# ansible-playbook -i inventory/network.example.yml playbooks/network-site.yml
+#
+# Connection: SSH to device; set ansible_user / ansible_password via vault or --ask-pass.
+
+all:
+  children:
+    network_isr:
+      hosts:
+        isr-primary:
+          ansible_host: 100.64.242.11
+        isr-secondary:
+          ansible_host: 100.64.242.12
+    network_c3560cx:
+      hosts:
+        access-closet-1:
+          ansible_host: 100.64.241.21
+
+  vars:
+    ansible_connection: ansible.netcommon.network_cli
+    ansible_network_os: ios
+    ansible_user: "{{ vault_network_ssh_user | default('admin') }}"

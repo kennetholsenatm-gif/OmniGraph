@@ -1,8 +1,8 @@
 <#
 .SYNOPSIS
-  Copy devsecops-pipeline folder to C:\GiTeaRepos and push to Gitea.
+  Commit and push devsecops-pipeline to Gitea (canonical repo at C:\GiTeaRepos\devsecops-pipeline).
 .DESCRIPTION
-  Copies the current folder (excluding .git) to C:\GiTeaRepos\devsecops-pipeline, inits git, commits, creates repo on Gitea if GITEA_TOKEN set, and pushes.
+  Run from the devsecops-pipeline repo (e.g. C:\GiTeaRepos\devsecops-pipeline). Inits git if needed, commits, creates repo on Gitea if GITEA_TOKEN set, adds origin if missing, and pushes. No copy from elsewhere; work in this repo.
 .PARAMETER GiteaUrl
   Gitea base URL (default http://localhost:3000).
 .PARAMETER GiteaUser
@@ -10,9 +10,9 @@
 .PARAMETER RepoName
   Repository name on Gitea (default devsecops-pipeline).
 .PARAMETER GiteaReposRoot
-  Host path for the copy (default C:\GiTeaRepos or env GITEA_REPOS_ROOT).
+  Canonical host path for this repo (default C:\GiTeaRepos; used in messages only).
 .PARAMETER NoPush
-  Only copy and commit; do not add remote or push.
+  Only commit; do not add remote or push.
 #>
 param(
     [string]$GiteaUrl = $env:GITEA_URL,
@@ -27,33 +27,27 @@ if (-not $GiteaReposRoot) { $GiteaReposRoot = "C:\GiTeaRepos" }
 
 $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sourceDir = Split-Path -Parent $scriptDir
-$targetDir = Join-Path $GiteaReposRoot $RepoName
+$repoRoot = Split-Path -Parent $scriptDir
 
-if (-not (Test-Path $GiteaReposRoot)) {
-    New-Item -ItemType Directory -Path $GiteaReposRoot -Force | Out-Null
-    Write-Host "Created $GiteaReposRoot"
+Push-Location $repoRoot
+
+if (-not (Test-Path ".git")) {
+    Write-Host "Initializing git in $repoRoot"
+    git init
+    git branch -M main
 }
 
-Write-Host "Copying $sourceDir -> $targetDir (excluding .git)..."
-if (Test-Path $targetDir) {
-    Remove-Item -Recurse -Force $targetDir
+$status = git status --porcelain 2>$null
+if ($status) {
+    git add -A
+    git status
+    git commit -m "Sync: devsecops-pipeline"
+} else {
+    Write-Host "No changes to commit."
 }
-New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
-Get-ChildItem -Path $sourceDir -Force | Where-Object { $_.Name -ne ".git" } | ForEach-Object {
-    Copy-Item -Path $_.FullName -Destination (Join-Path $targetDir $_.Name) -Recurse -Force
-}
-Write-Host "Copy done."
-
-Push-Location $targetDir
-
-git init
-git branch -M main
-git add -A
-git commit -m "Initial commit: devsecops-pipeline"
 
 if ($NoPush) {
-    Write-Host "NoPush: add Gitea remote and push manually: git remote add origin $GiteaUrl/$GiteaUser/$RepoName.git; git push -u origin main"
+    Write-Host "NoPush: add remote and push manually: git remote add origin $GiteaUrl/$GiteaUser/$RepoName.git; git push -u origin main"
     Pop-Location
     exit 0
 }
@@ -75,14 +69,25 @@ if ($token) {
 }
 
 $remoteUrl = "$GiteaUrl/$GiteaUser/$RepoName.git"
-git remote add origin $remoteUrl
-Write-Host "Pushing to $remoteUrl..."
+$existing = $null
+$ErrorActionPreferenceSave = $ErrorActionPreference
+$ErrorActionPreference = "SilentlyContinue"
+try { $existing = (git remote get-url origin 2>$null) | Select-Object -First 1 }
+finally { $ErrorActionPreference = $ErrorActionPreferenceSave }
+if ($existing) {
+    if ($existing -ne $remoteUrl) { git remote set-url origin $remoteUrl; Write-Host "Set origin to $remoteUrl" }
+} else {
+    git remote add origin $remoteUrl
+    Write-Host "Added origin: $remoteUrl"
+}
+
+Write-Host "Pushing to origin main..."
 git push -u origin main
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Push failed. Create the repo in Gitea UI if needed, then: git push -u origin main"
+    Write-Host "Push failed. Create repo in Gitea UI if needed, then: git push -u origin main"
     Pop-Location
     exit 1
 }
 
 Pop-Location
-Write-Host "Done. Repo: $GiteaUrl/$GiteaUser/$RepoName (copy at $targetDir)"
+Write-Host "Done. Repo: $GiteaUrl/$GiteaUser/$RepoName (canonical: $GiteaReposRoot\$RepoName)"

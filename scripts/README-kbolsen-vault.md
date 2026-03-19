@@ -13,7 +13,7 @@ One-time setup: generate the admin user **kbolsen**, an SSH key on your machine,
 
 ## Run the registration script
 
-From `devsecops-pipeline` (or repo root with script path adjusted):
+From repo root (e.g. C:\GiTeaRepos\devsecops-pipeline):
 
 ```powershell
 # Set Vault access

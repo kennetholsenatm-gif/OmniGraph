@@ -1,7 +1,7 @@
 # Reset Keycloak so the admin user is created from Vault (or .dev password file).
 # Keycloak only applies KEYCLOAK_ADMIN / KEYCLOAK_ADMIN_PASSWORD on first DB init.
 # This script: stops IAM stack, removes Keycloak DB volume, sets env from file, starts IAM again.
-# Run from devsecops-pipeline. Requires: .dev\kbolsen_keycloak_password.txt
+# Run from repo root (e.g. C:\GiTeaRepos\devsecops-pipeline). Requires: .dev\kbolsen_keycloak_password.txt
 
 $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path

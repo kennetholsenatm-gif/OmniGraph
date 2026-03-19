@@ -1,6 +1,8 @@
 ---
-# Master playbook: host hardening (FIPS/firewalld) then mesh deployment.
-# Run from devsecops-pipeline/ansible: ansible-playbook -i inventory.yml playbooks/site.yml
+# Master playbook: host hardening (FIPS/firewalld), mesh (networks), then containers with Ansible-injected env.
+# No manual .env: env is injected by Ansible from Vault or vault-encrypted vars. Run from this repo’s ansible/ (e.g. C:\GiTeaRepos\devsecops-pipeline\ansible):
+#   ansible-playbook -i inventory.yml playbooks/site.yml   (requires devsecops_secrets in group_vars or -e)
+#   Or: ansible-playbook -i inventory.yml playbooks/start-containers-with-vault.yml   (fetches from HashiCorp Vault)
 - name: Harden host (FIPS, firewalld)
   hosts: ai_mesh_nodes
   become: true
@@ -10,3 +12,11 @@
         devsecops_cidr: "100.64.0.0/10"
 
 - import_playbook: deploy-devsecops-mesh.yml
+
+# Containers: env injected by Ansible (no .env). Provide devsecops_secrets via group_vars (ansible-vault) or run start-containers-with-vault.yml with VAULT_ADDR/VAULT_TOKEN.
+- name: Start DevSecOps containers (env from Ansible)
+  hosts: ai_mesh_nodes
+  become: true
+  roles:
+    - role: devsecops_containers
+  when: devsecops_secrets is defined and devsecops_secrets | length > 0

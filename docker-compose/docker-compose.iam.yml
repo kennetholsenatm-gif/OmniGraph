@@ -23,6 +23,7 @@ services:
     image: postgres:15-alpine
     container_name: devsecops-keycloak-db
     hostname: keycloak-db
+    # POSTGRES_PASSWORD applies only on first volume init. If KEYCLOAK_DB_PASSWORD changes later, Keycloak JDBC fails until you align Vault/env with the original password or remove volume keycloak_db_data (see docs/DEPLOYMENT.md).
     networks:
       - iam_net
     environment:
@@ -52,11 +53,15 @@ services:
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?Set KEYCLOAK_DB_PASSWORD}
+      # Bootstrap only: used on first DB init to create initial admin. Prefer LDAP for human admin and a service-account client (KEYCLOAK_AUTOMATION_CLIENT_*) for scripts. See docs/IAM_LDAP_AND_AUTOMATION.md.
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Set KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-}
       KC_HOSTNAME_STRICT: "false"
       KC_HTTP_ENABLED: "true"
-      KC_HOSTNAME: "localhost"
+      # Phase 2 IAM: hostname for redirects; use GATEWAY_DOMAIN so OIDC redirect_uri matches gateway (e.g. http://localhost/keycloak or https://gateway.example.com/keycloak)
+      KC_HOSTNAME: "${GATEWAY_DOMAIN:-localhost}"
+      # Run under /keycloak when behind Single Pane of Glass (Traefik at http://localhost/keycloak/).
+      KC_HTTP_RELATIVE_PATH: "${KC_HTTP_RELATIVE_PATH:-/keycloak}"
       # Trust proxy headers so client is seen as 127.0.0.1 (set by keycloak-proxy).
       KC_PROXY_HEADERS: "xforwarded"
     depends_on:
@@ -70,7 +75,7 @@ services:
     hostname: keycloak-proxy
     networks:
       - iam_net
-    # Bind to 127.0.0.1 to avoid Docker Desktop port-forward issues on Windows.
+    # Bind to 127.0.0.1 to avoid Docker Desktop port-forward issues on Windows. For single ingress (production): comment out ports; access Keycloak only via Traefik at /keycloak/.
     ports:
       - "127.0.0.1:8180:80"
     volumes:
@@ -79,9 +84,30 @@ services:
       - keycloak
     restart: unless-stopped
 
+  # Teleport OSS: combined auth + proxy for dev/greenfield. See docker-compose/teleport.yaml, docs/TELEPORT_JIT.md.
+  # TELEPORT_API_TOKEN is for n8n/automation calling Teleport API — stored in Vault (secrets-bootstrap); not consumed by this service.
+  # ECR Public publishes major tags on teleport-distroless; `teleport:16` is not found at pull time.
+  teleport:
+    image: public.ecr.aws/gravitational/teleport-distroless:16
+    container_name: devsecops-teleport
+    hostname: teleport
+    networks:
+      - iam_net
+    ports:
+      - "3080:3080"
+      - "3023:3023"
+      - "3024:3024"
+      - "3025:3025"
+    volumes:
+      - teleport_data:/var/lib/teleport
+      - ./teleport.yaml:/etc/teleport/teleport.yaml:ro
+    command: ["start", "--config=/etc/teleport/teleport.yaml"]
+    restart: unless-stopped
+
 networks:
   iam_net:
     external: true
 
 volumes:
   keycloak_db_data:
+  teleport_data:

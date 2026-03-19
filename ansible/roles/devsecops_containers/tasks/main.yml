@@ -1,0 +1,133 @@
+---
+# Start DevSecOps stacks with env injected by Ansible. No .env on disk; env comes from vars (Ansible Vault or Vault lookup).
+# Provide devsecops_secrets (e.g. group_vars encrypted with ansible-vault, or from HashiCorp Vault lookup in a wrapper).
+
+- name: Fail when devsecops_secrets not provided
+  ansible.builtin.fail:
+    msg: "Provide devsecops_secrets (e.g. group_vars with ansible-vault, or -e @secrets.yml). See role README."
+  when: devsecops_secrets is not defined or devsecops_secrets | length == 0
+
+- name: Build container env (defaults + secrets)
+  ansible.builtin.set_fact:
+    container_env: "{{ devsecops_env_defaults | combine(devsecops_secrets, recursive=false) }}"
+  no_log: true
+
+- name: Ensure compose project directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ devsecops_compose_base }}"
+    - "{{ devsecops_gateway_base }}"
+  when: container_env is defined
+
+- name: Start messaging backbone (compose with Ansible-injected env)
+  community.docker.docker_compose_v2:
+    project_src: "{{ devsecops_compose_base }}"
+    project_name: devsecops
+    files:
+      - docker-compose.messaging.yml
+    env: "{{ container_env }}"
+    state: present
+  when: container_env is defined and start_messaging | default(true) | bool
+
+- name: Start IAM stack (Keycloak, Vault proxy) with Ansible-injected env
+  community.docker.docker_compose_v2:
+    project_src: "{{ devsecops_compose_base }}"
+    project_name: devsecops-iam
+    files:
+      - docker-compose.iam.yml
+    env: "{{ container_env }}"
+    state: present
+  when: container_env is defined and start_iam | default(true) | bool
+
+- name: Start tooling (Gitea, n8n, Zammad, Bitwarden) with Ansible-injected env
+  community.docker.docker_compose_v2:
+    project_src: "{{ devsecops_compose_base }}"
+    project_name: devsecops-tooling
+    files:
+      - docker-compose.tooling.yml
+    env: "{{ container_env }}"
+    state: present
+  when: container_env is defined and start_tooling | default(true) | bool
+
+- name: Start ChatOps (Zulip) with Ansible-injected env
+  community.docker.docker_compose_v2:
+    project_src: "{{ devsecops_compose_base }}"
+    project_name: devsecops-chatops
+    files:
+      - docker-compose.chatops.yml
+    env: "{{ container_env }}"
+    state: present
+  when: container_env is defined and start_chatops | default(true) | bool
+
+- name: Start discovery stack (NetBox, Dependency-Track, Netdisco) when enabled
+  community.docker.docker_compose_v2:
+    project_src: "{{ devsecops_compose_base }}"
+    project_name: devsecops-discovery
+    files:
+      - docker-compose.discovery.yml
+    env: "{{ container_env }}"
+    state: present
+  when: container_env is defined and start_discovery | default(false) | bool
+
+- name: Start LLM stack (BitNet inference) when enabled
+  community.docker.docker_compose_v2:
+    project_src: "{{ devsecops_compose_base }}"
+    project_name: devsecops-llm
+    files:
+      - docker-compose.llm.yml
+    env: "{{ container_env }}"
+    state: present
+  when: container_env is defined and start_llm | default(false) | bool
+
+- name: Start AI orchestration (n8n-mcp) when enabled
+  community.docker.docker_compose_v2:
+    project_src: "{{ devsecops_compose_base }}"
+    project_name: devsecops-ai-orchestration
+    files:
+      - docker-compose.ai-orchestration.yml
+    env: "{{ container_env }}"
+    state: present
+  when: container_env is defined and start_ai_orchestration | default(false) | bool
+
+- name: Start SDN lab (OVS, VyOS) when SDN telemetry enabled
+  community.docker.docker_compose_v2:
+    project_src: "{{ devsecops_compose_base }}"
+    project_name: devsecops-sdn
+    files:
+      - docker-compose.network.yml
+    env: "{{ container_env }}"
+    state: present
+  when: container_env is defined and start_sdn_telemetry | default(false) | bool
+
+- name: Start telemetry (sFlow-RT, Prometheus, Grafana) when SDN telemetry enabled
+  community.docker.docker_compose_v2:
+    project_src: "{{ devsecops_compose_base }}"
+    project_name: devsecops-telemetry
+    files:
+      - docker-compose.telemetry.yml
+    env: "{{ container_env }}"
+    state: present
+  when: container_env is defined and start_sdn_telemetry | default(false) | bool
+
+- name: Start Wazuh SIEM when enabled
+  community.docker.docker_compose_v2:
+    project_src: "{{ devsecops_compose_base }}"
+    project_name: devsecops-siem
+    files:
+      - docker-compose.siem.yml
+    env: "{{ container_env }}"
+    state: present
+  when: container_env is defined and start_siem | default(false) | bool
+
+- name: Start Single Pane of Glass (Traefik, dashboard, webhook) with Ansible-injected env
+  community.docker.docker_compose_v2:
+    project_src: "{{ devsecops_gateway_base }}"
+    project_name: gateway
+    files:
+      - docker-compose.yml
+    env: "{{ container_env }}"
+    state: present
+  when: container_env is defined and start_gateway | default(true) | bool
