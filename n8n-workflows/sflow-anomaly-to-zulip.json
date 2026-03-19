@@ -1,0 +1,86 @@
+{
+  "name": "sFlow anomaly → Zulip (ChatOps)",
+  "nodes": [
+    {
+      "id": "webhook-sflow-anomaly",
+      "name": "sFlow anomaly webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "parameters": {
+        "path": "sflow-anomaly",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "sflow-anomaly-zulip"
+    },
+    {
+      "id": "normalize-sflow-payload",
+      "name": "Normalize sFlow / anomaly JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0],
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst body = raw.body !== undefined ? raw.body : raw;\nconst keys = body && typeof body === 'object' ? Object.keys(body) : [];\nconst flowKey = (body.flowKey || body.key || body.flow || body.id || body.metric || 'net-anomaly').toString();\nconst topic = 'net-anomaly-' + flowKey.replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 60);\nconst stream = (typeof process !== 'undefined' && process.env && process.env.ZULIP_SFLOW_STREAM) ? process.env.ZULIP_SFLOW_STREAM : 'network';\nlet md = '**sFlow / network anomaly**\\n';\nmd += '**flowKey:** ' + flowKey + '\\n';\nif (body.threshold !== undefined) md += '**threshold:** ' + body.threshold + '\\n';\nif (body.value !== undefined) md += '**value:** ' + body.value + '\\n';\nif (body.message) md += (body.message || '').toString() + '\\n';\nif (keys.length && !body.message) md += '```json\\n' + JSON.stringify(body, null, 2).slice(0, 3500) + '\\n```\\n';\nreturn [{ json: { zulip_stream: stream, zulip_topic: topic, zulip_content: md, flowKey: flowKey, result: 'parsed' } }];"
+      }
+    },
+    {
+      "id": "send-to-zulip",
+      "name": "Send to Zulip",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 0],
+      "parameters": {
+        "url": "={{ $env.ZULIP_URL || 'http://zulip' }}/api/v1/messages",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "formUrlEncoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "type", "value": "stream" },
+            { "name": "to", "value": "={{ $json.zulip_stream }}" },
+            { "name": "topic", "value": "={{ $json.zulip_topic }}" },
+            { "name": "content", "value": "={{ $json.zulip_content }}" }
+          ]
+        }
+      },
+      "credentials": {
+        "httpBasicAuth": { "id": "zulip_api", "name": "Zulip API" }
+      }
+    },
+    {
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 0],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ result: 'success', message_id: $json.id, topic: $('Normalize sFlow / anomaly JSON').first().json.zulip_topic, stream: $('Normalize sFlow / anomaly JSON').first().json.zulip_stream }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "sFlow anomaly webhook": {
+      "main": [[{ "node": "Normalize sFlow / anomaly JSON", "type": "main", "index": 0 }]]
+    },
+    "Normalize sFlow / anomaly JSON": {
+      "main": [[{ "node": "Send to Zulip", "type": "main", "index": 0 }]]
+    },
+    "Send to Zulip": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v2"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {}
+}

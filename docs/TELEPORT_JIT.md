@@ -1,5 +1,16 @@
 # Teleport JIT Access Integration
 
+## Running Teleport in this repo
+
+The IAM stack includes a **single-node Teleport** (auth + proxy) for dev/greenfield:
+
+- **Compose:** [docker-compose/docker-compose.iam.yml](../docker-compose/docker-compose.iam.yml) service `teleport`
+- **Config:** [docker-compose/teleport.yaml](../docker-compose/teleport.yaml) (`cluster_name: devsecops.local`)
+- **Ports:** **3080** web UI, **3023** SSH proxy, **3024** tunnel, **3025** auth API (see [NETWORK_DESIGN.md](NETWORK_DESIGN.md) UFW/firewalld bullets)
+- **Secrets:** `TELEPORT_API_TOKEN` is generated and written to Vault at `secret/devsecops` by [scripts/secrets-bootstrap.ps1](../scripts/secrets-bootstrap.ps1) for **clients** (n8n, scripts) calling the Teleport API — not mounted into the Teleport container.
+- **Architecture table:** [SYSTEMS_ARCHITECTURE.md](SYSTEMS_ARCHITECTURE.md)
+- **Production:** HA auth, proper TLS, and Keycloak OIDC/SAML are out of scope for this dev bundle; upgrade path is standard Teleport docs.
+
 ## Overview
 
 Just-in-Time (JIT) access issues short-lived certificates for agents (e.g. Cline Coder) based on approved ITIL tickets. The flow is: **Zammad webhook → n8n → Teleport API → ephemeral cert**.

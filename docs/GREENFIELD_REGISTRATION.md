@@ -1,5 +1,11 @@
 # Greenfield Product Registration (No Static Secrets)
 
+## Single-command greenfield
+
+**Recommended:** From repo root run `.\scripts\launch-greenfield.ps1`. You are prompted once for your break-glass admin username and password; the script creates all **16** Docker networks including `docs_net` (see [NETWORK_DESIGN.md](NETWORK_DESIGN.md)), runs secrets bootstrap (generate secrets, start merged core stack: IAM, messaging, tooling, ChatOps — see `docker-compose/stack-manifest.json`, write to Vault), and optionally saves the Vault token. One command, one prompt; when it finishes, the infrastructure is up. Use `-SaveVaultToken` so the next run is just `.\scripts\start-from-vault.ps1`. For non-interactive/CI, set `BREAK_GLASS_USER` and `BREAK_GLASS_PASSWORD` and run with `-NonInteractive`. See [GREENFIELD_ONE_SHOT.md](GREENFIELD_ONE_SHOT.md).
+
+---
+
 ## The problem
 
 You want **all pipeline secrets in Vault** and **no static files** (no `.env` with passwords). But something has to bootstrap Vault and provide the first way to read from it. So:
@@ -13,7 +19,7 @@ You want **all pipeline secrets in Vault** and **no static files** (no `.env` wi
 
 **All initial values are generated**, not read from a file:
 
-1. Run **`scripts/secrets-bootstrap.ps1`**.
+1. Run **`scripts/launch-greenfield.ps1`** (creates networks then runs `secrets-bootstrap.ps1`), or run **`scripts/secrets-bootstrap.ps1`** directly if networks already exist.
 2. It **generates** strong random values for every pipeline secret (Keycloak DB, admin password, Vault root token, Zammad, Gitea, Solace, etc.) **in memory**.
 3. It **starts** the stack (Vault, Keycloak, messaging, tooling) with those values in the **process environment**.
 4. It **writes** the same values to **Vault** at `secret/devsecops` via the API.
@@ -38,7 +44,7 @@ So the **only** value that might be “stored” somewhere (outside Vault) is th
 ### 3. Recommended flow (greenfield)
 
 1. **First time (or after “reset”)**  
-   - Run: `.\scripts\secrets-bootstrap.ps1`  
+   - Run: `.\scripts\launch-greenfield.ps1` (creates networks, then bootstrap; one prompt for admin credentials). Or run `.\scripts\secrets-bootstrap.ps1` if networks already exist.  
    - Optional: run `.\scripts\save-vault-token-to-keystore.ps1` to store the current Vault token in Windows Credential Manager (so you don’t have to type it again).
 
 2. **Later runs (after reboot)**  
