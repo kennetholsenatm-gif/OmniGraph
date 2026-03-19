@@ -1,0 +1,25 @@
+---
+# Copy to network_isr.yml and encrypt secrets with ansible-vault if needed.
+
+# WAN / inside physical interfaces (adjust per chassis: Gi0/0/0 vs Gi0/0/0/0)
+cisco_isr_wan_interface: GigabitEthernet0/0/0
+cisco_isr_inside_interface: GigabitEthernet0/0/1
+
+# Dot1Q subinterfaces on INSIDE toward 3650 / C3560CX trunks (see VLAN_MATRIX platform carve)
+cisco_isr_inside_subinterfaces:
+  - vlan: 240
+    ipv4: 100.64.240.2
+    mask: 255.255.255.0
+    description: PLATFORM_CORE_VRRP_member
+  - vlan: 244
+    ipv4: 100.64.244.1
+    mask: 255.255.255.0
+    description: GOOGLE_HOME_LAN_GW
+
+# Set true after lab validation
+cisco_isr_configure_nat_overload: false
+cisco_isr_nat_inside_acl: "100"
+# Standard ACL example name — define on device or extend role
+
+cisco_isr_static_routes: []
+# - { prefix: 100.64.0.0, mask: 255.192.0.0, next_hop: 100.64.240.3 }

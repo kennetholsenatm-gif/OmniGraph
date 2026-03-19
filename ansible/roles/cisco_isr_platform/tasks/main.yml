@@ -1,0 +1,57 @@
+---
+- name: Baseline IOS service settings (idempotent)
+  cisco.ios.ios_config:
+    lines:
+      - service timestamps debug datetime msec
+      - service timestamps log datetime msec
+      - no ip http server
+      - no ip http secure-server
+    save_when: never
+
+- name: Enable password encryption (optional)
+  cisco.ios.ios_config:
+    lines:
+      - service password-encryption
+  when: cisco_isr_service_password_encryption | bool
+
+- name: Configure inside 802.1Q subinterfaces
+  cisco.ios.ios_config:
+    parents:
+      - "interface {{ cisco_isr_inside_interface }}.{{ item.vlan }}"
+    lines:
+      - "encapsulation dot1Q {{ item.vlan }}"
+      - "description {{ item.description | default('ANSIBLE') }}"
+      - "ip address {{ item.ipv4 }} {{ item.mask }}"
+  loop: "{{ cisco_isr_inside_subinterfaces }}"
+  loop_control:
+    label: "{{ cisco_isr_inside_interface }}.{{ item.vlan }}"
+
+- name: Install static routes (IPv4)
+  cisco.ios.ios_config:
+    lines:
+      - "ip route {{ item.prefix }} {{ item.mask }} {{ item.next_hop }}"
+  loop: "{{ cisco_isr_static_routes }}"
+  when: cisco_isr_static_routes | length > 0
+
+- name: NAT overload toward WAN (enable only after ACLs exist on device)
+  when: cisco_isr_configure_nat_overload | bool
+  block:
+    - name: NAT inside on subinterfaces (extend list as needed)
+      cisco.ios.ios_config:
+        parents:
+          - "interface {{ cisco_isr_inside_interface }}.{{ item.vlan }}"
+        lines:
+          - ip nat inside
+      loop: "{{ cisco_isr_inside_subinterfaces }}"
+
+    - name: NAT outside on WAN
+      cisco.ios.ios_config:
+        parents:
+          - "interface {{ cisco_isr_wan_interface }}"
+        lines:
+          - ip nat outside
+
+    - name: NAT inside source list overload (requires ACL {{ cisco_isr_nat_acl_name }} on device)
+      cisco.ios.ios_config:
+        lines:
+          - "ip nat inside source list {{ cisco_isr_nat_acl_name }} interface {{ cisco_isr_wan_interface }} overload"

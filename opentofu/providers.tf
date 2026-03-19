@@ -1,5 +1,5 @@
 # OpenTofu Docker provider for DevSecOps pipeline networks.
-# Run from devsecops-pipeline/opentofu: tofu init && tofu apply
+# Run from opentofu/: tofu init && tofu apply
 
 terraform {
   required_version = ">= 1.6.0"

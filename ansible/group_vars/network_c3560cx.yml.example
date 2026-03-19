@@ -1,0 +1,25 @@
+---
+# Copy to network_c3560cx.yml
+
+# Uplink toward ISR / distribution (adjust interface names: Gi1/0/1 etc.)
+c3560cx_uplink_interfaces:
+  - name: GigabitEthernet0/1
+    mode: trunk
+    allowed_vlans: "240-244,2001-2054,86"
+    description: UPLINK_TO_ISR_OR_3650
+
+# VLANs to create (IDs align with deployments/opennebula-kvm/VLAN_MATRIX.md)
+c3560cx_vlans:
+  - id: 240
+    name: PLATFORM_CORE
+  - id: 241
+    name: SW_MGMT
+  - id: 244
+    name: GOOGLE_HOME
+  - id: 2001
+    name: DEVSECOPS_GITEA
+  # Add 2002–2054 + 86 as you trunk OpenNebula VLANs
+
+c3560cx_access_ports: []
+# Example:
+# - { interface: GigabitEthernet0/2, mode: access, vlan: 244 }

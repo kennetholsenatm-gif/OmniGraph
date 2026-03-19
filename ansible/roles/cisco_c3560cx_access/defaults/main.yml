@@ -1,0 +1,11 @@
+---
+c3560cx_uplink_interfaces: []
+# - { name: GigabitEthernet0/1, mode: trunk, allowed_vlans: "240-244,2001-2054,86" }
+
+c3560cx_vlans: []
+# - { id: 240, name: PLATFORM_CORE }
+
+c3560cx_access_ports: []
+# - { interface: GigabitEthernet0/2, mode: access, vlan: 244 }
+
+c3560cx_spanning_tree_mode: rapid-pvst

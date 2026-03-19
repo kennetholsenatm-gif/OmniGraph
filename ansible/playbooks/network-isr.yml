@@ -1,0 +1,8 @@
+---
+# Apply ISR baseline (inside subinterfaces, static routes, optional NAT).
+# ansible-playbook -i inventory/network.example.yml playbooks/network-isr.yml
+- name: Configure Cisco ISR (IOS-XE)
+  hosts: network_isr
+  gather_facts: false
+  roles:
+    - cisco_isr_platform

@@ -1,0 +1,8 @@
+---
+galaxy_info:
+  role_name: cisco_isr_platform
+  author: devsecops-pipeline
+  description: Baseline IOS-XE ISR inside subinterfaces, static routes, optional NAT.
+  license: MIT
+  min_ansible_version: "2.14"
+dependencies: []

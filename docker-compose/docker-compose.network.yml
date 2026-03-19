@@ -1,0 +1,75 @@
+# SDN lab: Open vSwitch + VyOS on AlmaLinux / RHEL-family Docker hosts.
+# Prerequisites: scripts/create-networks.ps1 (or manual) must create external `sdn_lab_net`.
+# Host prep: see docs/SDN_TELEMETRY.md (kernel module, optional VXLAN plugin).
+# VyOS↔OVS veth plumbing is often host-assisted; see scripts/sdn-plumb.sh.
+
+services:
+  openvswitch:
+    image: instrumentisto/openvswitch:latest
+    container_name: devsecops-openvswitch
+    hostname: openvswitch
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+      - NET_BROADCAST
+      - IPC_LOCK
+    networks:
+      - ovs_internal
+      - sdn_lab_net
+    volumes:
+      - /lib/modules:/lib/modules:ro
+      - ovs-data:/var/lib/openvswitch
+      - ovs-run:/run/openvswitch
+    sysctls:
+      - net.ipv4.ip_forward=1
+    restart: unless-stopped
+
+  vyos:
+    image: vyos/vyos:1.4
+    container_name: devsecops-vyos
+    hostname: vyos
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - SYS_MODULE
+      - NET_RAW
+      - NET_BROADCAST
+    networks:
+      ovs_internal:
+      sdn_lab_net:
+    volumes:
+      - /lib/modules:/lib/modules:ro
+      - vyos_config:/config
+    environment:
+      # Container images vary; set for lab login — align VyOS config with docs/SDN_TELEMETRY.md
+      VYOS_USER: "${VYOS_USER:-vyos}"
+      VYOS_PASSWORD: "${VYOS_USER_PASSWORD:-changeme}"
+    restart: unless-stopped
+
+  # IDS: capture on Linux host NIC (SPAN/mirror destination). Requires Linux Docker host; set SURICATA_INTERFACE to mirror output (e.g. veth or eth0).
+  suricata:
+    image: jasonish/suricata:6.0.13
+    container_name: devsecops-suricata
+    hostname: suricata
+    privileged: true
+    network_mode: host
+    command:
+      - "-i"
+      - "${SURICATA_INTERFACE:-eth0}"
+    volumes:
+      - suricata_logs:/var/log/suricata
+    restart: unless-stopped
+
+networks:
+  ovs_internal:
+    driver: bridge
+  sdn_lab_net:
+    external: true
+
+volumes:
+  ovs-data:
+  ovs-run:
+  vyos_config:
+  suricata_logs:

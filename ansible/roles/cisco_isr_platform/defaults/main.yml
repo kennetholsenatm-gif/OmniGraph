@@ -1,0 +1,15 @@
+---
+cisco_isr_wan_interface: GigabitEthernet0/0/0
+cisco_isr_inside_interface: GigabitEthernet0/0/1
+
+# List of { vlan, ipv4, mask, description }
+cisco_isr_inside_subinterfaces: []
+
+cisco_isr_configure_nat_overload: false
+cisco_isr_nat_acl_name: NAT_INSIDE
+cisco_isr_wan_acl_for_nat: NAT_OUTSIDE_INTERFACE
+
+cisco_isr_static_routes: []
+# - { prefix: 100.64.0.0, mask: 255.192.0.0, next_hop: 100.64.240.3 }
+
+cisco_isr_service_password_encryption: true
