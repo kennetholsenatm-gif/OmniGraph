@@ -1,3 +1,6 @@
+# IDE / editor
+.cursor/
+
 # Local dev and secrets — never commit
 .dev/
 *.key
@@ -11,3 +14,17 @@ vault-payload-*.yaml
 # Greenfield identity list (real names/emails; use identities.example.yaml as template)
 identities.yaml
 identities.ldif
+
+# Local debug / agent logs
+debug-*.log
+
+# Python cache under scripts/
+scripts/__pycache__/
+
+# Ansible network inventory / group_vars with real IPs and secrets (use *.example templates)
+ansible/inventory/network.yml
+ansible/group_vars/network_isr.yml
+ansible/group_vars/network_c3560cx.yml
+
+# Optional large wiki exports (clone stays small; use docs/snippets as source templates)
+docs/WIKI_EXPORT/

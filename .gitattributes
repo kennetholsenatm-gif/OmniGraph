@@ -1,0 +1,3 @@
+# Bash on WSL/Linux requires LF; CRLF breaks `set -o pipefail` and similar.
+*.sh text eol=lf
+*.py text eol=lf
