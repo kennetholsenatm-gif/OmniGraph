@@ -1,0 +1,103 @@
+---
+# LXD/Incus + Alma-based instances; Docker-in-LXC for compose stacks.
+# Full path to the LXD or Incus CLI if not discoverable (e.g. /snap/bin/lxc, /usr/bin/incus).
+lxd_cli: ""
+
+# Try to start the hypervisor via systemd / snap before profile/instance tasks (requires become/sudo).
+lxd_manage_daemon: true
+lxd_daemon_socket_timeout: 90
+
+# If set, passed as INCUS_SOCKET to every incus invocation (auto-detected when empty).
+# Also used to build url=unix:... for community.general.lxd_container (pylxd does not read INCUS_SOCKET).
+lxd_incus_socket: ""
+
+lxd_remote: local
+# CLI shorthand (lxc/incus launch … images:almalinux/10). community.general.lxd_container needs explicit simplestreams source below.
+lxd_image: "images:almalinux/10"
+lxd_image_simplestreams_server: "https://images.linuxcontainers.org"
+# Used when lxd_image does not start with "images:" (override alias only).
+lxd_image_alias: "almalinux/10"
+lxd_docker_profile: docker-nesting
+
+# Profile key linux.kernel_modules makes Incus/LXD run modprobe per module on the host. Empty = skip (WSL/minimal: modprobe not in daemon PATH).
+# Bare-metal Alma (ensure kmod installed): "ip_tables,ip6_tables,iptable_nat,iptable_mangle,iptable_filter,nf_nat,nf_conntrack,bridge,br_netfilter,overlay"
+lxd_docker_profile_kernel_modules: ""
+
+# Profile raw.lxc (multiline). Empty = skip — avoids liblxc "Failed to load config file /tmp/incus_config_*" on WSL/CRLF or AppArmor/cgroup quirks.
+# Enable on bare metal if Docker needs tun/AppArmor relax, e.g.:
+#   lxd_docker_profile_raw_lxc: |
+#     lxc.cgroup2.devices.allow = c 10:200 rwm
+#     lxc.apparmor.profile = unconfined
+lxd_docker_profile_raw_lxc: ""
+
+# Ensure storage pool + default profile root disk exist (fixes Incus/minimal installs: "No root device could be found").
+lxd_ensure_default_storage: true
+lxd_storage_pool_name: default
+
+# /etc/subuid + /etc/subgid need root: with size >= 65536; newuidmap/newgidmap must exist (shadow-utils / uidmap).
+lxd_ensure_idmap: true
+lxd_idmap_root_line: "root:100000:65536"
+
+# Repo root on control node (playbook sets from playbook_dir if empty)
+devsecops_pipeline_root: ""
+
+# Limit to these instance names; empty = all below
+lxd_apply_names: []
+
+# Messaging LXC compose: full backbone vs slim (Postgres + RabbitMQ only). Override for lower CPU dev.
+lxd_messaging_compose_cli: "-f docker-compose.messaging.yml"
+
+# When true, runs docker compose up inside each selected instance (needs env / secrets already in container or use secrets-bootstrap.sh first)
+devsecops_lxc_compose_up: false
+
+# Install Docker CE inside each instance (dnf needs working DNS for Alma + Docker repos).
+lxd_install_docker_in_instance: true
+# Push controller /etc/resolv.conf into each instance before dnf (WSL/Incus when CT has no resolver). Host must list reachable nameservers.
+lxd_sync_host_resolv_conf: false
+# If DNS is still broken, write this static resolver list inside each instance and re-test resolution.
+lxd_dns_fallback_enabled: true
+lxd_dns_fallback_servers:
+  - 1.1.1.1
+  - 8.8.8.8
+
+# Ensure a managed bridge exists for container egress/DNS.
+lxd_ensure_managed_bridge: true
+lxd_managed_bridge_name: ""
+
+lxd_devsecops_containers:
+  - name: devsecops-iam
+    compose_dir: docker-compose
+    compose_cli: "-f docker-compose.iam.yml"
+    compose_project: devsecops-iam
+    tags: [iam]
+  - name: devsecops-messaging
+    compose_dir: docker-compose
+    compose_cli: "{{ lxd_messaging_compose_cli }}"
+    compose_project: devsecops
+    tags: [messaging]
+  # Single nested Docker: IAM + slim messaging. Use: -e 'lxd_apply_names=["devsecops-dev"]' (omit separate iam/messaging LXCs).
+  - name: devsecops-dev
+    compose_dir: docker-compose
+    compose_cli: "-f docker-compose.iam.yml -f docker-compose.messaging.slim.yml"
+    compose_project: devsecops-dev
+    tags: [dev, dev-all-in-one]
+  - name: devsecops-tooling
+    compose_dir: docker-compose
+    compose_cli: "-f docker-compose.tooling.yml"
+    compose_project: devsecops-tooling
+    tags: [tooling]
+  - name: devsecops-chatops
+    compose_dir: docker-compose
+    compose_cli: "-f docker-compose.chatops.yml"
+    compose_project: devsecops-chatops
+    tags: [chatops]
+  - name: devsecops-telemetry
+    compose_dir: docker-compose
+    compose_cli: "-f docker-compose.telemetry.yml"
+    compose_project: devsecops-telemetry
+    tags: [telemetry]
+  - name: devsecops-gateway
+    compose_dir: single-pane-of-glass
+    compose_cli: "-f docker-compose.yml"
+    compose_project: devsecops-gateway
+    tags: [gateway]

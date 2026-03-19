@@ -1,0 +1,8 @@
+---
+galaxy_info:
+  role_name: lxd_devsecops_stack
+  author: devsecops-pipeline
+  description: LXD AlmaLinux instances with Docker-in-LXC and DevSecOps compose sync.
+  license: MIT
+  min_ansible_version: "2.14"
+dependencies: []
