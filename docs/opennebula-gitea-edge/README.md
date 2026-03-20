@@ -36,7 +36,7 @@ This folder **aligns** with the DevSecOps pipeline’s existing addressing and O
 
 | [ansible/playbooks/network-isr.yml](../../ansible/playbooks/network-isr.yml) | **ISR** edge playbooks (companion to matrix) |
 
-| [EDGE-MINI-PC-VYOS-PACKETFENCE.md](EDGE-MINI-PC-VYOS-PACKETFENCE.md) | **Mini PC** VyOS + PacketFence + RatTrap; PAT on VyOS WAN; **OSPF** transit vs **900/901**; integrations to `100.64.21/51/54/2/50` |
+| [EDGE-MINI-PC-VYOS-PACKETFENCE.md](EDGE-MINI-PC-VYOS-PACKETFENCE.md) | **Mini PC** VyOS + PacketFence + RatTrap; PAT on VyOS WAN; **OSPF** transit vs **900/901**; integrations to `100.64.20/51/54/2/50` |
 | [deployments/mini-pc-firewall/README.md](../../deployments/mini-pc-firewall/README.md) | **Packer** QCOW2 + **Ansible** Incus host + [Semaphore templates](../../deployments/mini-pc-firewall/semaphore/TEMPLATE-EXAMPLE.md) |
 
 | [ansible/roles/cisco_isr_platform/tasks/ucse.yml](../../ansible/roles/cisco_isr_platform/tasks/ucse.yml) | **UCS-E** / `ucse` interface patterns referenced by the matrix platform carve |

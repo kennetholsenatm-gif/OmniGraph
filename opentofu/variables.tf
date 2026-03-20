@@ -58,12 +58,6 @@ variable "chatops_net_cidr" {
   default     = "100.64.8.0/24"
 }
 
-variable "freeipa_cidr" {
-  description = "Subnet for FreeIPA"
-  type        = string
-  default     = "100.64.21.0/24"
-}
-
 variable "discovery_net_cidr" {
   description = "Subnet for full-stack discovery (NetBox, NetDISCO, Dependency-Track, etc.)"
   type        = string

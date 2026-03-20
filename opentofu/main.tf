@@ -81,14 +81,6 @@ resource "docker_network" "chatops_net" {
   }
 }
 
-resource "docker_network" "freeipa_net" {
-  name = "freeipa_net"
-  driver = "bridge"
-  ipam_config {
-    subnet = var.freeipa_cidr
-  }
-}
-
 # Full-stack discovery: NetBox, NetDISCO, Syft/Trivy, Dependency-Track.
 # Solace queues for BOM ingestion are configured on the Solace broker (not Docker network).
 resource "docker_network" "discovery_net" {

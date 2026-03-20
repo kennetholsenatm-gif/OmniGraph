@@ -1,6 +1,6 @@
-# Identity: FreeIPA (LDAP/Kerberos) on isolated network.
+# Identity: FreeIPA (LDAP/Kerberos) on the IAM control-plane bridge.
 # First run: init required (ipa-server-install). See README and docs/IDENTITIES_AND_PRIVILEGES.md.
-# Networks: freeipa_net (external). Create with OpenTofu or: docker network create freeipa_net.
+# Networks: iam_net (external, 100.64.20.0/24). Create with OpenTofu or scripts/create-networks.{ps1,sh}.
 
 services:
   freeipa:
@@ -8,7 +8,7 @@ services:
     container_name: devsecops-freeipa
     hostname: ipa
     networks:
-      - freeipa_net
+      - iam_net
     ports:
       - "80:80"
       - "443:443"
@@ -31,7 +31,7 @@ services:
     restart: unless-stopped
 
 networks:
-  freeipa_net:
+  iam_net:
     external: true
 
 volumes:

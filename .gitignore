@@ -14,6 +14,7 @@ vault-payload-*.yaml
 # Greenfield identity list (real names/emails; use identities.example.yaml as template)
 identities.yaml
 identities.ldif
+ldap-directory.yaml
 
 # Local debug / agent logs
 debug-*.log

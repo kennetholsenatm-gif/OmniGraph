@@ -2,6 +2,8 @@
 
 This document is the **architecture source of truth** for a dedicated **mini PC** acting as the **L3 edge** in front of the home/lab network: **VyOS** (Incus system container), **PacketFence** (Incus **VM**), and **RatTrap** (transparent filtering appliance) on **dedicated VLANs**. It **aligns** with [deployments/opennebula-kvm/VLAN_MATRIX.md](../../deployments/opennebula-kvm/VLAN_MATRIX.md) and [docs/NETWORK_DESIGN.md](../NETWORK_DESIGN.md) — **do not** place RatTrap transit or VyOS↔RatTrap **/30** links inside **`100.64.0.0/10`** workload space unless you intentionally merge routing domains.
 
+**Policy note:** PacketFence must reach **LDAP / RADIUS / Keycloak / Vault** on **Mini-PC-IAM** (or equivalents). You do **not** need separate Docker-style isolation *between* those IdM components and PacketFence if your threat model is fine with one **identity / NAC control-plane zone**; use **routing + firewall** to keep that zone off user VLANs. See [NETWORK_COLLAPSED_IDENTITY_PLANE.md](../NETWORK_COLLAPSED_IDENTITY_PLANE.md).
+
 ## Roles
 
 | Component | Deployment | Role |
@@ -60,7 +62,7 @@ Targets are the same segments as [NETWORK_DESIGN.md](../NETWORK_DESIGN.md):
 
 | Integration | Segment | Doc |
 |-------------|---------|-----|
-| **FreeIPA / LDAP** | `100.64.21.0/24` (`freeipa_net`) | [NETWORK_DESIGN](../NETWORK_DESIGN.md) |
+| **FreeIPA / LDAP** | `100.64.20.0/24` (`iam_net`, colocated with Vault/Keycloak/Teleport) | [NETWORK_DESIGN](../NETWORK_DESIGN.md) |
 | **sFlow-RT / telemetry** | `100.64.51.0/24` (`telemetry_net`) | [SDN_TELEMETRY.md](../SDN_TELEMETRY.md) |
 | **Wazuh / SIEM** | `100.64.54.0/24` (`siem_net`) | [WAZUH_SIEM.md](../WAZUH_SIEM.md) |
 | **n8n automation** | `100.64.2.0/24` (`n8n_net`) | [NETWORK_DESIGN](../NETWORK_DESIGN.md) |

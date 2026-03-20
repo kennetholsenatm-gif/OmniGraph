@@ -15,7 +15,6 @@ $nets = @(
     @{ name = "chatops_net";      subnet = "100.64.8.0/24" },
     @{ name = "msg_backbone_net"; subnet = "100.64.10.0/24" },
     @{ name = "iam_net";          subnet = "100.64.20.0/24" },
-    @{ name = "freeipa_net";      subnet = "100.64.21.0/24" },
     @{ name = "agent_mesh_net";   subnet = "100.64.30.0/24" },
     @{ name = "discovery_net";    subnet = "100.64.40.0/24" },
     @{ name = "sdn_lab_net";      subnet = "100.64.50.0/24" },
@@ -39,4 +38,4 @@ foreach ($n in $nets) {
         throw "Failed to create network $($n.name): $out"
     }
 }
-Write-Host "Docker networks ready (18): gitea_net, n8n_net, zammad_net, bitwarden_net, gateway_net, portainer_net, llm_net, chatops_net, msg_backbone_net, iam_net, freeipa_net, agent_mesh_net, discovery_net, sdn_lab_net, telemetry_net, docs_net, sonarqube_net, siem_net"
+Write-Host "Docker networks ready (17): gitea_net, n8n_net, zammad_net, bitwarden_net, gateway_net, portainer_net, llm_net, chatops_net, msg_backbone_net, iam_net, agent_mesh_net, discovery_net, sdn_lab_net, telemetry_net, docs_net, sonarqube_net, siem_net"

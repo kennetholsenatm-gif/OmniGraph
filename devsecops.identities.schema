@@ -10,7 +10,17 @@
 # Tooling reads privilege_levels.json for @keycloak-role and @ldap-ou per level.
 @privilege-levels: DEFINITION
 @description: "Allowed privilege levels; map to Keycloak realm roles and LDAP groups"
-@validation: "admin | operator | developer | viewer | auditor"
+@validation: "admin | operator | developer | viewer | auditor | service_agent"
+
+@account-kind: DEFINITION
+@description: "Human vs automation classification for LDAP templates and firewall policy (not a substitute for privilege_level)"
+@validation: "human_interactive | human_privileged_infra | human_privileged_server | service_agent"
+
+@identity-field: account_kind
+@validation: "human_interactive | human_privileged_infra | human_privileged_server | service_agent"
+
+@identity-field: member_of
+@description: "Comma-separated LDAP group cn values (template / LDIF description); enforce membership in IPA with ipa group-add-member"
 
 @privilege-level: admin
 @keycloak-role: realm-admin
@@ -32,6 +42,10 @@
 @keycloak-role: auditor
 @ldap-ou: auditors
 
+@privilege-level: service_agent
+@keycloak-role: service-account
+@ldap-ou: service-accounts
+
 # --- Registration state (for cert-based self-registration; see CERT_SELF_REGISTRATION.md) ---
 @registration-state: PENDING | APPROVED | REJECTED
 @description: "Pending = no privileges until Zammad ticket approved; approved = identity synced to Keycloak/LDAP."
@@ -46,7 +60,9 @@
 uid: kbolsen
 @description: "Bootstrap admin; password and admin_ssh_public_key in Vault secret/devsecops"
 privilege_level: admin
-@validation: "admin | operator | developer | viewer | auditor"
+@validation: "admin | operator | developer | viewer | auditor | service_agent"
+account_kind: human_interactive
+member_of: human-interactive
 ou: admins
 cn: "Kenneth Olsen"
 mail: kenneth.olsen.atm@gmail.com

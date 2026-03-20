@@ -17,8 +17,7 @@ This document defines the segmented network topology for the pipeline. All tooli
 | LLM / inference    | 100.64.7.0/24     | `llm_net`            | BitNet / optional LLM gateway |
 | ChatOps            | 100.64.8.0/24     | `chatops_net`        | Zulip (and related ChatOps) |
 | Messaging backbone | 100.64.10.0/24    | `msg_backbone_net`   | Solace PubSub+, NiFi, RabbitMQ, Kafka |
-| IAM / edge         | 100.64.20.0/24    | `iam_net`            | Vault, Keycloak, Teleport |
-| FreeIPA (optional) | 100.64.21.0/24    | `freeipa_net`        | LDAP/Kerberos when not using Keycloak-only |
+| IAM / edge         | 100.64.20.0/24    | `iam_net`            | Vault, Keycloak, Teleport, **optional FreeIPA** (LDAP/Kerberos) |
 | Agent mesh         | 100.64.30.0/24    | `agent_mesh_net`     | SAM, Cline, Critique, Doc agents |
 | Discovery / BOM    | 100.64.40.0/24    | `discovery_net`      | NetBox, NetDISCO, Dependency-Track, scanners |
 | SDN lab            | 100.64.50.0/24    | `sdn_lab_net`        | VyOS lab leg, sFlow exporters, **n8n** second attachment |
@@ -27,7 +26,11 @@ This document defines the segmented network topology for the pipeline. All tooli
 | SonarQube          | 100.64.53.0/24    | `sonarqube_net`      | SAST; Traefik joins for `/sonarqube`; also attaches to `msg_backbone_net` for JDBC |
 | SIEM (Wazuh)       | 100.64.54.0/24    | `siem_net`           | Wazuh manager/indexer/dashboard; Traefik joins for `/wazuh` |
 
-**Canonical count:** **18** Docker bridge networks (tooling, gateway, messaging, IAM, FreeIPA, agent mesh, discovery, SDN, telemetry, docs, SonarQube, SIEM). Create them with `scripts/create-networks.ps1`, OpenTofu (`opentofu/`), or `ansible/playbooks/deploy-devsecops-mesh.yml` — all use the same subnets above. SDN/telemetry details: [SDN_TELEMETRY.md](SDN_TELEMETRY.md).
+**Canonical count:** **17** Docker bridge networks (tooling, gateway, messaging, IAM—including optional FreeIPA on `iam_net`—agent mesh, discovery, SDN, telemetry, docs, SonarQube, SIEM). Create them with `scripts/create-networks.ps1`, OpenTofu (`opentofu/`), or `ansible/playbooks/deploy-devsecops-mesh.yml` — all use the same subnets above. SDN/telemetry details: [SDN_TELEMETRY.md](SDN_TELEMETRY.md).
+
+### Optional: collapsed identity / NAC control plane
+
+For **homelab or small teams**, strict **per-bridge** isolation among **Vault, Keycloak, LDAP (FreeIPA), RADIUS, and PacketFence** often adds complexity without proportional security benefit, because those components **must** communicate continuously. You may treat them as one **trust zone** (same `100.64.20.0/24` or routed equivalents between **Mini-PC-IAM** and **Mini-PC-Network**) while **still** isolating that zone from user VLANs and the Internet. See [NETWORK_COLLAPSED_IDENTITY_PLANE.md](NETWORK_COLLAPSED_IDENTITY_PLANE.md). **Compose** attaches optional **FreeIPA** to **`iam_net`** (no separate `freeipa_net`).
 
 ## Isolation Rules
 
@@ -67,6 +70,8 @@ On RHEL/AlmaLinux use firewalld instead of UFW. Equivalent rules:
 
 Networks are created with static subnets so that IPs are predictable and UFW/firewalld rules can reference them. Example (Ansible/OpenTofu/`create-networks.ps1`):
 
-- `gitea_net`: 100.64.1.0/24 · `n8n_net`: 100.64.2.0/24 · `zammad_net`: 100.64.3.0/24 · `bitwarden_net`: 100.64.4.0/24 · `gateway_net`: 100.64.5.0/24 · `portainer_net`: 100.64.6.0/24 · `llm_net`: 100.64.7.0/24 · `chatops_net`: 100.64.8.0/24 · `msg_backbone_net`: 100.64.10.0/24 · `iam_net`: 100.64.20.0/24 · `freeipa_net`: 100.64.21.0/24 · `agent_mesh_net`: 100.64.30.0/24 · `discovery_net`: 100.64.40.0/24 · `sdn_lab_net`: 100.64.50.0/24 · `telemetry_net`: 100.64.51.0/24 · `docs_net`: 100.64.52.0/24 · `sonarqube_net`: 100.64.53.0/24 · `siem_net`: 100.64.54.0/24
+- `gitea_net`: 100.64.1.0/24 · `n8n_net`: 100.64.2.0/24 · `zammad_net`: 100.64.3.0/24 · `bitwarden_net`: 100.64.4.0/24 · `gateway_net`: 100.64.5.0/24 · `portainer_net`: 100.64.6.0/24 · `llm_net`: 100.64.7.0/24 · `chatops_net`: 100.64.8.0/24 · `msg_backbone_net`: 100.64.10.0/24 · `iam_net`: 100.64.20.0/24 · `agent_mesh_net`: 100.64.30.0/24 · `discovery_net`: 100.64.40.0/24 · `sdn_lab_net`: 100.64.50.0/24 · `telemetry_net`: 100.64.51.0/24 · `docs_net`: 100.64.52.0/24 · `sonarqube_net`: 100.64.53.0/24 · `siem_net`: 100.64.54.0/24
+
+**Migration:** Older checkouts used **`freeipa_net`** (`100.64.21.0/24`). Remove that bridge after stopping FreeIPA; optional FreeIPA now uses **`iam_net`** only.
 
 Containers that need to reach Solace (e.g. n8n, SAM) are attached to both their tool/agent network and `msg_backbone_net` so they can resolve `solace-pubsub`, `rabbitmq`, `kafka`, etc., without exposing tool networks to each other.

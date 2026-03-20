@@ -19,7 +19,6 @@ services:
       - zammad_net
       - iam_net
       - bitwarden_net
-      - freeipa_net
       - portainer_net
       - llm_net
       - telemetry_net
@@ -95,8 +94,6 @@ networks:
   iam_net:
     external: true
   bitwarden_net:
-    external: true
-  freeipa_net:
     external: true
   portainer_net:
     external: true

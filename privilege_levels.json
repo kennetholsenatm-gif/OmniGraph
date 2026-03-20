@@ -18,5 +18,9 @@
   "auditor": {
     "keycloak_role": "auditor",
     "ldap_ou": "auditors"
+  },
+  "service_agent": {
+    "keycloak_role": "service-account",
+    "ldap_ou": "service-accounts"
   }
 }

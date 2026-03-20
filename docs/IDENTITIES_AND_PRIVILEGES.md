@@ -41,8 +41,9 @@ Define a small set of levels so every consumer (Keycloak, LDAP, Teleport, n8n) m
 | **developer** | Push code, run workflows, read logs | `developer`, `n8n-user` | `ou=developers` |
 | **viewer**   | Read-only dashboards and logs | `view-only` | `ou=viewers` |
 | **auditor**  | Read-only + audit logs | `auditor` | `ou=auditors` |
+| **service_agent** | Non-interactive LDAP / agent binds | `service-account` (example) | `ou=service-accounts` |
 
-Schema can enforce this with **@validation: "admin | operator | developer | viewer | auditor"** and **@privilege-level** in the doc.
+Schema can enforce this with **@validation: "admin | operator | developer | viewer | auditor | service_agent"** and **@privilege-level** in the doc.
 
 ### 3. **LDAP-style layout with VARLOCK tags**
 
@@ -80,6 +81,7 @@ A single schema file that:
 
 - **`devsecops.identities.schema`** — VARLOCK-tagged definition of privilege levels (with **@keycloak-role** and **@ldap-ou** per level) and example identities (no passwords, no keys).
 - **`privilege_levels.json`** — Machine-readable mapping: for each privilege level, `keycloak_role` and `ldap_ou`. Consumed by sync and LDIF scripts so one mapping drives both Keycloak and LDAP.
-- **`identities.example.yaml`** — Optional YAML list of identities; copy to `identities.yaml` (gitignore it) and point tooling at it. Same fields: `uid`, `privilege_level`, `ou`, `cn`, `mail`.
+- **`identities.example.yaml`** — Optional YAML list of identities; copy to `identities.yaml` (gitignore it) and point tooling at it. Same fields: `uid`, `privilege_level`, `ou`, `cn`, `mail`, plus optional `account_kind`, `member_of` (see [LDAP_ACCOUNTS_AND_GROUPS.md](LDAP_ACCOUNTS_AND_GROUPS.md)).
+- **`ldap-directory.template.yaml`**, **`ldap-groups.template.ldif`** — Templated LDAP groups (human interactive vs infra vs server vs agent service accounts); narrative in [LDAP_ACCOUNTS_AND_GROUPS.md](LDAP_ACCOUNTS_AND_GROUPS.md).
 - **`scripts/sync-identities-to-keycloak.ps1`** — Reads `identities.yaml` (or `.json`) and `privilege_levels.json`, creates Keycloak users in the master realm, ensures realm roles exist, assigns the role for each user’s `privilege_level`. Passwords from Vault (`secret/devsecops` or `secret/users/<uid>`) or generated and stored in Vault. Requires Keycloak admin credentials (env or Vault).
 - **`scripts/export-identities-to-ldif.ps1`** — Reads the same identity list and privilege levels, writes **identities.ldif** with organizationalUnit and inetOrgPerson entries for import into LDAP/FreeIPA/389-ds. No passwords in LDIF; use `-BaseDn` (default `dc=devsecops,dc=local`) and `-OutputPath`.

@@ -10,11 +10,14 @@
   Output LDIF path (default: identities.ldif in pipeline root).
 .PARAMETER BaseDn
   LDAP base DN (default: dc=devsecops,dc=local).
+.PARAMETER AppendGroupsLdifPath
+  If set and the file exists, its contents are appended after user entries (e.g. ldap-groups.template.ldif).
 #>
 param(
     [string]$IdentityFile = "",
     [string]$OutputPath = "",
-    [string]$BaseDn = "dc=devsecops,dc=local"
+    [string]$BaseDn = "dc=devsecops,dc=local",
+    [string]$AppendGroupsLdifPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -50,7 +53,7 @@ if ($ext -eq ".json") {
         else { continue }
         $h = @{ uid = $uid }
         foreach ($line in ($block -split '\r?\n')) {
-            if ($line -match '^\s+(privilege_level|ou|cn|mail):\s*(.+)') {
+            if ($line -match '^\s+(privilege_level|ou|cn|mail|account_kind|member_of):\s*(.+)') {
                 $h[$matches[1]] = $matches[2].Trim().Trim('"')
             }
         }
@@ -67,7 +70,7 @@ function Esc-LdapValue {
     if (-not $v) { return "" }
     $v = $v.Trim()
     if ($v -match '[,+\;"\\<>]') {
-        $v = $v -replace '\\','\5c' -replace ',','\2c' -replace '+','\2b' -replace '"','\22' -replace ';','\3b' -replace '<','\3c' -replace '>','\3e'
+        $v = $v -replace '\\','\5c' -replace ',','\2c' -replace '\+','\2b' -replace '"','\22' -replace ';','\3b' -replace '<','\3c' -replace '>','\3e'
     }
     $v
 }
@@ -126,6 +129,19 @@ foreach ($u in $identities) {
     $ldif += "sn: $sn"
     $ldif += "mail: $mail"
     $ldif += "ou: $ou"
+    $descParts = @()
+    if ($u.account_kind) { $descParts += "account_kind=$($u.account_kind)" }
+    if ($u.member_of) { $descParts += "member_of=$($u.member_of)" }
+    if ($descParts.Count -gt 0) {
+        $ldif += "description: $(Esc-LdapValue(($descParts -join '; ')))"
+    }
+    $ldif += ""
+}
+
+if ($AppendGroupsLdifPath -and (Test-Path $AppendGroupsLdifPath)) {
+    $ldif += ""
+    $ldif += "# --- Appended from $AppendGroupsLdifPath ---"
+    $ldif += (Get-Content -LiteralPath $AppendGroupsLdifPath -Encoding UTF8)
     $ldif += ""
 }
 

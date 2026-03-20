@@ -19,7 +19,6 @@
     chatops_net_cidr: "100.64.8.0/24"
     msg_backbone_cidr: "100.64.10.0/24"
     iam_cidr: "100.64.20.0/24"
-    freeipa_cidr: "100.64.21.0/24"
     agent_mesh_cidr: "100.64.30.0/24"
     discovery_net_cidr: "100.64.40.0/24"
     sdn_lab_net_cidr: "100.64.50.0/24"
@@ -123,13 +122,6 @@
         driver: bridge
         ipam_config:
           - subnet: "{{ chatops_net_cidr }}"
-
-    - name: Create Docker network freeipa_net
-      community.docker.docker_network:
-        name: freeipa_net
-        driver: bridge
-        ipam_config:
-          - subnet: "{{ freeipa_cidr }}"
 
     - name: Create Docker network discovery_net
       community.docker.docker_network:

@@ -21,7 +21,7 @@ Run the same **Docker Compose** stacks inside **LXD** containers on **WSL2** (or
 |------------|---------|
 | [deployments/local-lxc/README.md](../deployments/local-lxc/README.md) | Canonical local target: LXC-first runtime, optional nested Docker |
 | [deployments/wsl2-lxc/README.md](../deployments/wsl2-lxc/README.md) | WSL2-specific caveats and compatibility notes |
-| [scripts/create-networks.sh](../scripts/create-networks.sh) | All **18** Docker bridge networks (run **inside** each LXC or once per Docker host) |
+| [scripts/create-networks.sh](../scripts/create-networks.sh) | All **17** Docker bridge networks (run **inside** each LXC or once per Docker host) |
 | [scripts/secrets-bootstrap.sh](../scripts/secrets-bootstrap.sh) | Bash twin of **`secrets-bootstrap.ps1`** (Vault KV + optional core compose); break-glass **bw** still via PowerShell |
 | [scripts/start-local-lxc.sh](../scripts/start-local-lxc.sh), [scripts/start-local-lxc.ps1](../scripts/start-local-lxc.ps1) | Convenience wrappers to invoke local LXC provisioning playbook |
 | [ansible/playbooks/deploy-devsecops-lxc.yml](../ansible/playbooks/deploy-devsecops-lxc.yml) | Provision instances + sync compose trees |
@@ -79,7 +79,7 @@ ansible-playbook -i inventory/lxc.example.yml playbooks/deploy-devsecops-lxc.yml
 
 2. **OpenTofu**  
    - **Solace (discovery-networks)**: From your infra repo, apply discovery-networks and devsecops-variables (e.g. `discovery-networks.tf`, `devsecops-variables.tf`) to configure the Solace VPN (mTLS-only) and A2A topics.  
-   - **Docker networks (optional)**: From this repo’s `opentofu/`, run `tofu init && tofu apply` to create **18** bridge networks: `gitea_net`, `n8n_net`, `zammad_net`, `bitwarden_net`, `gateway_net`, `portainer_net`, `llm_net`, `chatops_net`, `msg_backbone_net`, `iam_net`, `freeipa_net`, `agent_mesh_net`, `discovery_net`, `sdn_lab_net`, `telemetry_net`, `docs_net`, `sonarqube_net`, `siem_net` (subnets in [NETWORK_DESIGN.md](NETWORK_DESIGN.md)). Docsify: [DOCSIFY_GITEA.md](DOCSIFY_GITEA.md). SonarQube: [SONARQUBE_KEYCLOAK.md](SONARQUBE_KEYCLOAK.md). Wazuh: [WAZUH_SIEM.md](WAZUH_SIEM.md).
+   - **Docker networks (optional)**: From this repo’s `opentofu/`, run `tofu init && tofu apply` to create **17** bridge networks: `gitea_net`, `n8n_net`, `zammad_net`, `bitwarden_net`, `gateway_net`, `portainer_net`, `llm_net`, `chatops_net`, `msg_backbone_net`, `iam_net`, `agent_mesh_net`, `discovery_net`, `sdn_lab_net`, `telemetry_net`, `docs_net`, `sonarqube_net`, `siem_net` (subnets in [NETWORK_DESIGN.md](NETWORK_DESIGN.md)). **FreeIPA** (optional [docker-compose.identity.yml](../docker-compose/docker-compose.identity.yml)) attaches to **`iam_net`** only. **Brownfield:** remove legacy `freeipa_net` after stopping FreeIPA (`docker compose … down`, then `docker network rm freeipa_net`). OpenTofu: `tofu state rm docker_network.freeipa_net` if that resource existed in state. Docsify: [DOCSIFY_GITEA.md](DOCSIFY_GITEA.md). SonarQube: [SONARQUBE_KEYCLOAK.md](SONARQUBE_KEYCLOAK.md). Wazuh: [WAZUH_SIEM.md](WAZUH_SIEM.md).
 
 3. **Greenfield one-shot (no Ansible):** Use the deployment repo at `C:\GiTeaRepos\Deploy` and run `.\scripts\launch-greenfield.ps1`; enter admin password when prompted. This creates all networks, generates secrets, starts the stack, and writes to Vault. Optionally use `-SaveVaultToken`. Use `-IncludeSdnTelemetry` on **Linux** hosts to add OVS/VyOS + sFlow-RT/Prometheus/Grafana; see [SDN_TELEMETRY.md](SDN_TELEMETRY.md). See [GREENFIELD_ONE_SHOT.md](GREENFIELD_ONE_SHOT.md) (moved pointer).
 
@@ -135,6 +135,7 @@ ansible-playbook -i inventory/lxc.example.yml playbooks/deploy-devsecops-lxc.yml
 | **Canonical deployment vision** (edge VyOS, IAM mini PC, Google Home profile) | `docs/CANONICAL_DEPLOYMENT_VISION.md` |
 | **Roadmap** (P0–P3+ physical → OpenNebula) | `docs/ROADMAP.md` |
 | **Bootstrap USB bundle** (offline repo + Ansible collections + target script) | `docs/BOOTSTRAP_USB_BUNDLE.md`, `deployments/bootstrap-usb-bundle/` |
+| **Collapsed IdM / NAC zone** (optional) | `docs/NETWORK_COLLAPSED_IDENTITY_PLANE.md` |
 | **IAM-only mini PC inventory (example)** | `ansible/inventory/mini-pc-iam.example.yml` |
 | **Bootstrap Mini-PC-IAM LXC** | `ansible/playbooks/bootstrap-mini-pc-iam.yml` (imports `deploy-devsecops-lxc.yml`, `lxd_apply_names: [devsecops-iam]`) |
 | **Greenfield one-shot launch** (clone, one command, one password) | `C:\GiTeaRepos\Deploy\docs\GREENFIELD_ONE_SHOT.md`, `C:\GiTeaRepos\Deploy\scripts\launch-greenfield.ps1` |

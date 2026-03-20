@@ -2,6 +2,8 @@
 
 No static admin passwords in env or files. **Human admins** log in with LDAP (FreeIPA). **Automation** (scripts, Ansible, CI) uses a Keycloak **service-account client** (client credentials) or client certificates; store only the client secret (or cert) in Vault.
 
+Human vs infra vs server vs agent LDAP account layout (groups + example UIDs): [LDAP_ACCOUNTS_AND_GROUPS.md](LDAP_ACCOUNTS_AND_GROUPS.md).
+
 ## Model
 
 | Who / what        | Identity              | How to authenticate                          |

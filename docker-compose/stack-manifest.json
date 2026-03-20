@@ -51,7 +51,7 @@
       "switchName": "IncludeIdentity",
       "environmentVariable": "DEVSECOPS_INCLUDE_IDENTITY",
       "nonFatal": false,
-      "note": "FreeIPA; optional LDAP backend. See docs/IAM_LDAP_AND_AUTOMATION.md."
+      "note": "FreeIPA on iam_net (100.64.20.0/24); optional LDAP backend. See docs/IAM_LDAP_AND_AUTOMATION.md."
     },
     "siem": {
       "composeFiles": ["docker-compose.siem.yml"],

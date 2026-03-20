@@ -20,7 +20,7 @@
 
 **North–south contract:** `100.64.x.0/24` workloads keep the **`2000 + third octet`** VLAN rule for **OpenNebula VNETs**; **physical edge** VLANs above are **not** derived from `2000 + third octet`.
 
-## Matrix (20 VNETs)
+## Matrix (19 VNETs)
 
 | VLAN | OpenNebula VNET `NAME` | Template file (suggested) | IPv4 segment | Notes |
 |------|------------------------|---------------------------|--------------|--------|
@@ -33,8 +33,7 @@
 | 2007 | `devsecops-llm` | `llm-vnet.one` | 100.64.7.0/24 | BitNet / LLM |
 | 2008 | `devsecops-chatops` | `chatops-vnet.one` | 100.64.8.0/24 | Zulip backends |
 | 2010 | `devsecops-messaging` | `messaging-vnet.one` | 100.64.10.0/24 | Postgres, Kafka, Solace, NiFi, … |
-| 2020 | `devsecops-iam` | `iam-vnet.one` | 100.64.20.0/24 | Vault, Keycloak, Teleport |
-| 2021 | `devsecops-freeipa` | `freeipa-vnet.one` | 100.64.21.0/24 | FreeIPA |
+| 2020 | `devsecops-iam` | `iam-vnet.one` | 100.64.20.0/24 | Vault, Keycloak, Teleport; optional **FreeIPA** colocated (same segment as Docker `iam_net`) |
 | 2030 | `devsecops-agent-mesh` | `agent-mesh-vnet.one` | 100.64.30.0/24 | SAM + agents |
 | 2040 | `devsecops-discovery` | `discovery-vnet.one` | 100.64.40.0/24 | NetBox, Dependency-Track |
 | 2050 | `devsecops-sdn-lab` | `sdn-lab-vnet.one` | 100.64.50.0/24 | OVS, VyOS leg, n8n sFlow path |
@@ -45,7 +44,7 @@
 | 2250 | `devsecops-ceph` | `ceph-vnet.one` | 100.64.250.0/24 | Ceph MON/OSD **public** (and optional **cluster** split); no Internet |
 | **86** | `devsecops-edge` | `edge-vnet.one` | **192.168.86.0/24** | Edge compute / home LAN; ISR SVI; trunks to UCS/hypervisors |
 
-**Workload third octets in use (do not overlap):** `1–8, 10, 20–21, 30, 40, 50–54` for the **original** 18 service VM VNETs; **`250`** is reserved for **`devsecops-ceph`** (storage back-end). **Platform / WAN-adjacent infra** below uses **high octets `240–254`** inside the same **100.64.0.0/10** space (RFC 6598 — document for ops); **`250`** is also listed in the **Platform carve** table.
+**Workload third octets in use (do not overlap):** `1–8, 10, 20, 30, 40, 50–54` for the **original** 17 service VM VNETs (IAM includes optional FreeIPA); **`250`** is reserved for **`devsecops-ceph`** (storage back-end). **Legacy:** VLAN **2021** / `100.64.21.0/24` was a separate FreeIPA VNET—**do not allocate** for greenfield; reuse **2020** / `100.64.20.0/24` instead. **Platform / WAN-adjacent infra** below uses **high octets `240–254`** inside the same **100.64.0.0/10** space (RFC 6598 — document for ops); **`250`** is also listed in the **Platform carve** table.
 
 ## Rudimentary topology (physical → logical)
 
