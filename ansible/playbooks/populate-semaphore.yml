@@ -2,6 +2,9 @@
 # Idempotent Phase A: Project + Repository + (optional) SSH key + Inventory + Ansible template.
 # Requires: Semaphore 2.17.x API (see ansible/roles/semaphore_native/defaults/main.yml).
 #
+# For **multiple** inventories/templates at scale, use GitOps manifest + sync-semaphore-from-manifest.yml
+# (see docs/SEMAPHORE_POPULATE.md) — no manual Semaphore UI updates.
+#
 # Usage:
 #   cd ansible && export ANSIBLE_CONFIG="$(pwd)/ansible.cfg"
 #   ansible-playbook -i inventory/semaphore-populate.example.yml playbooks/populate-semaphore.yml \
@@ -52,9 +55,13 @@
         status_code: [200]
       register: _projects_resp
 
-    - name: Resolve existing project
+    # set_fact resolves all keys in one pass — _proj cannot reference _proj_list in the same task.
+    - name: Match project by name
       ansible.builtin.set_fact:
         _proj_list: "{{ _projects_resp.json | default([]) | selectattr('name', 'equalto', semaphore_project_name) | list }}"
+
+    - name: Resolve existing project
+      ansible.builtin.set_fact:
         _proj: "{{ _proj_list[0] if (_proj_list | length) > 0 else none }}"
 
     - name: Create project
@@ -131,9 +138,12 @@
         status_code: [200]
       register: _repos_resp
 
-    - name: Find repository by name
+    - name: Match repository by name
       ansible.builtin.set_fact:
         _repo_list: "{{ _repos_resp.json | default([]) | selectattr('name', 'equalto', semaphore_repository_name) | list }}"
+
+    - name: Find repository by name
+      ansible.builtin.set_fact:
         _repo: "{{ _repo_list[0] if (_repo_list | length) > 0 else none }}"
 
     - name: Create repository
@@ -169,9 +179,12 @@
         status_code: [200]
       register: _inv_resp
 
-    - name: Find inventory by name
+    - name: Match inventory by name
       ansible.builtin.set_fact:
         _inv_list: "{{ _inv_resp.json | default([]) | selectattr('name', 'equalto', semaphore_inventory_name) | list }}"
+
+    - name: Find inventory by name
+      ansible.builtin.set_fact:
         _inv: "{{ _inv_list[0] if (_inv_list | length) > 0 else none }}"
 
     - name: Create inventory
@@ -207,10 +220,13 @@
         status_code: [200]
       register: _envs_resp
 
-    - name: Find Empty environment (created with new projects)
+    - name: Match Empty environment (created with new projects)
       ansible.builtin.set_fact:
         _env_list: "{{ _envs_resp.json | default([]) | selectattr('name', 'equalto', 'Empty') | list }}"
-        _empty_env_id: "{{ (_envs_resp.json | default([]) | selectattr('name', 'equalto', 'Empty') | list | first).id if ((_envs_resp.json | default([]) | selectattr('name', 'equalto', 'Empty') | list | length) > 0) else none }}"
+
+    - name: Set Empty environment id
+      ansible.builtin.set_fact:
+        _empty_env_id: "{{ _env_list[0].id if (_env_list | length) > 0 else none }}"
 
     - name: List templates
       ansible.builtin.uri:
@@ -222,9 +238,12 @@
         status_code: [200]
       register: _tpl_resp
 
-    - name: Find template by name
+    - name: Match template by name
       ansible.builtin.set_fact:
         _tpl_list: "{{ _tpl_resp.json | default([]) | selectattr('name', 'equalto', semaphore_template_name) | list }}"
+
+    - name: Find template by name
+      ansible.builtin.set_fact:
         _tpl: "{{ _tpl_list[0] if (_tpl_list | length) > 0 else none }}"
 
     - name: Assemble template POST body

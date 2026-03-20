@@ -87,7 +87,36 @@ Copy [`ansible/inventory/semaphore-populate.example.yml`](../ansible/inventory/s
 
 ## Automation in this repo
 
-- **Playbook:** [`ansible/playbooks/populate-semaphore.yml`](../ansible/playbooks/populate-semaphore.yml) — idempotent create (Project, Repository, optional SSH key, Inventory, Template) for Phase A.
+### GitOps at scale (recommended): manifest + sync
+
+Semaphore is **not** Terraform: it does not auto-discover every playbook in Git. The scalable pattern is **declare desired Semaphore objects in this repo** and **apply** them with Ansible (or CI).
+
+1. **First run:** run [`sync-semaphore-from-manifest.yml`](../ansible/playbooks/sync-semaphore-from-manifest.yml) once — if `ansible/files/semaphore-manifest.yml` is missing, the playbook **creates it from** `semaphore-manifest.example.yml` (no manual copy).  
+   **Optional manual copy (Windows PowerShell from repo root):**  
+   `Copy-Item -LiteralPath ansible\files\semaphore-manifest.example.yml -Destination ansible\files\semaphore-manifest.yml`  
+   (`semaphore-manifest.yml` is **gitignored** — put URLs/tokens via `-e` / Vault / CI secrets, not committed files.)
+2. Edit the manifest (after it exists): add rows under `inventories` and `ansible_templates` (each template = one playbook path).
+3. Apply:
+
+```bash
+cd ansible
+export ANSIBLE_CONFIG="$(pwd)/ansible.cfg"
+ansible-playbook -i localhost, -c local playbooks/sync-semaphore-from-manifest.yml \
+  -e semaphore_api_token="$TOKEN" \
+  -e semaphore_git_url="https://your.forge/you/devsecops-pipeline.git"
+```
+
+Optional: run that playbook from **CI** on merge to `main` so Semaphore tracks Git without anyone clicking in the UI. Setup (secrets, runner networking): [CI_CD.md](CI_CD.md).
+
+- **Playbook:** [`ansible/playbooks/sync-semaphore-from-manifest.yml`](../ansible/playbooks/sync-semaphore-from-manifest.yml)
+- **Example manifest:** [`ansible/files/semaphore-manifest.example.yml`](../ansible/files/semaphore-manifest.example.yml)
+- **Tasks:** [`ansible/tasks/semaphore_sync_from_manifest.yml`](../ansible/tasks/semaphore_sync_from_manifest.yml) (and `semaphore_sync_one_inventory.yml`, `semaphore_sync_one_template.yml`)
+
+**Terraform / OpenTofu** in this repo are **not** wired by the current manifest (Ansible templates only). Extend the sync tasks / manifest schema when you add Semaphore Terraform/Tofu templates.
+
+### Phase A only (single smoke template)
+
+- **Playbook:** [`ansible/playbooks/populate-semaphore.yml`](../ansible/playbooks/populate-semaphore.yml) — idempotent create (Project, Repository, optional SSH key, one Inventory, one Template).
 - **Example vars:** [`ansible/inventory/semaphore-populate.example.yml`](../ansible/inventory/semaphore-populate.example.yml).
 
 ## Verify with curl

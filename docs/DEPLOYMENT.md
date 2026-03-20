@@ -55,7 +55,7 @@ Bootstrap:
 
 Details: [opennebula-gitea-edge/LEAN_LOCAL_CONTROL_PLANE.md](opennebula-gitea-edge/LEAN_LOCAL_CONTROL_PLANE.md)
 
-After Semaphore is up, seed a **project + Git repo + smoke template** via API: [SEMAPHORE_POPULATE.md](SEMAPHORE_POPULATE.md) — playbook `ansible/playbooks/populate-semaphore.yml`.
+After Semaphore is up, keep it aligned with Git: [SEMAPHORE_POPULATE.md](SEMAPHORE_POPULATE.md) — **`ansible/playbooks/sync-semaphore-from-manifest.yml`** (manifest-driven, CI-friendly) or **`ansible/playbooks/populate-semaphore.yml`** (single smoke template). **Gitea Actions** (lint + optional Semaphore sync): [CI_CD.md](CI_CD.md).
 
 ```bash
 cd ansible

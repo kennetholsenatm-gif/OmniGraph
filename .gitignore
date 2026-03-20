@@ -28,6 +28,9 @@ ansible/group_vars/network_isr.yml
 ansible/roles/cisco_isr_platform/files/ssh/iac.pub
 ansible/group_vars/network_c3560cx.yml
 
+# Local Semaphore GitOps manifest (copy from ansible/files/semaphore-manifest.example.yml)
+ansible/files/semaphore-manifest.yml
+
 # Optional large wiki exports (clone stays small; use docs/snippets as source templates)
 docs/WIKI_EXPORT/
 

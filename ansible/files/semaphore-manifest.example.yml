@@ -1,0 +1,43 @@
+---
+# Declarative Semaphore desired state (copy to ansible/files/semaphore-manifest.yml — gitignored).
+# Apply: ansible-playbook playbooks/sync-semaphore-from-manifest.yml (see docs/SEMAPHORE_POPULATE.md)
+#
+# version: schema version for the sync playbook
+version: 1
+
+project:
+  name: devsecops-pipeline
+
+repository:
+  name: devsecops-pipeline
+  # Prefer passing URL via CI / -e semaphore_git_url (same as repo remote).
+  git_url: ""
+  git_branch: main
+
+# Inventories referenced by ansible_templates.inventory (by name).
+# type: static | static-yaml | file
+# - static / static-yaml: set `body` (string)
+# - file: set `path` (relative to repo root inside the clone); requires repository to exist first
+inventories:
+  - name: "Local smoke"
+    type: static
+    body: |
+      [all]
+      localhost ansible_connection=local
+
+  # Example: inventory file committed in Git (uncomment when your Semaphore can reach real hosts)
+  # - name: "Repo inventory.yml"
+  #   type: file
+  #   path: ansible/inventory.yml
+
+# One Semaphore Ansible template per item (scale: add rows — no UI).
+ansible_templates:
+  - name: "Smoke (localhost)"
+    playbook: ansible/playbooks/semaphore-smoke.yml
+    inventory: "Local smoke"
+  # - name: "Deploy Semaphore Incus"
+  #   playbook: ansible/playbooks/deploy-semaphore-incus.yml
+  #   inventory: "Local smoke"
+
+# Future: terraform / tofu templates (Semaphore app types) — extend sync playbook when needed.
+# terraform_templates: []

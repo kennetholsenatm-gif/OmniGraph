@@ -1,0 +1,38 @@
+# Gitea Actions — Ansible / YAML / OpenTofu lint (AlmaLinux 9 in Docker for ansible-lint + yamllint).
+# Register an Act runner with label ubuntu-latest (or change runs-on below). See docs/CI_CD.md.
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  lint-and-ansible:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint Ansible and YAML (AlmaLinux 9 container)
+        run: bash scripts/ci/lint-ansible.sh
+
+  tflint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: TFLint (OpenTofu)
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace/opentofu \
+            ghcr.io/terraform-linters/tflint:v0.54.0
