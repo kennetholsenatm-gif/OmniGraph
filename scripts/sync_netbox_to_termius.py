@@ -215,9 +215,13 @@ def main() -> None:
         default="termius-json",
         help="termius-json: write file; teams-api: POST to Termius Teams (env-based URL)",
     )
-    p.add_argument("-o", "--output", default="termius-hosts.json", help="Output path for termius-json")
+    p.add_argument(
+        "-o", "--output", default="termius-hosts.json", help="Output path for termius-json"
+    )
     p.add_argument("--dry-run", action="store_true", help="Print payload / skip write or HTTP")
-    p.add_argument("--include-vms", action="store_true", help="Include virtualization virtual-machines")
+    p.add_argument(
+        "--include-vms", action="store_true", help="Include virtualization virtual-machines"
+    )
     args = p.parse_args()
 
     base = _env("NETBOX_URL", "http://netbox:8080")

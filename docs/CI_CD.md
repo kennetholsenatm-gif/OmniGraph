@@ -13,10 +13,23 @@ This repo uses **Gitea Actions** (`.gitea/workflows/`) so lint and Semaphore syn
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| [`.gitea/workflows/ci.yml`](../.gitea/workflows/ci.yml) | `push` / `pull_request` to `main` or `master`, `workflow_dispatch` | `ansible-lint`, `yamllint` (AlmaLinux container via [scripts/ci/lint-ansible.sh](../scripts/ci/lint-ansible.sh)); `tflint` on `opentofu/`. |
+| [`.gitea/workflows/ci.yml`](../.gitea/workflows/ci.yml) | `push` / `pull_request` to `main` or `master`, `workflow_dispatch` | `ansible-lint`, `yamllint` ([scripts/ci/lint-ansible.sh](../scripts/ci/lint-ansible.sh)); `tflint` on `opentofu/`; **Black** on `scripts/*.py` ([scripts/ci/black-check.sh](../scripts/ci/black-check.sh)); **Gitleaks** ([scripts/ci/gitleaks.sh](../scripts/ci/gitleaks.sh)); **Trivy fs** ([scripts/ci/trivy-fs.sh](../scripts/ci/trivy-fs.sh)). |
 | [`.gitea/workflows/semaphore-sync.yml`](../.gitea/workflows/semaphore-sync.yml) | `workflow_dispatch` (optional `push` to `main` after you uncomment) | Runs [scripts/ci/semaphore-sync.sh](../scripts/ci/semaphore-sync.sh) → `ansible/playbooks/sync-semaphore-from-manifest.yml`. |
 
-Local parity (no Actions): from repo root run `bash scripts/ci/lint-ansible.sh`.
+Local parity (no Actions): from repo root run `bash scripts/ci/lint-ansible.sh`, `bash scripts/ci/black-check.sh`, `bash scripts/ci/gitleaks.sh`, `bash scripts/ci/trivy-fs.sh` (requires Docker for the same images as CI).
+
+## Pre-commit (developer workstation)
+
+[`.pre-commit-config.yaml`](../.pre-commit-config.yaml) runs **Black**, **Gitleaks**, **detect-private-key**, **ansible-lint**, **yamllint**, **tflint**, and (on **`git push`**) **Trivy** via [scripts/ci/trivy-fs.sh](../scripts/ci/trivy-fs.sh). Install commit + push hooks:
+
+```bash
+pre-commit install
+pre-commit install --hook-type pre-push
+```
+
+(`scripts/setup-lean-local-control.ps1` runs both when `pre-commit` is on your PATH.)
+
+**Branching** (single `main` vs `stack/ansible` / `stack/opentofu` / `stack/lxc`) and how that maps to scanners: [BRANCHING_AND_SCANNING.md](BRANCHING_AND_SCANNING.md).
 
 ## Semaphore sync — repository secrets
 
@@ -46,7 +59,7 @@ Manifest file `ansible/files/semaphore-manifest.yml` is **gitignored**; the sync
 ## Git hygiene
 
 - **Default branch:** `main` (also `master` triggers CI for compatibility).
-- **Branch protection (recommended):** Require the **CI** workflow to pass before merge; avoid pushing broken Ansible to `main`.
+- **Branch protection (recommended):** Require the **CI** workflow to pass before merge; avoid pushing broken Ansible to `main`. See [BRANCHING_AND_SCANNING.md](BRANCHING_AND_SCANNING.md) for stack branches and Gitea settings.
 
 ## Related docs
 

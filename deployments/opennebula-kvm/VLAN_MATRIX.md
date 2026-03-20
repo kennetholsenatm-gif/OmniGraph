@@ -159,10 +159,13 @@ Fixed **/24** blocks (adjust if you need wider masks per UCS). None of these col
 
 | Profile | **PAT / default route to Internet** | **Google Home `100.64.244.0/24`** |
 |---------|--------------------------------------|-----------------------------------|
-| **ISR-only** (diagram A) | **ISR WAN** | **ISR** SVI + NAT toward WAN (platform carve) |
-| **Mini PC VyOS** (diagram B) | **VyOS** on **VLAN 99** (mini PC **eth0**) — **single** PAT to modem | **Default (this repo):** keep **ISR** SVI + NAT context; use **VyOS PBR + RatTrap** for **other** IoT/lab VLANs. **Future:** migrate SVI to **VyOS vif** + **redistribute static** into **OSPF** — requires cutover |
+| **A — ISR-only** (diagram A) | **ISR WAN** | **ISR** SVI + NAT toward WAN (platform carve) — **legacy** homelab layout |
+| **B — Mini PC VyOS + ISR Google Home** (diagram B, brownfield) | **VyOS** on **VLAN 99** (mini PC **eth0**) — **single** PAT to modem | **ISR** retains SVI + NAT for Google Home; VyOS **PBR + RatTrap** for **other** IoT/lab VLANs only |
+| **C — Mini PC VyOS + Google Home on VyOS (canonical)** | **VyOS** on **VLAN 99** — **single** PAT to modem | **VyOS** **vif** + **default gateway** for Google Home VLAN; **advertise** **`100.64.244.0/24`** to **ISR** (e.g. **OSPF** on transit **298**); **ISR** **routes**, no SVI/NAT for that prefix |
 
 **Rules:** **Do not** stack **two** PAT hops to the same ISP path for the same flows without explicit policy. **OSPF** between **VyOS** and **ISR** uses the **dedicated transit VLAN** (e.g. **298**), **not** RatTrap **900/901**.
+
+**Roadmap:** [docs/ROADMAP.md](../../docs/ROADMAP.md) **P1** implements **Profile C** first for this site. **Canonical vision:** [docs/CANONICAL_DEPLOYMENT_VISION.md](../../docs/CANONICAL_DEPLOYMENT_VISION.md).
 
 Authoritative narrative: [EDGE-MINI-PC-VYOS-PACKETFENCE.md](../../docs/opennebula-gitea-edge/EDGE-MINI-PC-VYOS-PACKETFENCE.md) · ISR overlays: [docs/CISCO_ISR_EDGE.md](../../docs/CISCO_ISR_EDGE.md).
 

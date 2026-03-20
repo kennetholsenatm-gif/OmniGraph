@@ -16,6 +16,7 @@ if (-not $SkipSemaphore) {
 Write-Host "Installing/updating pre-commit hooks (if available)..."
 try {
     pre-commit install | Out-Null
+    pre-commit install --hook-type pre-push | Out-Null
 } catch {
     Write-Warning "pre-commit not found in PATH. Install Python + pre-commit."
 }

@@ -16,6 +16,16 @@ This document describes the components and deployment order for the Autonomous Z
 | **Gitea, n8n, Zammad** | Tooling (Git, orchestration, ITSM). | 100.64.1/2/3.0/24 | docker-compose.tooling.yml |
 | **NetBox, Dependency-Track** | Discovery SoT + SBOM/vuln hub (optional stack). | 100.64.40.0/24 (`discovery_net`) | docker-compose.discovery.yml |
 
+## Physical deployment options (same logical `iam_net`)
+
+Logical addressing is always **`100.64.20.0/24` (`iam_net`)** per [NETWORK_DESIGN.md](NETWORK_DESIGN.md). Where that **runs physically** depends on phase:
+
+| Persona | When | Routing / access |
+|---------|------|------------------|
+| **Laptop or single Docker host (dev)** | Local iteration | `VAULT_ADDR` often `http://127.0.0.1:8200` or host-mapped port; no WAN routing required. |
+| **IAM mini PC (canonical prerequisite)** | Before trusting repo-wide automation | Second **mini PC** with Docker bridges ([`deploy-devsecops-mesh.yml`](../ansible/playbooks/deploy-devsecops-mesh.yml) or [`scripts/create-networks.sh`](../scripts/create-networks.sh)); controllers need **L3 reachability** to `VAULT_ADDR` / Keycloak (static route or OSPF from lab core). See [CANONICAL_DEPLOYMENT_VISION.md](CANONICAL_DEPLOYMENT_VISION.md), [ROADMAP.md](ROADMAP.md) **P2**, [`ansible/inventory/mini-pc-iam.example.yml`](../ansible/inventory/mini-pc-iam.example.yml). |
+| **OpenNebula LXC or flat VM (later)** | Full pipeline on cloud | IAM LXC or VM per [opennebula-gitea-edge/LXC-ALMA10-OPENNEBULA.md](opennebula-gitea-edge/LXC-ALMA10-OPENNEBULA.md); same compose files; update routes/DNS for new attachment points. |
+
 ## Install and Configure HashiCorp Vault
 
 Vault is part of the IAM stack and provides the secrets backend for Varlock (no secrets in `.env`).
@@ -79,6 +89,8 @@ See [DEPLOYMENT.md](DEPLOYMENT.md): networks → OpenTofu/Ansible (optional) →
 
 ## References
 
+- [CANONICAL_DEPLOYMENT_VISION.md](CANONICAL_DEPLOYMENT_VISION.md) — Edge + IAM mini PC + Google Home profile.
+- [ROADMAP.md](ROADMAP.md) — Phased delivery (P0–P3+).
 - [DEPLOYMENT.md](DEPLOYMENT.md) — Full deployment steps.
 - [VARLOCK_USAGE.md](VARLOCK_USAGE.md) — Where credentials live (Vault) and how to inject into Compose.
 - [ADR_FULLSTACK_DISCOVERY.md](ADR_FULLSTACK_DISCOVERY.md) — Discovery/BOM stack and Solace naming.

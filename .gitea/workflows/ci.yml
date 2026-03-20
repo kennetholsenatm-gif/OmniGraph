@@ -1,4 +1,4 @@
-# Gitea Actions — Ansible / YAML / OpenTofu lint (AlmaLinux 9 in Docker for ansible-lint + yamllint).
+# Gitea Actions — lint, format, secret scan, Trivy fs (Ansible/OpenTofu/LXC IaC).
 # Register an Act runner with label ubuntu-latest (or change runs-on below). See docs/CI_CD.md.
 name: CI
 
@@ -36,3 +36,27 @@ jobs:
             -v "${{ github.workspace }}:/workspace" \
             -w /workspace/opentofu \
             ghcr.io/terraform-linters/tflint:v0.54.0
+
+  black-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Black (Python scripts/)
+        run: bash scripts/ci/black-check.sh
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Gitleaks (secrets)
+        run: bash scripts/ci/gitleaks.sh
+
+  trivy-fs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy filesystem (HIGH/CRITICAL)
+        run: bash scripts/ci/trivy-fs.sh

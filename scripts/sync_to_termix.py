@@ -79,7 +79,15 @@ def main() -> None:
 
     if termix_api_url and termix_token:
         # TODO: POST to Termix API (host create/update); DELETE for to_remove
-        print(json.dumps({"status": "ok", "hosts_synced": len(termix_hosts), "to_remove": len(delta.get("to_remove", []))}))
+        print(
+            json.dumps(
+                {
+                    "status": "ok",
+                    "hosts_synced": len(termix_hosts),
+                    "to_remove": len(delta.get("to_remove", [])),
+                }
+            )
+        )
     else:
         print(json.dumps(termix_hosts, indent=2))
 

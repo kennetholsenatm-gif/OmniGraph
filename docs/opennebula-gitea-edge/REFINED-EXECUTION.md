@@ -2,6 +2,19 @@
 
 Operator checklist for the **refined plan** using canonical [**VLAN_MATRIX.md**](../../deployments/opennebula-kvm/VLAN_MATRIX.md), [**NETWORK_DESIGN.md**](../NETWORK_DESIGN.md), and this folder. Do not treat **`10.10.x`** examples from legacy drafts as authoritative.
 
+**Read first:** [**CANONICAL_DEPLOYMENT_VISION.md**](../CANONICAL_DEPLOYMENT_VISION.md) (physical roles, Google Home on VyOS, IAM mini PC) and [**ROADMAP.md**](../ROADMAP.md) (P0–P3+ order).
+
+## Phase pre-A — Physical prerequisites (edge + IAM mini PCs)
+
+Complete **before** relying on full OpenNebula migration for **routing** and **automation**. These steps map to [ROADMAP.md](../ROADMAP.md) **P1** and **P2**; they are **not** the same as OpenNebula front-end hosts.
+
+| Step | Action | References |
+|------|--------|------------|
+| pre-A1 | **Edge mini PC:** Alma + Incus host; **VyOS** WAN + trunk; **Profile C** Google Home on **VyOS** (`100.64.244.0/24` advertised to ISR) | [EDGE-MINI-PC-VYOS-PACKETFENCE.md](EDGE-MINI-PC-VYOS-PACKETFENCE.md), [VLAN_MATRIX.md](../../deployments/opennebula-kvm/VLAN_MATRIX.md) **Profile C**, [deployments/mini-pc-firewall/README.md](../../deployments/mini-pc-firewall/README.md) |
+| pre-A2 | **Second mini PC:** Docker + **`iam_net`** bridges; **Vault + Keycloak** (IAM compose) reachable from controllers | [CANONICAL_DEPLOYMENT_VISION.md](../CANONICAL_DEPLOYMENT_VISION.md), [`mini-pc-iam.example.yml`](../../ansible/inventory/mini-pc-iam.example.yml), [deploy-devsecops-mesh.yml](../../ansible/playbooks/deploy-devsecops-mesh.yml), [start-containers-with-vault.yml](../../ansible/playbooks/start-containers-with-vault.yml) |
+
+**Do not conflate** the **edge VyOS mini PC** or **IAM mini PC** with **OpenNebula FE** boxes in the hardware table below — those serve **hypervisor / Ceph** roles and may be additional machines.
+
 ## Phase 0 — Whole repository and integration inventory
 
 Before touching hypervisors, enumerate **everything in this repo** that references Gitea, `C:\GiTeaRepos`, or Docker **`gitea_net`**. Work through [WHOLE-REPO-MIGRATION-SCOPE.md](WHOLE-REPO-MIGRATION-SCOPE.md) (compose, Ansible, Vault/Varlock, `n8n-workflows/`, `single-pane-of-glass/`, schemas). Update **`GITEA_*`** and webhook secrets in Vault; grep for `GiTeaRepos` and `gitea:3000` after cutover.
@@ -57,7 +70,9 @@ Before touching hypervisors, enumerate **everything in this repo** that referenc
 
 | Physical | Role |
 |----------|------|
-| Mini-PC-1 | OpenNebula FE primary; optional Ceph |
-| Mini-PC-2 | Backup / monitoring / optional Ceph |
+| **Edge mini PC** | **VyOS** firewall/router **outside** OpenNebula; **Google Home** VLAN on VyOS (**Profile C**); PAT to ISP when active — [CANONICAL_DEPLOYMENT_VISION.md](../CANONICAL_DEPLOYMENT_VISION.md) |
+| **IAM mini PC** | **Vault + Keycloak** on **`iam_net`**; automation prerequisite — separate from edge and from ONe FE |
+| Mini-PC-ONe-1 | OpenNebula **front-end** primary; optional Ceph (**not** the edge VyOS box) |
+| Mini-PC-ONe-2 | OpenNebula backup / monitoring / optional Ceph |
 | 4× UCS-E | KVM; underlay **100.64.245–247** carve per matrix |
-| ISR + C3560CX | Trunks / NAT / ACLs |
+| ISR + C3560CX | Trunks; **L3** to UCS; **OSPF** transit to VyOS; **Profile C:** ISR **routes** `100.64.244.0/24` from VyOS (no ISR SVI for Google Home) |

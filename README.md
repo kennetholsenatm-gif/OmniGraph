@@ -2,6 +2,8 @@
 
 Deployment artifacts for the pipeline: 100.64.0.0/10 segmented network, Solace mTLS A2A, n8n macro-orchestrator, Gitea, Zammad, **Bitwarden (Vaultwarden)**, Keycloak, **HashiCorp Vault**, Teleport JIT, and Varlock schema-driven secrets.
 
+**Read first (site topology and phased delivery):** [docs/CANONICAL_DEPLOYMENT_VISION.md](docs/CANONICAL_DEPLOYMENT_VISION.md) · [docs/ROADMAP.md](docs/ROADMAP.md)
+
 ## Quick Start
 
 **Greenfield (one command):** From repo root run `.\scripts\launch-greenfield.ps1`. Enter your admin username and password when prompted; the script creates networks, generates secrets, starts the stack, and writes to Vault. Walk away and come back to a fully stood-up infrastructure. Optionally add `-SaveVaultToken` to persist the Vault token for later runs (then use `.\scripts\start-from-vault.ps1` next time). See [docs/GREENFIELD_ONE_SHOT.md](docs/GREENFIELD_ONE_SHOT.md).
@@ -16,7 +18,8 @@ Deployment artifacts for the pipeline: 100.64.0.0/10 segmented network, Solace m
 
 ## Layout
 
-- **docs/** — **GREENFIELD_ONE_SHOT.md** (one-command greenfield launch), SYSTEMS_ARCHITECTURE.md, NETWORK_DESIGN.md, NETWORKS_PHASE1.md, **IAM_PHASE2.md**, **IAM_LDAP_AND_AUTOMATION.md**, **IAM_IAC.md** (OpenTofu/Ansible/Foreman/Pulumi/Packer for IAM), DEPLOYMENT.md, A2A_PAYLOAD_SCHEMA.md, TELEPORT_JIT.md, VARLOCK_USAGE.md; **opennebula-gitea-edge/** — **REDUCE-DOCKER.md** (native/Podman first), **LXC-ALMA10-OPENNEBULA.md**, **CONTAINER-LIFT-TO-OPENNEBULA.md**, **WHOLE-REPO-MIGRATION-SCOPE.md**
+- **docs/** — **CANONICAL_DEPLOYMENT_VISION.md** (edge VyOS + IAM mini PC + Google Home profile), **ROADMAP.md** (P0–P3+), **BOOTSTRAP_USB_BUNDLE.md** (offline USB bundle before custom ISO), **GREENFIELD_ONE_SHOT.md** (pointer to Deploy repo), SYSTEMS_ARCHITECTURE.md, NETWORK_DESIGN.md, NETWORKS_PHASE1.md, **IAM_PHASE2.md**, **IAM_LDAP_AND_AUTOMATION.md**, **IAM_IAC.md** (OpenTofu/Ansible/Foreman/Pulumi/Packer for IAM), DEPLOYMENT.md, **CI_CD.md** (Gitea Actions, Semaphore sync), **BRANCHING_AND_SCANNING.md** (branch layout + scanners), A2A_PAYLOAD_SCHEMA.md, TELEPORT_JIT.md, VARLOCK_USAGE.md; **opennebula-gitea-edge/** — **REDUCE-DOCKER.md** (native/Podman first), **LXC-ALMA10-OPENNEBULA.md**, **CONTAINER-LIFT-TO-OPENNEBULA.md**, **WHOLE-REPO-MIGRATION-SCOPE.md**
+- **deployments/bootstrap-usb-bundle/** — `build-bundle.sh` + `bootstrap-on-target.sh` for offline mini PC bring-up
 - **opentofu/** — Docker network definitions (100.64.x.x)
 - **ansible/** — Playbooks and roles (mesh deploy, mTLS, FIPS/hardening)
 - **docker-compose/** — Messaging, tooling (Gitea/n8n/Zammad/Bitwarden), IAM (Vault + Keycloak), ChatOps (Zulip); optional discovery, LLM, AI orchestration. **stack-manifest.json** defines the merged “core” set for PowerShell (`launch-stack.ps1`, `secrets-bootstrap.ps1`).

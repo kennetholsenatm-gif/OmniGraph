@@ -4,6 +4,8 @@
 
 This directory contains all artifacts to deploy the pipeline on 100.64.0.0/10 with a messaging backbone (Solace mTLS, NiFi, RabbitMQ, Kafka), isolated tooling (Gitea, n8n, Zammad, Bitwarden), IAM (Keycloak), and agent mesh (SAM). All configuration is FOSS-only.
 
+**Read first:** [CANONICAL_DEPLOYMENT_VISION.md](CANONICAL_DEPLOYMENT_VISION.md) (physical roles: **edge VyOS mini PC**, **IAM mini PC**, Google Home on VyOS) and [ROADMAP.md](ROADMAP.md) (P0–P3+ vs laptop-only dev). **Repo split:** greenfield bootstrap → `C:\GiTeaRepos\Deploy`; runtime ops → this repo ([REPO_SCOPE.md](REPO_SCOPE.md)).
+
 ## Prerequisites
 
 - Docker and Docker Compose (or Podman).
@@ -41,7 +43,9 @@ Reference inventory for hybrid mode: `ansible/inventory/opennebula-hybrid.exampl
 
 ## Lean local control plane (recommended for laptop)
 
-Run only control-plane tools on laptop; run full runtime services on OpenNebula:
+**Physical prerequisite:** For **production-like automation** (Ansible/n8n/CI reading **Vault** and **Keycloak**), stand up **Vault + IAM** on a **dedicated mini PC** (logical **`iam_net`**) per [CANONICAL_DEPLOYMENT_VISION.md](CANONICAL_DEPLOYMENT_VISION.md) **before** assuming all services live only on the laptop or only on OpenNebula. The laptop can still run Semaphore and Ansible **against** that host.
+
+Run only control-plane tools on laptop; run **full** runtime services on OpenNebula **or** on dedicated hardware per the roadmap:
 
 - Local: Semaphore (**Incus LXC**, native Postgres — run `./scripts/start-semaphore.ps1` / `./scripts/start-semaphore.sh`), Ansible controller, pre-commit, KICS, Inframap, Ansible-CMDB.
 - OpenNebula: full DevSecOps runtime stacks.
@@ -55,7 +59,7 @@ Bootstrap:
 
 Details: [opennebula-gitea-edge/LEAN_LOCAL_CONTROL_PLANE.md](opennebula-gitea-edge/LEAN_LOCAL_CONTROL_PLANE.md)
 
-After Semaphore is up, keep it aligned with Git: [SEMAPHORE_POPULATE.md](SEMAPHORE_POPULATE.md) — **`ansible/playbooks/sync-semaphore-from-manifest.yml`** (manifest-driven, CI-friendly) or **`ansible/playbooks/populate-semaphore.yml`** (single smoke template). **Gitea Actions** (lint + optional Semaphore sync): [CI_CD.md](CI_CD.md).
+After Semaphore is up, keep it aligned with Git: [SEMAPHORE_POPULATE.md](SEMAPHORE_POPULATE.md) — **`ansible/playbooks/sync-semaphore-from-manifest.yml`** (manifest-driven, CI-friendly) or **`ansible/playbooks/populate-semaphore.yml`** (single smoke template). **Gitea Actions** (lint + optional Semaphore sync): [CI_CD.md](CI_CD.md). **Branches vs path filters** (Ansible / OpenTofu / LXC scanning): [BRANCHING_AND_SCANNING.md](BRANCHING_AND_SCANNING.md).
 
 ```bash
 cd ansible
@@ -128,6 +132,11 @@ ansible-playbook -i inventory/lxc.example.yml playbooks/deploy-devsecops-lxc.yml
 
 | Artifact | Location |
 |----------|----------|
+| **Canonical deployment vision** (edge VyOS, IAM mini PC, Google Home profile) | `docs/CANONICAL_DEPLOYMENT_VISION.md` |
+| **Roadmap** (P0–P3+ physical → OpenNebula) | `docs/ROADMAP.md` |
+| **Bootstrap USB bundle** (offline repo + Ansible collections + target script) | `docs/BOOTSTRAP_USB_BUNDLE.md`, `deployments/bootstrap-usb-bundle/` |
+| **IAM-only mini PC inventory (example)** | `ansible/inventory/mini-pc-iam.example.yml` |
+| **Bootstrap Mini-PC-IAM LXC** | `ansible/playbooks/bootstrap-mini-pc-iam.yml` (imports `deploy-devsecops-lxc.yml`, `lxd_apply_names: [devsecops-iam]`) |
 | **Greenfield one-shot launch** (clone, one command, one password) | `C:\GiTeaRepos\Deploy\docs\GREENFIELD_ONE_SHOT.md`, `C:\GiTeaRepos\Deploy\scripts\launch-greenfield.ps1` |
 | **Systems Architecture** (incl. install and configure HashiCorp Vault) | `docs/SYSTEMS_ARCHITECTURE.md` |
 | Network design | `docs/NETWORK_DESIGN.md` |

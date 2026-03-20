@@ -51,8 +51,8 @@ This document is the **architecture source of truth** for a dedicated **mini PC*
 
 **Google Home / `100.64.244.0/24`:**
 
-- **Recommended (minimal churn):** Keep **Google Home** SVI and **NAT context** on the **ISR** as in VLAN_MATRIX; use VyOS **PBR + RatTrap** for **other** IoT or lab VLANs only.
-- **Alternative (future):** Move the Google Home SVI to a **VyOS vif**, **redistribute static** into **OSPF Area 1**, and **remove** duplicate NAT — requires a **cutover** window and ISR route cleanup.
+- **Target profile (site canonical):** Terminate the **Google Home** VLAN on **VyOS** (dedicated **vif** on the **eth1** trunk). **VyOS** is the **default gateway** for that segment. **Advertise** **`100.64.244.0/24`** to the rest of the site (e.g. **redistribute static** or equivalent into **OSPF** on the **VyOS↔ISR transit** — **not** on RatTrap **900/901**). **ISR** learns the prefix and **does not** host an SVI for Google Home in this profile; **remove** any duplicate **NAT** for the same ISP path on the ISR. Full narrative: [CANONICAL_DEPLOYMENT_VISION.md](../CANONICAL_DEPLOYMENT_VISION.md), [ROADMAP.md](../ROADMAP.md) **P1**.
+- **Legacy / transitional (brownfield):** Keep **Google Home** SVI and **NAT context** on the **ISR** ([VLAN_MATRIX](../../deployments/opennebula-kvm/VLAN_MATRIX.md) **Profile A/B**) when minimizing churn during migration; use VyOS **PBR + RatTrap** for **other** IoT or lab VLANs. Plan a cutover to the **canonical** VyOS-attached profile when ready.
 
 ## Integrations to the DevSecOps `100.64.x` plane
 

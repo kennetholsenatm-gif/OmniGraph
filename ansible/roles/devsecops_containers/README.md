@@ -2,6 +2,8 @@
 
 Starts DevSecOps Docker Compose stacks with **env injected by Ansible**. No manual `.env` file; all variables (including secrets) are passed into containers at start time from Ansible vars or from HashiCorp Vault.
 
+**IAM-only host (second mini PC):** Use stack toggles with [`playbooks/start-containers-with-vault.yml`](../../playbooks/start-containers-with-vault.yml) after [`deploy-devsecops-mesh.yml`](../../playbooks/deploy-devsecops-mesh.yml) on that host — see [docs/CANONICAL_DEPLOYMENT_VISION.md](../../../docs/CANONICAL_DEPLOYMENT_VISION.md#iac-iam-only-mini-pc) and [`inventory/mini-pc-iam.example.yml`](../../inventory/mini-pc-iam.example.yml).
+
 ## How env gets into containers
 
 - Ansible builds a single `container_env` dict from:
