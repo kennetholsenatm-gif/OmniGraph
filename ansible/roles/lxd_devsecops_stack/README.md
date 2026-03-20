@@ -1,6 +1,12 @@
 # lxd_devsecops_stack
 
-Creates **LXD** instances (`images:almalinux/10`), configures the **`docker-nesting`** profile **inline** (no dependency on `bootstrap-lxd-profile.sh`, so CRLF on `/mnt/c/` cannot break this step), installs **Docker CE**, pushes `docker-compose/` + `scripts/` into `/opt/devsecops-pipeline/`, runs **`create-networks.sh`**, optionally **`docker compose up`**. Requires **`lxc` (LXD)** or **`incus` (Incus)** on the Ansible controller; the role discovers either (snap: `/snap/bin/lxc`, distro: `/usr/bin/incus`, etc.) or use `lxd_cli`. The shell script under `deployments/wsl2-lxc/scripts/` remains optional for manual profile setup.
+Creates **LXD/Incus** instances (`images:almalinux/10`), configures the **`docker-nesting`** profile **inline** when you still run **Docker/Podman** in a guest, pushes `docker-compose/` + `scripts/` into `/opt/devsecops-pipeline/`, runs **`create-networks.sh`** (Docker-centric today), optionally **`docker compose up`**.
+
+**Native control plane (no Docker):** the optional **`devsecops-semaphore`** instance sets **`lxd_native_only: true`** and installs **Semaphore + PostgreSQL** via **`roles/semaphore_native`** (systemd). Use **`ansible/playbooks/deploy-semaphore-incus.yml`** or `./scripts/start-semaphore.sh`.
+
+**Reduce Docker:** For OpenNebula / Alma **native** stacks, set **`lxd_install_docker_in_instance: false`**, skip `devsecops_lxc_compose_up`, and manage **systemd + dnf/Podman** per [docs/opennebula-gitea-edge/REDUCE-DOCKER.md](../../../docs/opennebula-gitea-edge/REDUCE-DOCKER.md). The role remains useful to **provision empty LXCs** and sync the repo tree even without `docker-ce`.
+
+Requires **`lxc` (LXD)** or **`incus` (Incus)** on the target **lxd_host**; use `lxd_cli` / `lxd_incus_socket` if needed. Optional: `deployments/local-lxc/scripts/bootstrap-lxd-profile.sh` for manual profile work.
 
 ## Requirements
 
@@ -27,6 +33,11 @@ Creates **LXD** instances (`images:almalinux/10`), configures the **`docker-nest
 | `lxd_docker_profile_kernel_modules` | `""` | Comma-separated modules for profile `linux.kernel_modules`; empty skips (WSL: Incus can’t find `modprobe`). Set full list on bare metal + `kmod` |
 | `lxd_docker_profile_raw_lxc` | `""` | Multiline profile `raw.lxc`; empty skips/unsets (avoids liblxc temp config failures on WSL/CRLF). See `defaults/main.yml` for tun/AppArmor example |
 | `devsecops_pipeline_root` | from playbook | Repo root |
+| `lxd_bridge_tune_dns` | `true` | After creating the managed bridge, run `network set` for `dns.mode`, `ipv4.nat`, `ipv4.dhcp`, `dns.nameservers` |
+| `lxd_bridge_dns_nameservers` | `["1.1.1.1","8.8.8.8"]` | Upstream resolvers advertised on the bridge (helps fix “no DNS in container”) |
+| `lxd_ensure_managed_bridge` | `true` | Create `incusbr0` / `lxdbr0` if missing and attach `default` profile NIC |
+
+See [docs/INCUS_NETWORK_DNS.md](../../../docs/INCUS_NETWORK_DNS.md) for manual verification and troubleshooting.
 
 ## Example
 

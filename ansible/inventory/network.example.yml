@@ -2,16 +2,18 @@
 # Copy to network.yml (gitignored locally) or merge into inventory.yml.
 # ansible-playbook -i inventory/network.example.yml playbooks/network-site.yml
 #
-# Connection: SSH to device; set ansible_user / ansible_password via vault or --ask-pass.
+# Connection: SSH to device. No HashiCorp Vault required — use plain vars or --ask-pass.
+# If you omit ansible_password, run: ansible-playbook ... --ask-pass (required for network_cli/paramiko).
+# ansible_user must match IOS exactly (case-sensitive), e.g. Iac vs iac.
 
 all:
   children:
     network_isr:
       hosts:
         isr-primary:
-          ansible_host: 100.64.242.11
+          ansible_host: 192.168.86.27
         isr-secondary:
-          ansible_host: 100.64.242.12
+          ansible_host: 192.168.86.31
     network_c3560cx:
       hosts:
         access-closet-1:
@@ -20,4 +22,12 @@ all:
   vars:
     ansible_connection: ansible.netcommon.network_cli
     ansible_network_os: ios
-    ansible_user: "{{ vault_network_ssh_user | default('admin') }}"
+    # IaC automation account for Ansible SSH + IOS local user (see cisco_isr_admin_username: iac).
+    # If you use Vault: default('iac') — do not use kbolsen as ansible_user (human admin is key-only on-box).
+    ansible_user: iac
+    # Required for paramiko unless you use SSH keys: set here or use ansible-playbook --ask-pass.
+    # Omitting both → "No authentication methods available".
+    # ansible_password: "your-ssh-password"
+    # network_cli/paramiko does NOT use OpenSSH `-o` args. Use ansible_host_key_checking + paramiko host_key_auto_add (see ansible.cfg / run-network-isr.sh).
+    ansible_host_key_checking: false
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no"

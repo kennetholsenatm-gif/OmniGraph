@@ -1,0 +1,33 @@
+---
+# ISR via serial bridged to localhost TCP (socat). Serial is NOT SSH — use telnet transport.
+#
+# Terminal 1 (WSL or Linux):
+#   ./scripts/socat-console-bridge.sh
+#   # or PowerShell: .\scripts\socat-console-bridge.ps1 -WslDevice /dev/ttyUSB0
+#
+# Terminal 2:
+#   cd ansible
+#   ansible-galaxy collection install -r collections/requirements.yml
+#   ansible-playbook -i inventory/isr-console-bridge.yml playbooks/network-isr.yml
+#
+# Tune ansible_port to match ISR_CONSOLE_PORT (default 3322).
+
+all:
+  children:
+    network_isr:
+      hosts:
+        isr-console:
+          ansible_host: 127.0.0.1
+          ansible_port: 3322
+          ansible_connection: ansible.netcommon.telnet
+          ansible_network_os: ios
+          # Console often has no username until line con local / login local; leave empty or set if prompted.
+          ansible_user: ""
+          ansible_password: ""
+          ansible_become: true
+          ansible_become_method: enable
+          # Set in vault or extra-vars: ansible_become_password / vault_ios_enable_secret
+          # ansible_become_password: "{{ vault_ios_enable_secret }}"
+  vars:
+    # Longer timeouts help slow console output.
+    ansible_command_timeout: 120

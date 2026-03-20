@@ -1,0 +1,269 @@
+---
+# Idempotent Phase A: Project + Repository + (optional) SSH key + Inventory + Ansible template.
+# Requires: Semaphore 2.17.x API (see ansible/roles/semaphore_native/defaults/main.yml).
+#
+# Usage:
+#   cd ansible && export ANSIBLE_CONFIG="$(pwd)/ansible.cfg"
+#   ansible-playbook -i inventory/semaphore-populate.example.yml playbooks/populate-semaphore.yml \
+#     -e semaphore_api_token="$TOKEN" -e semaphore_git_url="https://..." -e semaphore_git_branch="main"
+#
+- name: Populate Semaphore (Phase A)
+  hosts: localhost
+  gather_facts: false
+  vars:
+    semaphore_url: "http://localhost:3001"
+    semaphore_project_name: "devsecops-pipeline"
+    semaphore_repository_name: "devsecops-pipeline"
+    semaphore_git_branch: "main"
+    semaphore_template_name: "Smoke (localhost)"
+    semaphore_playbook_path: "ansible/playbooks/semaphore-smoke.yml"
+    semaphore_inventory_name: "Local smoke"
+    # Semaphore "static" = INI-style inventory (matches semaphore-demo static inventories)
+    semaphore_inventory_type: "static"
+    semaphore_inventory_body: |
+      [all]
+      localhost ansible_connection=local
+  tasks:
+    - name: Require API token
+      ansible.builtin.assert:
+        that:
+          - semaphore_api_token is defined
+          - (semaphore_api_token | string | length) > 0
+        fail_msg: "Set semaphore_api_token (e.g. -e or inventory vars)."
+
+    - name: Require Git URL
+      ansible.builtin.assert:
+        that:
+          - semaphore_git_url is defined
+          - (semaphore_git_url | string | length) > 0
+        fail_msg: "Set semaphore_git_url to your remote clone URL."
+
+    - name: Normalize base URL
+      ansible.builtin.set_fact:
+        _sem_base: "{{ semaphore_url | regex_replace('/$', '') }}"
+
+    - name: List projects
+      ansible.builtin.uri:
+        url: "{{ _sem_base }}/api/projects"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ semaphore_api_token }}"
+          Accept: "application/json"
+        status_code: [200]
+      register: _projects_resp
+
+    - name: Resolve existing project
+      ansible.builtin.set_fact:
+        _proj_list: "{{ _projects_resp.json | default([]) | selectattr('name', 'equalto', semaphore_project_name) | list }}"
+        _proj: "{{ _proj_list[0] if (_proj_list | length) > 0 else none }}"
+
+    - name: Create project
+      ansible.builtin.uri:
+        url: "{{ _sem_base }}/api/projects"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ semaphore_api_token }}"
+          Accept: "application/json"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "{{ semaphore_project_name }}"
+          type: ""
+        status_code: [201]
+      register: _create_proj
+      when: _proj is none
+
+    - name: Set project id
+      ansible.builtin.set_fact:
+        _project_id: "{{ (_proj.id if _proj is not none else _create_proj.json.id) | int }}"
+
+    - name: List keys
+      ansible.builtin.uri:
+        url: "{{ _sem_base }}/api/project/{{ _project_id }}/keys"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ semaphore_api_token }}"
+          Accept: "application/json"
+        status_code: [200]
+      register: _keys_resp
+
+    - name: Find None key (auto-created with project)
+      ansible.builtin.set_fact:
+        _none_key: "{{ _keys_resp.json | default([]) | selectattr('name', 'equalto', 'None') | list | first | default(none) }}"
+
+    - name: Fail if None key missing
+      ansible.builtin.fail:
+        msg: "Expected access key named 'None' — create a new project or add a 'none' key in Semaphore UI."
+      when: _none_key is none
+
+    - name: Optional Git SSH deploy key
+      ansible.builtin.uri:
+        url: "{{ _sem_base }}/api/project/{{ _project_id }}/keys"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ semaphore_api_token }}"
+          Accept: "application/json"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "Git deploy (ansible populate)"
+          type: ssh
+          project_id: "{{ _project_id }}"
+          ssh:
+            login: "git"
+            passphrase: ""
+            private_key: "{{ semaphore_git_ssh_private_key }}"
+        status_code: [201]
+      register: _git_key
+      when: semaphore_git_ssh_private_key is defined and (semaphore_git_ssh_private_key | length) > 0
+
+    - name: Set repository SSH key id
+      ansible.builtin.set_fact:
+        _repo_ssh_key_id: "{{ _git_key.json.id | int if (_git_key is defined and _git_key.json is defined) else (_none_key.id | int) }}"
+
+    - name: List repositories
+      ansible.builtin.uri:
+        url: "{{ _sem_base }}/api/project/{{ _project_id }}/repositories"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ semaphore_api_token }}"
+          Accept: "application/json"
+        status_code: [200]
+      register: _repos_resp
+
+    - name: Find repository by name
+      ansible.builtin.set_fact:
+        _repo_list: "{{ _repos_resp.json | default([]) | selectattr('name', 'equalto', semaphore_repository_name) | list }}"
+        _repo: "{{ _repo_list[0] if (_repo_list | length) > 0 else none }}"
+
+    - name: Create repository
+      ansible.builtin.uri:
+        url: "{{ _sem_base }}/api/project/{{ _project_id }}/repositories"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ semaphore_api_token }}"
+          Accept: "application/json"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "{{ semaphore_repository_name }}"
+          project_id: "{{ _project_id }}"
+          git_url: "{{ semaphore_git_url }}"
+          git_branch: "{{ semaphore_git_branch }}"
+          ssh_key_id: "{{ _repo_ssh_key_id }}"
+        status_code: [201]
+      register: _create_repo
+      when: _repo is none
+
+    - name: Set repository id
+      ansible.builtin.set_fact:
+        _repository_id: "{{ (_repo.id if _repo is not none else _create_repo.json.id) | int }}"
+
+    - name: List inventories
+      ansible.builtin.uri:
+        url: "{{ _sem_base }}/api/project/{{ _project_id }}/inventory"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ semaphore_api_token }}"
+          Accept: "application/json"
+        status_code: [200]
+      register: _inv_resp
+
+    - name: Find inventory by name
+      ansible.builtin.set_fact:
+        _inv_list: "{{ _inv_resp.json | default([]) | selectattr('name', 'equalto', semaphore_inventory_name) | list }}"
+        _inv: "{{ _inv_list[0] if (_inv_list | length) > 0 else none }}"
+
+    - name: Create inventory
+      ansible.builtin.uri:
+        url: "{{ _sem_base }}/api/project/{{ _project_id }}/inventory"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ semaphore_api_token }}"
+          Accept: "application/json"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "{{ semaphore_inventory_name }}"
+          project_id: "{{ _project_id }}"
+          inventory: "{{ semaphore_inventory_body }}"
+          type: "{{ semaphore_inventory_type }}"
+          ssh_key_id: "{{ _none_key.id | int }}"
+        status_code: [201]
+      register: _create_inv
+      when: _inv is none
+
+    - name: Set inventory id
+      ansible.builtin.set_fact:
+        _inventory_id: "{{ (_inv.id if _inv is not none else _create_inv.json.id) | int }}"
+
+    - name: List environments
+      ansible.builtin.uri:
+        url: "{{ _sem_base }}/api/project/{{ _project_id }}/environment"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ semaphore_api_token }}"
+          Accept: "application/json"
+        status_code: [200]
+      register: _envs_resp
+
+    - name: Find Empty environment (created with new projects)
+      ansible.builtin.set_fact:
+        _env_list: "{{ _envs_resp.json | default([]) | selectattr('name', 'equalto', 'Empty') | list }}"
+        _empty_env_id: "{{ (_envs_resp.json | default([]) | selectattr('name', 'equalto', 'Empty') | list | first).id if ((_envs_resp.json | default([]) | selectattr('name', 'equalto', 'Empty') | list | length) > 0) else none }}"
+
+    - name: List templates
+      ansible.builtin.uri:
+        url: "{{ _sem_base }}/api/project/{{ _project_id }}/templates"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ semaphore_api_token }}"
+          Accept: "application/json"
+        status_code: [200]
+      register: _tpl_resp
+
+    - name: Find template by name
+      ansible.builtin.set_fact:
+        _tpl_list: "{{ _tpl_resp.json | default([]) | selectattr('name', 'equalto', semaphore_template_name) | list }}"
+        _tpl: "{{ _tpl_list[0] if (_tpl_list | length) > 0 else none }}"
+
+    - name: Assemble template POST body
+      when: _tpl is none
+      ansible.builtin.set_fact:
+        _template_body: "{{ _template_base | combine(_template_env) }}"
+      vars:
+        _template_base:
+          name: "{{ semaphore_template_name }}"
+          app: ansible
+          playbook: "{{ semaphore_playbook_path }}"
+          repository_id: "{{ _repository_id | int }}"
+          inventory_id: "{{ _inventory_id | int }}"
+          task_params: {}
+        _template_env: "{{ {'environment_id': (_empty_env_id | int)} if _empty_env_id is not none else {} }}"
+
+    - name: Create Ansible template
+      ansible.builtin.uri:
+        url: "{{ _sem_base }}/api/project/{{ _project_id }}/templates"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ semaphore_api_token }}"
+          Accept: "application/json"
+          Content-Type: "application/json"
+        body_format: json
+        body: "{{ _template_body }}"
+        status_code: [201]
+      register: _create_tpl
+      when: _tpl is none
+
+    - name: Set template id
+      ansible.builtin.set_fact:
+        _template_id: "{{ (_tpl.id if _tpl is not none else _create_tpl.json.id) | int }}"
+
+    - name: Summary
+      ansible.builtin.debug:
+        msg:
+          - "project_id={{ _project_id }}"
+          - "repository_id={{ _repository_id }}"
+          - "inventory_id={{ _inventory_id }}"
+          - "template_id={{ _template_id }}"
+          - "Run a task: POST {{ _sem_base }}/api/project/{{ _project_id }}/tasks with body {\"template_id\": {{ _template_id }}}"

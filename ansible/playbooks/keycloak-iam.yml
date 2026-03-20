@@ -1,16 +1,23 @@
 ---
 # Keycloak IAM as code: create automation client + OIDC clients (gitea, n8n, zammad).
-# Run after IAM stack is up (Keycloak reachable). Auth from devsecops_secrets (bootstrap admin).
+# Run after IAM stack is up (Keycloak reachable from the target host below). Auth from devsecops_secrets (bootstrap admin).
 # From ansible/: ansible-playbook -i inventory.yml playbooks/keycloak-iam.yml -e @group_vars/ai_mesh_nodes/devsecops_secrets.yml
 # With Vault: run playbooks/start-containers-with-vault.yml first to set devsecops_secrets, then:
 #   ansible-playbook -i inventory.yml playbooks/keycloak-iam.yml
+#
+# OpenNebula / LXC / Traefik VIP:
+#   - Point Keycloak API URL at your public/gateway path, e.g.
+#     -e keycloak_iam_public_url=https://gateway.example/auth
+#   - Run from a host that can reach that URL (often the Ansible controller):
+#     -e keycloak_iam_target_hosts=localhost -e ansible_connection=local
+#     or add localhost to inventory with ansible_connection=local and pass keycloak_iam_target_hosts=local.
 - name: Configure Keycloak clients (automation + OIDC)
-  hosts: ai_mesh_nodes
-  gather_facts: true
+  hosts: "{{ keycloak_iam_target_hosts | default('ai_mesh_nodes') }}"
+  gather_facts: "{{ keycloak_iam_gather_facts | default(true) | bool }}"
   vars:
     keycloak_iam_username: "{{ devsecops_secrets.KEYCLOAK_ADMIN | default(omit) }}"
     keycloak_iam_password: "{{ devsecops_secrets.KEYCLOAK_ADMIN_PASSWORD | default(omit) }}"
-    keycloak_iam_url: "{{ devsecops_secrets.KEYCLOAK_PUBLIC_URL | default('http://127.0.0.1:8180') }}"
+    keycloak_iam_url: "{{ keycloak_iam_public_url | default(devsecops_secrets.KEYCLOAK_PUBLIC_URL | default('http://127.0.0.1:8180'), true) }}"
     keycloak_iam_gateway_base_url: "{{ devsecops_secrets.GATEWAY_BASE_URL | default('http://localhost') }}"
   roles:
     - role: keycloak_iam

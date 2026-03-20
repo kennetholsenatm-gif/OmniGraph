@@ -9,3 +9,6 @@ collections:
     version: ">=8.0.0"
   - name: community.docker
     version: ">=3.0.0"
+  # Optional: Helm on K3s (playbooks/opennebula-hybrid-site.yml, role opennebula_k3s_gitea)
+  - name: kubernetes.core
+    version: ">=2.4.0"

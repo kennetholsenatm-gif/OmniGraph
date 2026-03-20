@@ -5,11 +5,14 @@
 c3560cx_uplink_interfaces:
   - name: GigabitEthernet0/1
     mode: trunk
-    allowed_vlans: "240-244,2001-2054,86"
+    # Include 2250 for devsecops-ceph (100.64.250.0/24) — not in 2001-2054 range.
+    allowed_vlans: "240-244,2001-2054,2250,86"
     description: UPLINK_TO_ISR_OR_3650
 
 # VLANs to create (IDs align with deployments/opennebula-kvm/VLAN_MATRIX.md)
 c3560cx_vlans:
+  - id: 86
+    name: DEVSECOPS_EDGE
   - id: 240
     name: PLATFORM_CORE
   - id: 241
@@ -18,7 +21,11 @@ c3560cx_vlans:
     name: GOOGLE_HOME
   - id: 2001
     name: DEVSECOPS_GITEA
-  # Add 2002–2054 + 86 as you trunk OpenNebula VLANs
+  - id: 2005
+    name: DEVSECOPS_GATEWAY
+  - id: 2250
+    name: DEVSECOPS_CEPH
+  # Add 2002-2004, 2006-2054 per matrix as you enable each VNET
 
 c3560cx_access_ports: []
 # Example:

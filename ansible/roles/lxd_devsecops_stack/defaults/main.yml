@@ -6,6 +6,8 @@ lxd_cli: ""
 # Try to start the hypervisor via systemd / snap before profile/instance tasks (requires become/sudo).
 lxd_manage_daemon: true
 lxd_daemon_socket_timeout: 90
+# Set false for non-interactive local runs where user already has Incus socket access and no sudo prompt should occur.
+lxd_become: true
 
 # If set, passed as INCUS_SOCKET to every incus invocation (auto-detected when empty).
 # Also used to build url=unix:... for community.general.lxd_container (pylxd does not read INCUS_SOCKET).
@@ -41,8 +43,22 @@ lxd_idmap_root_line: "root:100000:65536"
 # Repo root on control node (playbook sets from playbook_dir if empty)
 devsecops_pipeline_root: ""
 
-# Limit to these instance names; empty = all below
+# Limit to these instance names; empty = all below (core + optional stacks where enabled).
+# When non-empty, optional stacks are provisioned if listed even when lxd_optional_stack_enable.* is false.
 lxd_apply_names: []
+
+# Optional LXC instances — parity with docker-compose/stack-manifest.json (optionalStacks + sdnTelemetry).
+# Set true to include when lxd_apply_names is empty. See scripts/verify-lxd-manifest-parity.ps1.
+lxd_optional_stack_enable:
+  discovery: false
+  llm: false
+  ai_orchestration: false
+  identity: false
+  siem: false
+  sdn_telemetry: false
+  gitea_lite: false
+  # Native Semaphore UI + Postgres (no Docker) — see roles/semaphore_native
+  semaphore_control: false
 
 # Messaging LXC compose: full backbone vs slim (Postgres + RabbitMQ only). Override for lower CPU dev.
 lxd_messaging_compose_cli: "-f docker-compose.messaging.yml"
@@ -50,8 +66,15 @@ lxd_messaging_compose_cli: "-f docker-compose.messaging.yml"
 # When true, runs docker compose up inside each selected instance (needs env / secrets already in container or use secrets-bootstrap.sh first)
 devsecops_lxc_compose_up: false
 
+# When true with devsecops_secrets provided, merge env like devsecops_containers and push /opt/devsecops-pipeline/.ansible-env into each LXC for docker compose.
+lxd_inject_ansible_env: false
+lxd_env_file_container_path: /opt/devsecops-pipeline/.ansible-env
+lxd_env_file_controller_temp: /tmp/devsecops-lxd-ansible.env
+
 # Install Docker CE inside each instance (dnf needs working DNS for Alma + Docker repos).
 lxd_install_docker_in_instance: true
+# When true with lxd_install_docker_in_instance false, still create/configure docker-nesting profile and attach it at launch (e.g. rootful Podman-in-LXC experiments).
+lxc_needs_nesting_profile: false
 # Push controller /etc/resolv.conf into each instance before dnf (WSL/Incus when CT has no resolver). Host must list reachable nameservers.
 lxd_sync_host_resolv_conf: false
 # If DNS is still broken, write this static resolver list inside each instance and re-test resolution.
@@ -63,6 +86,12 @@ lxd_dns_fallback_servers:
 # Ensure a managed bridge exists for container egress/DNS.
 lxd_ensure_managed_bridge: true
 lxd_managed_bridge_name: ""
+# After the bridge exists, apply Incus/LXD DNS + NAT + DHCP tuning (fixes many "no DNS in container" cases).
+lxd_bridge_tune_dns: true
+# Upstream resolvers advertised to DHCP clients (and used for resolution patterns depending on Incus/LXD version).
+lxd_bridge_dns_nameservers:
+  - 1.1.1.1
+  - 8.8.8.8
 
 lxd_devsecops_containers:
   - name: devsecops-iam
@@ -101,3 +130,57 @@ lxd_devsecops_containers:
     compose_cli: "-f docker-compose.yml"
     compose_project: devsecops-gateway
     tags: [gateway]
+
+  # --- Optional stacks (stack-manifest.json optionalStacks / sdnTelemetry) ---
+  - name: devsecops-discovery
+    compose_dir: docker-compose
+    compose_cli: "-f docker-compose.discovery.yml"
+    compose_project: devsecops-discovery
+    tags: [discovery]
+    lxd_optional_stack: discovery
+  - name: devsecops-llm
+    compose_dir: docker-compose
+    compose_cli: "-f docker-compose.llm.yml"
+    compose_project: devsecops-llm
+    tags: [llm]
+    lxd_optional_stack: llm
+  - name: devsecops-ai-orchestration
+    compose_dir: docker-compose
+    compose_cli: "-f docker-compose.ai-orchestration.yml"
+    compose_project: devsecops-ai-orchestration
+    tags: [ai-orchestration]
+    lxd_optional_stack: ai_orchestration
+  - name: devsecops-identity
+    compose_dir: docker-compose
+    compose_cli: "-f docker-compose.identity.yml"
+    compose_project: devsecops-identity
+    tags: [identity, freeipa]
+    lxd_optional_stack: identity
+  - name: devsecops-siem
+    compose_dir: docker-compose
+    compose_cli: "-f docker-compose.siem.yml"
+    compose_project: devsecops-siem
+    tags: [siem, wazuh]
+    lxd_optional_stack: siem
+  # SDN lab + telemetry (merged compose; parity with manifest sdnTelemetry.files)
+  - name: devsecops-sdn-telemetry
+    compose_dir: docker-compose
+    compose_cli: "-f docker-compose.network.yml -f docker-compose.telemetry.yml"
+    compose_project: devsecops-sdn-telemetry
+    tags: [sdn, telemetry]
+    lxd_optional_stack: sdn_telemetry
+  # Minimal local Gitea-only stack (for lean local runtime)
+  - name: devsecops-gitea
+    compose_dir: docker-compose
+    compose_cli: "-f docker-compose.gitea.yml"
+    compose_project: devsecops-gitea
+    tags: [gitea, gitea-lite]
+    lxd_optional_stack: gitea_lite
+  # Lean control plane: Semaphore + Postgres on Alma (systemd), no Docker-in-LXC
+  - name: devsecops-semaphore
+    compose_dir: docker-compose
+    compose_cli: "-f docker-compose.dummy.yml"
+    compose_project: devsecops-semaphore
+    tags: [semaphore, control-plane]
+    lxd_optional_stack: semaphore_control
+    lxd_native_only: true

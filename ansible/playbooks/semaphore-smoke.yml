@@ -1,0 +1,10 @@
+---
+# Low-risk smoke playbook for Semaphore Phase A (localhost only, no facts).
+# Template path in Semaphore: ansible/playbooks/semaphore-smoke.yml (repo root relative).
+- name: Semaphore smoke (localhost)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Ping
+      ansible.builtin.ping:

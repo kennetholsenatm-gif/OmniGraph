@@ -51,6 +51,22 @@ opensearch_security.openid.base_redirect_url: "https://your-gateway.example.com/
 
 Align **`KEYCLOAK_PUBLIC_URL`** / realm with your IAM stack. Use HTTPS in production.
 
+## CEF-oriented ingestion pattern (FOSS)
+
+Use a lightweight collector (rsyslog or syslog-ng) on `siem_net` to normalize network/syslog events into **CEF** before indexing.
+
+1. Configure ISR/Catalyst remote logging to the collector (`logging host ...`) via Ansible role vars.
+2. Collector rewrites key fields into CEF (`CEF:0|Vendor|Product|Version|Signature|Name|Severity|extensions`).
+3. Forward normalized events to Wazuh/OpenSearch ingestion path used by your deployment.
+
+Suggested split:
+
+- **Producer:** `ansible/roles/cisco_isr_platform` remote syslog vars (`cisco_isr_logging_hosts`).
+- **Normalizer:** rsyslog/syslog-ng service (native package on SIEM or dedicated telemetry LXC).
+- **Sink:** Wazuh manager/indexer on `siem_net`.
+
+This keeps vendor formats at the edge and unifies searchable fields in SIEM without proprietary tooling.
+
 ## Zero-disk secrets
 
 - Optional: add **`WAZUH_INDEXER_PASSWORD`**, **`WAZUH_MANAGER_API_PASSWORD`**, **`WAZUH_DASHBOARD_KIBANA_PASSWORD`** to Vault after aligning **`internal_users.yml`**.

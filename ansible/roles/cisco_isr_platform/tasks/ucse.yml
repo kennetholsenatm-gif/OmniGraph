@@ -1,0 +1,91 @@
+---
+# UCS-E on ISR4k: internal data-plane interface ucse s/s/0 + IMC (CIMC) under `ucse subslot s/s`.
+# Reference: Cisco UCS E-Series Getting Started — Quick Start Basic Configuration (imc ip address …).
+
+- name: Build UCS-E subslot list for administrative no shutdown
+  ansible.builtin.set_fact:
+    _cisco_isr_ucse_noshutdown_slots: >-
+      {{
+        (
+          (cisco_isr_ucse_modules | default([])
+            | selectattr('subslot', 'defined')
+            | map(attribute='subslot')
+            | list) +
+          (cisco_isr_ucse_extra_subslots | default([]))
+        ) | unique | list
+      }}
+
+- name: UCS-E — bring data-plane interfaces out of administrative shutdown
+  cisco.ios.ios_config:
+    parents:
+      - "interface {{ 'ucse' ~ item ~ '/0' }}"
+    lines:
+      - no shutdown
+    save_when: never
+  loop: "{{ _cisco_isr_ucse_noshutdown_slots }}"
+  when:
+    - cisco_isr_ucse_enabled | bool
+    - cisco_isr_ucse_ensure_no_shutdown | default(true) | bool
+    - (_cisco_isr_ucse_noshutdown_slots | length) > 0
+  loop_control:
+    label: "{{ 'ucse' ~ item ~ '/0' }}"
+
+- name: UCS-E — router-facing interface (L3 toward blade / hypervisor traffic through IOS)
+  cisco.ios.ios_config:
+    parents:
+      - "interface {{ item.router_interface.name | default('ucse' ~ item.subslot ~ '/0') }}"
+    lines:
+      - "description {{ item.description | default('UCS-E') }}"
+      - "ip address {{ item.router_interface.ipv4 }} {{ item.router_interface.mask }}"
+      - no shutdown
+    save_when: never
+  loop: "{{ cisco_isr_ucse_modules }}"
+  when:
+    - cisco_isr_ucse_enabled | bool
+    - (item.configure_router_interface | default(true) | bool)
+    - item.router_interface is defined
+    - (item.router_interface.mode | default('l3')) == 'l3'
+    - item.router_interface.ipv4 is defined
+    - item.router_interface.mask is defined
+  loop_control:
+    label: "{{ item.router_interface.name | default('ucse' ~ item.subslot ~ '/0') }}"
+
+- name: UCS-E — router-facing interface (802.1Q trunk into module)
+  cisco.ios.ios_config:
+    parents:
+      - "interface {{ item.router_interface.name | default('ucse' ~ item.subslot ~ '/0') }}"
+    lines:
+      - "description {{ item.description | default('UCS-E_TRUNK') }}"
+      - no ip address
+      - switchport
+      - switchport mode trunk
+      - "switchport trunk allowed vlan {{ item.router_interface.allowed_vlans }}"
+      - no shutdown
+    save_when: never
+  loop: "{{ cisco_isr_ucse_modules }}"
+  when:
+    - cisco_isr_ucse_enabled | bool
+    - (item.configure_router_interface | default(true) | bool)
+    - item.router_interface is defined
+    - (item.router_interface.mode | default('l3')) == 'trunk'
+    - item.router_interface.allowed_vlans is defined
+  loop_control:
+    label: "TRUNK-{{ item.subslot }}"
+
+- name: UCS-E — IMC (Cisco IMC / “CIMC”) IP + default gateway
+  cisco.ios.ios_config:
+    parents:
+      - "ucse subslot {{ item.subslot }}"
+    lines:
+      - "imc access-port {{ item.imc_access_port | default(cisco_isr_ucse_imc_access_port_default) }}"
+      - "imc ip address {{ item.imc.ipv4 }} {{ item.imc.mask }} default-gateway {{ item.imc.default_gateway }}"
+    save_when: never
+  loop: "{{ cisco_isr_ucse_modules }}"
+  when:
+    - cisco_isr_ucse_enabled | bool
+    - item.imc is defined
+    - item.imc.ipv4 is defined
+    - item.imc.mask is defined
+    - item.imc.default_gateway is defined
+  loop_control:
+    label: "IMC slot {{ item.subslot }}"

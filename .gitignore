@@ -24,7 +24,12 @@ scripts/__pycache__/
 # Ansible network inventory / group_vars with real IPs and secrets (use *.example templates)
 ansible/inventory/network.yml
 ansible/group_vars/network_isr.yml
+# Local SSH pubkey for IaC user (use files/ssh/iac.pub.example as template)
+ansible/roles/cisco_isr_platform/files/ssh/iac.pub
 ansible/group_vars/network_c3560cx.yml
 
 # Optional large wiki exports (clone stays small; use docs/snippets as source templates)
 docs/WIKI_EXPORT/
+
+# Local Semaphore bind mounts (copy from docker-compose.override.example.yml)
+deployments/local-control/semaphore/docker-compose.override.yml

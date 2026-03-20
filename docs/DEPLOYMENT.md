@@ -26,6 +26,36 @@ Run the same **Docker Compose** stacks inside **LXD** containers on **WSL2** (or
 | [WSL2_LXC_MIGRATION.md](WSL2_LXC_MIGRATION.md) | **IAM → messaging → …** order |
 | [WSL2_LXC_GATEWAY.md](WSL2_LXC_GATEWAY.md) | **Traefik** across multiple LXCs |
 | [opennebula-kvm/VLAN_MATRIX.md](../deployments/opennebula-kvm/VLAN_MATRIX.md) | Hardware addressing when you lift off WSL |
+| [opennebula-gitea-edge/REDUCE-DOCKER.md](opennebula-gitea-edge/REDUCE-DOCKER.md) | **Minimize Docker** — native Alma / Podman tiers; compose as legacy |
+| [opennebula-gitea-edge/LXC-ALMA10-OPENNEBULA.md](opennebula-gitea-edge/LXC-ALMA10-OPENNEBULA.md) | **AlmaLinux 10 LXC** per stack on OpenNebula (LXD host VM + `deploy-devsecops-lxc.yml`) |
+| [opennebula-gitea-edge/CONTAINER-LIFT-TO-OPENNEBULA.md](opennebula-gitea-edge/CONTAINER-LIFT-TO-OPENNEBULA.md) | **Move the Docker stacks** — volumes + networks + Compose (inside LXC or flat VM) |
+| [opennebula-gitea-edge/WHOLE-REPO-MIGRATION-SCOPE.md](opennebula-gitea-edge/WHOLE-REPO-MIGRATION-SCOPE.md) | **All repo artifacts** (compose, Vault, n8n, gateway) to update when Gitea leaves Windows |
+
+## Execution modes (supported)
+
+1. **Flat Docker host (legacy/lab):** `ansible/playbooks/site.yml` + `ansible/roles/devsecops_containers`.
+2. **OpenNebula LXC (hybrid core):** `ansible/playbooks/deploy-devsecops-lxc.yml` (or `opennebula-hybrid-site.yml`) + `ansible/roles/lxd_devsecops_stack`.
+3. **K3s slice (Gitea via Helm):** `ansible/playbooks/opennebula-hybrid-site.yml` second play + `ansible/roles/opennebula_k3s_gitea`.
+
+Reference inventory for hybrid mode: `ansible/inventory/opennebula-hybrid.example.yml`.
+
+## Lean local control plane (recommended for laptop)
+
+Run only control-plane tools on laptop; run full runtime services on OpenNebula:
+
+- Local: Semaphore (**Incus LXC**, native Postgres — run `./scripts/start-semaphore.ps1` / `./scripts/start-semaphore.sh`), Ansible controller, pre-commit, KICS, Inframap, Ansible-CMDB.
+- OpenNebula: full DevSecOps runtime stacks.
+
+Bootstrap:
+
+```powershell
+./scripts/setup-lean-local-control.ps1
+./scripts/start-semaphore.ps1
+```
+
+Details: [opennebula-gitea-edge/LEAN_LOCAL_CONTROL_PLANE.md](opennebula-gitea-edge/LEAN_LOCAL_CONTROL_PLANE.md)
+
+After Semaphore is up, seed a **project + Git repo + smoke template** via API: [SEMAPHORE_POPULATE.md](SEMAPHORE_POPULATE.md) — playbook `ansible/playbooks/populate-semaphore.yml`.
 
 ```bash
 cd ansible
@@ -47,7 +77,7 @@ ansible-playbook -i inventory/lxc.example.yml playbooks/deploy-devsecops-lxc.yml
    - **Solace (discovery-networks)**: From your infra repo, apply discovery-networks and devsecops-variables (e.g. `discovery-networks.tf`, `devsecops-variables.tf`) to configure the Solace VPN (mTLS-only) and A2A topics.  
    - **Docker networks (optional)**: From this repo’s `opentofu/`, run `tofu init && tofu apply` to create **18** bridge networks: `gitea_net`, `n8n_net`, `zammad_net`, `bitwarden_net`, `gateway_net`, `portainer_net`, `llm_net`, `chatops_net`, `msg_backbone_net`, `iam_net`, `freeipa_net`, `agent_mesh_net`, `discovery_net`, `sdn_lab_net`, `telemetry_net`, `docs_net`, `sonarqube_net`, `siem_net` (subnets in [NETWORK_DESIGN.md](NETWORK_DESIGN.md)). Docsify: [DOCSIFY_GITEA.md](DOCSIFY_GITEA.md). SonarQube: [SONARQUBE_KEYCLOAK.md](SONARQUBE_KEYCLOAK.md). Wazuh: [WAZUH_SIEM.md](WAZUH_SIEM.md).
 
-3. **Greenfield one-shot (no Ansible):** From repo root run `.\scripts\launch-greenfield.ps1`; enter admin password when prompted. This creates all networks, generates secrets, starts the stack, and writes to Vault. Optionally use `-SaveVaultToken`. Use `-IncludeSdnTelemetry` on **Linux** hosts to add OVS/VyOS + sFlow-RT/Prometheus/Grafana; see [SDN_TELEMETRY.md](SDN_TELEMETRY.md). See [GREENFIELD_ONE_SHOT.md](GREENFIELD_ONE_SHOT.md).
+3. **Greenfield one-shot (no Ansible):** Use the deployment repo at `C:\GiTeaRepos\Deploy` and run `.\scripts\launch-greenfield.ps1`; enter admin password when prompted. This creates all networks, generates secrets, starts the stack, and writes to Vault. Optionally use `-SaveVaultToken`. Use `-IncludeSdnTelemetry` on **Linux** hosts to add OVS/VyOS + sFlow-RT/Prometheus/Grafana; see [SDN_TELEMETRY.md](SDN_TELEMETRY.md). See [GREENFIELD_ONE_SHOT.md](GREENFIELD_ONE_SHOT.md) (moved pointer).
 
 4. **Ansible (optional)**  
    Run host hardening and mesh deployment:
@@ -72,7 +102,7 @@ ansible-playbook -i inventory/lxc.example.yml playbooks/deploy-devsecops-lxc.yml
    **Credentials (Varlock):** Do not put secrets in `.env`. With Varlock, all sensitive values are in **Vault** at `VAULT_SECRET_PATH` (default `secret/devsecops`). For **greenfield with no static secrets**, run the secrets creator once (or on each host startup):
 
    ```powershell
-   cd scripts
+   cd C:\GiTeaRepos\Deploy\scripts
    .\secrets-bootstrap.ps1
    ```
 
@@ -98,7 +128,7 @@ ansible-playbook -i inventory/lxc.example.yml playbooks/deploy-devsecops-lxc.yml
 
 | Artifact | Location |
 |----------|----------|
-| **Greenfield one-shot launch** (clone, one command, one password) | `docs/GREENFIELD_ONE_SHOT.md`, `scripts/launch-greenfield.ps1` |
+| **Greenfield one-shot launch** (clone, one command, one password) | `C:\GiTeaRepos\Deploy\docs\GREENFIELD_ONE_SHOT.md`, `C:\GiTeaRepos\Deploy\scripts\launch-greenfield.ps1` |
 | **Systems Architecture** (incl. install and configure HashiCorp Vault) | `docs/SYSTEMS_ARCHITECTURE.md` |
 | Network design | `docs/NETWORK_DESIGN.md` |
 | Unified env schema | `devsecops.env.schema` |
@@ -123,7 +153,13 @@ ansible-playbook -i inventory/lxc.example.yml playbooks/deploy-devsecops-lxc.yml
 | Identity & privilege (greenfield, VARLOCK + LDAP-friendly) | `docs/IDENTITIES_AND_PRIVILEGES.md`, `devsecops.identities.schema`, `privilege_levels.json`, `identities.example.yaml`; `scripts/sync-identities-to-keycloak.ps1`, `scripts/export-identities-to-ldif.ps1` |
 | Secrets bootstrap (greenfield, no static storage) | `scripts/secrets-bootstrap.ps1`, `scripts/secrets-bootstrap.sh` (Linux/LXC) |
 | Local LXC-first runtime (+ nested Docker where required) | `deployments/local-lxc/`, `ansible/playbooks/deploy-devsecops-lxc.yml`, `docs/WSL2_LXC_MIGRATION.md` |
-| Compose stack manifest (merged core file list) | `docker-compose/stack-manifest.json`, `scripts/verify-stack-manifest.ps1` |
+| Compose stack manifest (merged core file list) | `docker-compose/stack-manifest.json`, `scripts/verify-stack-manifest.ps1`, `scripts/verify-lxd-manifest-parity.ps1` |
+| Lean local control plane | `docs/opennebula-gitea-edge/LEAN_LOCAL_CONTROL_PLANE.md`, `scripts/setup-lean-local-control.ps1`, `deployments/local-control/semaphore/docker-compose.yml` |
+| Repo ownership split policy | `docs/REPO_SCOPE.md` (`devsecops-pipeline`) and `C:\GiTeaRepos\Deploy\docs\REPO_SCOPE.md` (`deploy`) |
+| KICS scan (IaC security) | `scripts/scan-kics.ps1`, `scripts/scan-kics.sh` |
+| Inframap topology export | `scripts/generate-inframap.ps1`, `scripts/generate-inframap.sh` |
+| Ansible-CMDB report | `scripts/generate-ansible-cmdb.ps1`, `scripts/generate-ansible-cmdb.sh` |
+| Pre-commit IaC gates | `.pre-commit-config.yaml` |
 | Greenfield registration (initial values without static files) | `docs/GREENFIELD_REGISTRATION.md`; `scripts/start-from-vault.ps1`, `scripts/save-vault-token-to-keystore.ps1` |
 | KMS for license/activation keys (e.g. n8n) | `docs/LICENSE_KEYS_KMS.md`; `scripts/store-license-keys-in-vault.ps1`; keys in Vault at `secret/devsecops`, injected at runtime |
 

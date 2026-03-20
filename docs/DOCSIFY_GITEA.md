@@ -2,6 +2,8 @@
 
 This stack serves a **Docsify** site from a **Gitea** repository without building a custom image: a one-shot **`docs-sync`** container clones or pulls into a named volume, and **`docs`** (Nginx) serves it on **`docs_net`**. Traefik exposes the site at **`/docs`** (see `single-pane-of-glass/traefik/dynamic/routes.yml`).
 
+OpenNebula migration cutover: after Gitea moves to **100.64.1.0/24**, run [opennebula-gitea-edge/DOCSIFY-POST-MIGRATION-CHECKLIST.md](opennebula-gitea-edge/DOCSIFY-POST-MIGRATION-CHECKLIST.md).
+
 ## Networks and DNS
 
 - **Clone URL** must reach Gitea using the **Compose service hostname** `gitea` (e.g. `http://gitea:3000/Org/repo.git`), not `devsecops-gitea` (`container_name` is not the default DNS name).

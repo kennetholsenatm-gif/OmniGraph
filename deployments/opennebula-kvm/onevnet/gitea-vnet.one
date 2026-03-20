@@ -1,0 +1,13 @@
+# OpenNebula: devsecops-gitea — VLAN 2001 / 100.64.1.0/24 (gitea_net)
+NAME   = "devsecops-gitea"
+DESCRIPTION = "Gitea & K3s workload — NETWORK_DESIGN 100.64.1.0/24"
+VN_MAD = "bridge"
+BRIDGE = "onebr-devsecops-gitea"
+PHYDEV = "eth0"
+VLAN_ID = "2001"
+AR = [
+  TYPE = "IP4",
+  IP    = "100.64.1.2",
+  SIZE  = 100,
+  LEASES = "YES"
+]

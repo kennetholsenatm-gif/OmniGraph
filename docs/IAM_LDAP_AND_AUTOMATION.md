@@ -69,7 +69,22 @@ This work belongs in **Ansible** or **OpenTofu**, not one-off scripts. See **doc
 - **Ansible:** Role `ansible/roles/keycloak_iam` uses `community.general.keycloak_client` to create the automation client and OIDC clients (gitea, n8n, zammad). Run `playbooks/keycloak-iam.yml` after the IAM stack is up (bootstrap admin from Vault or group_vars).
 - **OpenTofu:** Add a Keycloak provider and define realm, clients, and LDAP IdP as resources in a separate stack if you prefer declarative IaC.
 
-## 7. References
+## 7. Optional FreeRADIUS (FOSS AAA)
+
+For network/device AAA (802.1X, VPN, infrastructure auth) add native FreeRADIUS on Alma using:
+
+- Role: `ansible/roles/freeradius_alma`
+- Playbook: `ansible/playbooks/deploy-freeradius-native.yml`
+
+Recommended pattern:
+
+- Keep **Keycloak** for OIDC/OAuth app auth.
+- Use **FreeRADIUS** for RADIUS-speaking infrastructure.
+- Back FreeRADIUS against **FreeIPA/LDAP** (same identity source) to avoid account drift.
+
+Store `freeradius_clients[*].secret` and LDAP bind secrets in Vault/Ansible Vault, not plaintext vars.
+
+## 8. References
 
 - Keycloak: [Service accounts](https://www.keycloak.org/docs/latest/server_admin/#_service_accounts), [Admin REST API](https://www.keycloak.org/docs-api/latest/rest-api/index.html#_clients_resource).
 - FreeIPA / LDAP: `docker-compose.identity.yml`, `docs/IDENTITIES_AND_PRIVILEGES.md`.

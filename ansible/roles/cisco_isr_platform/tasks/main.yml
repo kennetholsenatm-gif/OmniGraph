@@ -1,57 +1,36 @@
 ---
-- name: Baseline IOS service settings (idempotent)
-  cisco.ios.ios_config:
-    lines:
-      - service timestamps debug datetime msec
-      - service timestamps log datetime msec
-      - no ip http server
-      - no ip http secure-server
-    save_when: never
+- name: Initialize SSH pubkey from inline variable
+  ansible.builtin.set_fact:
+    _cisco_isr_ssh_pubkey_effective: "{{ cisco_isr_admin_ssh_pubkey | default('') | trim }}"
 
-- name: Enable password encryption (optional)
-  cisco.ios.ios_config:
-    lines:
-      - service password-encryption
-  when: cisco_isr_service_password_encryption | bool
+- name: Load SSH pubkey from role files/ when inline empty
+  ansible.builtin.set_fact:
+    _cisco_isr_ssh_pubkey_effective: "{{ lookup('ansible.builtin.file', role_path ~ '/files/' ~ (cisco_isr_admin_ssh_pubkey_file | trim)) | trim }}"
+  when:
+    - (_cisco_isr_ssh_pubkey_effective | length) == 0
+    - (cisco_isr_admin_ssh_pubkey_file | default('') | trim | length) > 0
+  ignore_errors: true
 
-- name: Configure inside 802.1Q subinterfaces
-  cisco.ios.ios_config:
-    parents:
-      - "interface {{ cisco_isr_inside_interface }}.{{ item.vlan }}"
-    lines:
-      - "encapsulation dot1Q {{ item.vlan }}"
-      - "description {{ item.description | default('ANSIBLE') }}"
-      - "ip address {{ item.ipv4 }} {{ item.mask }}"
-  loop: "{{ cisco_isr_inside_subinterfaces }}"
-  loop_control:
-    label: "{{ cisco_isr_inside_interface }}.{{ item.vlan }}"
+- name: Compute IOS hostname (inventory_hostname fallback; legal chars only)
+  ansible.builtin.set_fact:
+    _cisco_isr_hostname_effective: >-
+      {{
+        (cisco_isr_hostname | default('') | trim)
+        if (cisco_isr_hostname | default('') | trim | length) > 0
+        else (inventory_hostname | regex_replace('[^a-zA-Z0-9\\-]', '-') | truncate(63, True, ''))
+      }}
 
-- name: Install static routes (IPv4)
-  cisco.ios.ios_config:
-    lines:
-      - "ip route {{ item.prefix }} {{ item.mask }} {{ item.next_hop }}"
-  loop: "{{ cisco_isr_static_routes }}"
-  when: cisco_isr_static_routes | length > 0
-
-- name: NAT overload toward WAN (enable only after ACLs exist on device)
-  when: cisco_isr_configure_nat_overload | bool
-  block:
-    - name: NAT inside on subinterfaces (extend list as needed)
-      cisco.ios.ios_config:
-        parents:
-          - "interface {{ cisco_isr_inside_interface }}.{{ item.vlan }}"
-        lines:
-          - ip nat inside
-      loop: "{{ cisco_isr_inside_subinterfaces }}"
-
-    - name: NAT outside on WAN
-      cisco.ios.ios_config:
-        parents:
-          - "interface {{ cisco_isr_wan_interface }}"
-        lines:
-          - ip nat outside
-
-    - name: NAT inside source list overload (requires ACL {{ cisco_isr_nat_acl_name }} on device)
-      cisco.ios.ios_config:
-        lines:
-          - "ip nat inside source list {{ cisco_isr_nat_acl_name }} interface {{ cisco_isr_wan_interface }} overload"
+- ansible.builtin.import_tasks: system_identity.yml
+- ansible.builtin.import_tasks: banner_and_logging.yml
+- ansible.builtin.import_tasks: ssh_crypto.yml
+- ansible.builtin.import_tasks: admin_user.yml
+- ansible.builtin.import_tasks: human_admin_user.yml
+- ansible.builtin.import_tasks: lines_console_vty.yml
+- ansible.builtin.import_tasks: interfaces.yml
+- ansible.builtin.import_tasks: dataplane_security.yml
+- ansible.builtin.import_tasks: ucse.yml
+- ansible.builtin.import_tasks: controlplane_security.yml
+- ansible.builtin.import_tasks: vrrp.yml
+- ansible.builtin.import_tasks: multicast_igmp.yml
+- ansible.builtin.import_tasks: routing_ospf_bgp.yml
+- ansible.builtin.import_tasks: nat_static_legacy.yml

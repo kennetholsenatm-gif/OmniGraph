@@ -1,0 +1,7 @@
+# {{ ansible_managed }} — stub LDAP config; copy to site policy (FreeIPA / AD).
+ldap devsecops_ldap {
+    server = "{{ freeradius_ldap_server }}"
+    identity = "{{ freeradius_ldap_identity }}"
+    password = "{{ freeradius_ldap_password }}"
+    base_dn = "{{ freeradius_ldap_base_dn }}"
+}

@@ -13,7 +13,7 @@ The prior `deployments/wsl2-lxc/` path remains as a compatibility alias during m
 
 ## Runtime modes
 
-- **Preferred:** LXC-first with nested Docker only per workload container.
+- **Preferred:** LXC-first; **native systemd or Podman** per workload when possible — [docs/opennebula-gitea-edge/REDUCE-DOCKER.md](../../docs/opennebula-gitea-edge/REDUCE-DOCKER.md). Use nested **Docker** only as a **transitional** match to existing compose automation.
 - **Fallback:** Host Docker for temporary troubleshooting only (not canonical path).
 
 ### CPU and instance count
@@ -63,5 +63,6 @@ The prior `deployments/wsl2-lxc/` path remains as a compatibility alias during m
 
 ## OpenNebula alignment
 
-Treat each local LXC workload boundary as a future VM boundary.
-The network and VLAN design remains in `deployments/opennebula-kvm/VLAN_MATRIX.md`.
+Treat each local LXC workload boundary as the same boundary you run **inside one OpenNebula KVM guest** that hosts LXD/Incus: **AlmaLinux 10** LXC per stack, Docker-in-LXC — full runbook **[docs/opennebula-gitea-edge/LXC-ALMA10-OPENNEBULA.md](../../docs/opennebula-gitea-edge/LXC-ALMA10-OPENNEBULA.md)**, inventory **[ansible/inventory/opennebula-lxd.example.yml](../../ansible/inventory/opennebula-lxd.example.yml)**.
+
+VLAN / addressing: [deployments/opennebula-kvm/VLAN_MATRIX.md](../opennebula-kvm/VLAN_MATRIX.md).

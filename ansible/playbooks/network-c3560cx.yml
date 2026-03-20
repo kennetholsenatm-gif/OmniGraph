@@ -5,4 +5,4 @@
   hosts: network_c3560cx
   gather_facts: false
   roles:
-    - cisco_c3560cx_access
+    - role: "{{ playbook_dir }}/../roles/cisco_c3560cx_access"

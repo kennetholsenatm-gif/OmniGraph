@@ -1,0 +1,205 @@
+---
+# Inline LXD profile steps (avoids CRLF in repo .sh on /mnt/c/ breaking bash).
+# lxd_hypervisor_env sets INCUS_SOCKET when the daemon uses /run/incus/unix.socket (common on EL COPR).
+- name: Check LXD profile exists
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv: ["{{ _lxc_bin }}", profile, show, "{{ lxd_docker_profile }}"]
+  environment: "{{ lxd_hypervisor_env }}"
+  register: _lxd_prof_show
+  changed_when: false
+  failed_when: false
+  run_once: true
+
+- name: Create LXD profile when missing
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv: ["{{ _lxc_bin }}", profile, create, "{{ lxd_docker_profile }}"]
+  environment: "{{ lxd_hypervisor_env }}"
+  when: _lxd_prof_show.rc != 0
+  run_once: true
+
+# Incus: `description` is a profile property, not instance config — use key=value and -p (see incus profile set --help).
+# LXD: legacy `lxc profile set PROFILE description "text"` still works.
+- name: Set docker-nesting profile description (Incus)
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv:
+      - "{{ _lxc_bin }}"
+      - profile
+      - set
+      - "{{ lxd_docker_profile }}"
+      - "description=Nested Docker (DevSecOps pipeline)"
+      - "-p"
+  environment: "{{ lxd_hypervisor_env }}"
+  changed_when: false
+  run_once: true
+  when: (_lxc_bin | basename) == 'incus'
+
+- name: Set docker-nesting profile description (LXD)
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv: ["{{ _lxc_bin }}", profile, set, "{{ lxd_docker_profile }}", description, "Nested Docker (DevSecOps pipeline)"]
+  environment: "{{ lxd_hypervisor_env }}"
+  changed_when: false
+  run_once: true
+  when: (_lxc_bin | basename) != 'incus'
+
+# Incus `profile set` expects key=value (see incus profile set). `command` ignores args.executable, so && chains never ran in bash.
+- name: Enable nesting and syscall intercepts on profile (Incus)
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv:
+      - "{{ _lxc_bin }}"
+      - profile
+      - set
+      - "{{ lxd_docker_profile }}"
+      - "{{ item }}"
+  environment: "{{ lxd_hypervisor_env }}"
+  loop:
+    - security.nesting=true
+    - security.syscalls.intercept.mknod=true
+    - security.syscalls.intercept.setxattr=true
+  changed_when: false
+  run_once: true
+  when: (_lxc_bin | basename) == 'incus'
+
+- name: Enable nesting and syscall intercepts on profile (LXD)
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.shell:
+    cmd: |
+      set -eu
+      {{ _lxc_bin }} profile set {{ lxd_docker_profile }} security.nesting true
+      {{ _lxc_bin }} profile set {{ lxd_docker_profile }} security.syscalls.intercept.mknod true
+      {{ _lxc_bin }} profile set {{ lxd_docker_profile }} security.syscalls.intercept.setxattr true
+  args:
+    executable: /bin/bash
+  environment: "{{ lxd_hypervisor_env }}"
+  changed_when: false
+  run_once: true
+  when: (_lxc_bin | basename) != 'incus'
+
+- name: Unset linux.kernel_modules on profile when disabled (Incus)
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv: ["{{ _lxc_bin }}", profile, unset, "{{ lxd_docker_profile }}", linux.kernel_modules]
+  environment: "{{ lxd_hypervisor_env }}"
+  changed_when: false
+  failed_when: false
+  run_once: true
+  when:
+    - (_lxc_bin | basename) == 'incus'
+    - (lxd_docker_profile_kernel_modules | default('', true) | trim | length) == 0
+
+- name: Unset linux.kernel_modules on profile when disabled (LXD)
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv: ["{{ _lxc_bin }}", profile, unset, "{{ lxd_docker_profile }}", linux.kernel_modules]
+  environment: "{{ lxd_hypervisor_env }}"
+  changed_when: false
+  failed_when: false
+  run_once: true
+  when:
+    - (_lxc_bin | basename) != 'incus'
+    - (lxd_docker_profile_kernel_modules | default('', true) | trim | length) == 0
+
+- name: Set linux.kernel_modules on profile (Incus)
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv:
+      - "{{ _lxc_bin }}"
+      - profile
+      - set
+      - "{{ lxd_docker_profile }}"
+      - "linux.kernel_modules={{ lxd_docker_profile_kernel_modules | trim }}"
+  environment: "{{ lxd_hypervisor_env }}"
+  changed_when: false
+  run_once: true
+  when:
+    - (_lxc_bin | basename) == 'incus'
+    - (lxd_docker_profile_kernel_modules | default('', true) | trim | length) > 0
+
+- name: Set linux.kernel_modules on profile (LXD)
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv:
+      - "{{ _lxc_bin }}"
+      - profile
+      - set
+      - "{{ lxd_docker_profile }}"
+      - linux.kernel_modules
+      - "{{ lxd_docker_profile_kernel_modules | trim }}"
+  environment: "{{ lxd_hypervisor_env }}"
+  changed_when: false
+  run_once: true
+  when:
+    - (_lxc_bin | basename) != 'incus'
+    - (lxd_docker_profile_kernel_modules | default('', true) | trim | length) > 0
+
+- name: Normalize docker-nesting profile raw.lxc (strip CRLF from /mnt/c/ checkouts)
+  ansible.builtin.set_fact:
+    _lxd_docker_raw_lxc_effective: >-
+      {{
+        (lxd_docker_profile_raw_lxc | default('', true))
+        | regex_replace('\r\n', '\n')
+        | regex_replace('\r', '\n')
+        | trim
+      }}
+  run_once: true
+
+- name: Unset raw.lxc on profile when disabled (Incus)
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv: ["{{ _lxc_bin }}", profile, unset, "{{ lxd_docker_profile }}", raw.lxc]
+  environment: "{{ lxd_hypervisor_env }}"
+  changed_when: false
+  failed_when: false
+  run_once: true
+  when:
+    - (_lxc_bin | basename) == 'incus'
+    - (_lxd_docker_raw_lxc_effective | default('') | length) == 0
+
+- name: Unset raw.lxc on profile when disabled (LXD)
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv: ["{{ _lxc_bin }}", profile, unset, "{{ lxd_docker_profile }}", raw.lxc]
+  environment: "{{ lxd_hypervisor_env }}"
+  changed_when: false
+  failed_when: false
+  run_once: true
+  when:
+    - (_lxc_bin | basename) != 'incus'
+    - (_lxd_docker_raw_lxc_effective | default('') | length) == 0
+
+- name: Set raw.lxc for Docker-in-LXC (Incus)
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv:
+      - "{{ _lxc_bin }}"
+      - profile
+      - set
+      - "{{ lxd_docker_profile }}"
+      - "{{ 'raw.lxc=' ~ _lxd_docker_raw_lxc_effective }}"
+  environment: "{{ lxd_hypervisor_env }}"
+  changed_when: false
+  run_once: true
+  when:
+    - (_lxc_bin | basename) == 'incus'
+    - (_lxd_docker_raw_lxc_effective | default('') | length) > 0
+
+- name: Set raw.lxc for Docker-in-LXC (LXD)
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv:
+      - "{{ _lxc_bin }}"
+      - profile
+      - set
+      - "{{ lxd_docker_profile }}"
+      - raw.lxc
+      - "{{ _lxd_docker_raw_lxc_effective }}"
+  environment: "{{ lxd_hypervisor_env }}"
+  changed_when: false
+  run_once: true
+  when:
+    - (_lxc_bin | basename) != 'incus'
+    - (_lxd_docker_raw_lxc_effective | default('') | length) > 0

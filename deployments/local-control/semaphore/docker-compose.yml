@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+  semaphore-db:
+    image: postgres:16-alpine
+    container_name: semaphore-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: semaphore
+      POSTGRES_USER: semaphore
+      POSTGRES_PASSWORD: semaphore_local_dev
+    volumes:
+      - semaphore_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U semaphore -d semaphore"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  semaphore:
+    image: semaphoreui/semaphore:latest
+    container_name: semaphore
+    restart: unless-stopped
+    depends_on:
+      semaphore-db:
+        condition: service_healthy
+    ports:
+      - "3001:3000"
+    environment:
+      SEMAPHORE_DB_DIALECT: postgres
+      SEMAPHORE_DB_HOST: semaphore-db
+      SEMAPHORE_DB_PORT: 5432
+      SEMAPHORE_DB_USER: semaphore
+      SEMAPHORE_DB_PASS: semaphore_local_dev
+      SEMAPHORE_DB: semaphore
+      SEMAPHORE_PLAYBOOK_PATH: /tmp/semaphore
+      SEMAPHORE_ADMIN: admin
+      SEMAPHORE_ADMIN_NAME: Local Admin
+      SEMAPHORE_ADMIN_EMAIL: admin@local.dev
+      SEMAPHORE_ADMIN_PASSWORD: admin_local_dev
+      SEMAPHORE_ACCESS_KEY_ENCRYPTION: local_dev_access_key_change_me
+      SEMAPHORE_COOKIE_HASH: local_dev_cookie_hash_change_me
+      SEMAPHORE_COOKIE_ENCRYPTION: local_dev_cookie_enc_change_me
+      SEMAPHORE_WEB_ROOT: http://127.0.0.1:3001
+      TZ: UTC
+    volumes:
+      - semaphore_data:/var/lib/semaphore
+      - ../../..:/workspace:ro
+
+volumes:
+  semaphore_db_data:
+  semaphore_data:

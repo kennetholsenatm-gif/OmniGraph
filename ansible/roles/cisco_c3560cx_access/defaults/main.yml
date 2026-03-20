@@ -1,6 +1,7 @@
 ---
 c3560cx_uplink_interfaces: []
-# - { name: GigabitEthernet0/1, mode: trunk, allowed_vlans: "240-244,2001-2054,86" }
+# Trunk must carry OpenNebula workloads + edge + Ceph back-end per VLAN_MATRIX.md:
+# - { name: GigabitEthernet0/1, mode: trunk, allowed_vlans: "240-244,2001-2054,2250,86" }
 
 c3560cx_vlans: []
 # - { id: 240, name: PLATFORM_CORE }

@@ -16,7 +16,7 @@ Deployment artifacts for the pipeline: 100.64.0.0/10 segmented network, Solace m
 
 ## Layout
 
-- **docs/** — **GREENFIELD_ONE_SHOT.md** (one-command greenfield launch), SYSTEMS_ARCHITECTURE.md, NETWORK_DESIGN.md, NETWORKS_PHASE1.md, **IAM_PHASE2.md**, **IAM_LDAP_AND_AUTOMATION.md**, **IAM_IAC.md** (OpenTofu/Ansible/Foreman/Pulumi/Packer for IAM), DEPLOYMENT.md, A2A_PAYLOAD_SCHEMA.md, TELEPORT_JIT.md, VARLOCK_USAGE.md
+- **docs/** — **GREENFIELD_ONE_SHOT.md** (one-command greenfield launch), SYSTEMS_ARCHITECTURE.md, NETWORK_DESIGN.md, NETWORKS_PHASE1.md, **IAM_PHASE2.md**, **IAM_LDAP_AND_AUTOMATION.md**, **IAM_IAC.md** (OpenTofu/Ansible/Foreman/Pulumi/Packer for IAM), DEPLOYMENT.md, A2A_PAYLOAD_SCHEMA.md, TELEPORT_JIT.md, VARLOCK_USAGE.md; **opennebula-gitea-edge/** — **REDUCE-DOCKER.md** (native/Podman first), **LXC-ALMA10-OPENNEBULA.md**, **CONTAINER-LIFT-TO-OPENNEBULA.md**, **WHOLE-REPO-MIGRATION-SCOPE.md**
 - **opentofu/** — Docker network definitions (100.64.x.x)
 - **ansible/** — Playbooks and roles (mesh deploy, mTLS, FIPS/hardening)
 - **docker-compose/** — Messaging, tooling (Gitea/n8n/Zammad/Bitwarden), IAM (Vault + Keycloak), ChatOps (Zulip); optional discovery, LLM, AI orchestration. **stack-manifest.json** defines the merged “core” set for PowerShell (`launch-stack.ps1`, `secrets-bootstrap.ps1`).

@@ -1,0 +1,28 @@
+---
+# Provision Semaphore UI + Postgres natively on AlmaLinux inside an Incus/LXD LXC (no Docker).
+#
+# From ansible/ (recommended: ANSIBLE_CONFIG points here or run from this directory):
+#   ansible-playbook -i inventory/lxc.example.yml playbooks/deploy-semaphore-incus.yml
+#
+# WSL/Incus without sudo prompts (socket access as your user):
+#   ansible-playbook -i inventory/lxc.example.yml playbooks/deploy-semaphore-incus.yml \
+#     -e lxd_become=false -e lxd_manage_daemon=false -e lxd_ensure_idmap=false \
+#     -e lxd_incus_socket=/run/incus/unix.socket
+#
+# Optional: bind-mount this repo into the LXC at /workspace (WSL path):
+#   -e semaphore_host_repo_path=/mnt/c/GiTeaRepos/devsecops-pipeline
+#
+# Troubleshooting (ERR_EMPTY_RESPONSE on localhost:3001): docs/SEMAPHORE_INCUS_TROUBLESHOOTING.md
+
+- name: Semaphore (native) on Incus LXC
+  hosts: lxd_hosts
+  gather_facts: false
+  tasks:
+    - name: Apply lxd_devsecops_stack (devsecops-semaphore)
+      ansible.builtin.include_role:
+        name: "{{ playbook_dir | dirname }}/roles/lxd_devsecops_stack"
+      vars:
+        devsecops_pipeline_root: "{{ playbook_dir | dirname | dirname }}"
+        lxd_apply_names: ["devsecops-semaphore"]
+        lxd_install_docker_in_instance: false
+        devsecops_lxc_compose_up: false

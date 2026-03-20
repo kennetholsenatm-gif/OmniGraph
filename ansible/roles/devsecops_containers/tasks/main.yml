@@ -2,15 +2,9 @@
 # Start DevSecOps stacks with env injected by Ansible. No .env on disk; env comes from vars (Ansible Vault or Vault lookup).
 # Provide devsecops_secrets (e.g. group_vars encrypted with ansible-vault, or from HashiCorp Vault lookup in a wrapper).
 
-- name: Fail when devsecops_secrets not provided
-  ansible.builtin.fail:
-    msg: "Provide devsecops_secrets (e.g. group_vars with ansible-vault, or -e @secrets.yml). See role README."
-  when: devsecops_secrets is not defined or devsecops_secrets | length == 0
-
-- name: Build container env (defaults + secrets)
-  ansible.builtin.set_fact:
-    container_env: "{{ devsecops_env_defaults | combine(devsecops_secrets, recursive=false) }}"
-  no_log: true
+- name: Build container env (defaults + secrets) via devsecops_env
+  ansible.builtin.include_role:
+    name: devsecops_env
 
 - name: Ensure compose project directories exist
   ansible.builtin.file:

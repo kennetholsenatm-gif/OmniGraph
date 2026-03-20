@@ -1,0 +1,20 @@
+---
+# community.general.lxd_container uses pylxd; default url is unix:/var/lib/lxd/unix.socket (not Incus). INCUS_SOCKET is not read by pylxd.
+- name: Set pylxd unix URL for lxd_container module (Incus)
+  ansible.builtin.set_fact:
+    _lxd_pylxd_url: "{{ 'unix:' ~ (lxd_hypervisor_env['INCUS_SOCKET'] | trim) }}"
+  when:
+    - (_lxc_bin | basename) == 'incus'
+    - (lxd_hypervisor_env['INCUS_SOCKET'] | default('') | trim | length) > 0
+  run_once: true
+
+- name: Fail when Incus API socket unknown (pylxd cannot use INCUS_SOCKET env alone)
+  ansible.builtin.fail:
+    msg: >-
+      community.general.lxd_container connects to unix:/var/lib/lxd/unix.socket by default.
+      For Incus, set role var lxd_incus_socket (e.g. /run/incus/unix.socket) or keep lxd_manage_daemon: true
+      so the role discovers the socket and passes url=unix:... to the module.
+  when:
+    - (_lxc_bin | basename) == 'incus'
+    - (lxd_hypervisor_env['INCUS_SOCKET'] | default('') | trim | length) == 0
+  run_once: true

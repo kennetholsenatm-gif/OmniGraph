@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Canonical compose file sets for merged docker compose runs and documentation. Keep in sync with ansible/roles/devsecops_containers and lxd_devsecops_stack (devSingleLxc); run scripts/verify-stack-manifest.ps1 after edits.",
+  "description": "Canonical compose file sets for merged docker compose runs and documentation. Keep in sync with ansible/roles/devsecops_containers and lxd_devsecops_stack (devSingleLxc + optionalStacks); run scripts/verify-stack-manifest.ps1 and scripts/verify-lxd-manifest-parity.ps1 after edits.",
   "sdnTelemetry": {
     "switchName": "IncludeSdnTelemetry",
     "environmentVariable": "DEVSECOPS_INCLUDE_SDN_TELEMETRY",
