@@ -29,16 +29,16 @@ incus launch images:almalinux/10/cloud hermes-bitnet \
 
 ## Publish ports to the host
 
-Proxy **BitNet** (8080) and **OpenVSCode Server** (3000) from the guest loopback to the host:
+Proxy **BitNet** (8080) and **OpenVSCode Server** (**3010** by default — avoids **3000**, commonly used by **Gitea**) from the guest loopback to the host:
 
 ```bash
 incus config device add hermes-bitnet proxy8080 proxy \
   listen=tcp:0.0.0.0:8080 connect=tcp:127.0.0.1:8080
-incus config device add hermes-bitnet proxy3000 proxy \
-  listen=tcp:0.0.0.0:3000 connect=tcp:127.0.0.1:3000
+incus config device add hermes-bitnet proxy3010 proxy \
+  listen=tcp:0.0.0.0:3010 connect=tcp:127.0.0.1:3010
 ```
 
-Then from Windows (WSL networking): use `localhost:8080` / `localhost:3000` or the WSL IP.
+Then from Windows (WSL networking): use `localhost:8080` / `localhost:3010` for OpenVSCode (keep `3000` for Gitea if applicable) or the WSL IP.
 
 ## Bootstrap inside the guest
 
@@ -55,4 +55,4 @@ Nested Incus under WSL often fails or behaves oddly. If `incus launch` fails, ru
 ## Security
 
 - OpenVSCode Server **must** use a **connection token** (see `07-openvscode-server.sh` and `systemd/openvscode-server.service.example`).
-- Do not expose 3000/8080 on untrusted networks without TLS and auth.
+- Do not expose 3010/8080 (or your chosen OpenVSCode port) on untrusted networks without TLS and auth.

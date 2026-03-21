@@ -32,7 +32,8 @@ BITNET_VENV="${BITNET_VENV:-$BITNET_DIR/.venv}"
 QMINI_VENV="${QMINI_VENV:-$HOME/venvs/qminiwasm-core}"
 BITNET_PORT="${BITNET_PORT:-8080}"
 CODE_SERVER_PORT="${CODE_SERVER_PORT:-8443}"
-OPENVS_CODE_PORT="${OPENVS_CODE_PORT:-3000}"
+# Default 3010: many Gitea installs use 3000 on the same host/WSL — override with OPENVS_CODE_PORT.
+OPENVS_CODE_PORT="${OPENVS_CODE_PORT:-3010}"
 OPENVS_CODE_HOME="${OPENVS_CODE_HOME:-$HOME/openvscode-server}"
 # Largest model in BitNet setup_env.py --hf-repo list (fallback: 2B GGUF path in docs)
 BITNET_HF_REPO="${BITNET_HF_REPO:-tiiuae/Falcon3-10B-Instruct-1.58bit}"

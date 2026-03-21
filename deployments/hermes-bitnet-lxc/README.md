@@ -38,10 +38,12 @@ See [incus/README.md](incus/README.md) and [incus/create-profile.sh](incus/creat
 
 ## Ports and WSL forwarding
 
+**Conflict check:** Gitea and other UIs often use **3000**. This bundle defaults OpenVSCode Server to **3010** so **3000 stays free** for Gitea. Set `OPENVS_CODE_PORT` if **3010** is taken (e.g. `export OPENVS_CODE_PORT=3100` before `07-openvscode-server.sh`).
+
 | Service            | Port (default) | Notes                                      |
 |--------------------|----------------|--------------------------------------------|
 | BitNet llama-server| 8080           | OpenAI-compatible `/v1`                   |
-| OpenVSCode Server  | 3000           | Token in `~/.config/hermes-bitnet-lxc/openvscode.token` |
+| OpenVSCode Server  | **3010** (default) | Token in `~/.config/hermes-bitnet-lxc/openvscode.token` — **not 3000** (common Gitea port) |
 | Coder code-server  | 8443           | If not skipped                             |
 
 From **Windows → WSL2**: `localhost:8080` usually forwards to WSL automatically. If not, use `wsl hostname -I` and connect to that IP.
@@ -67,6 +69,7 @@ From **Windows → WSL2**: `localhost:8080` usually forwards to WSL automaticall
 | `BITNET_MODEL_DIR` | `-md` parent dir under BitNet repo |
 | `CODE_SERVER_SKIP` | `1` = skip Coder code-server |
 | `OPENVS_CODE_SKIP` | `1` = skip OpenVSCode Server |
+| `OPENVS_CODE_PORT` | Browser IDE port (**default `3010`** so Gitea can keep `3000`) |
 | `HERMES_BITNET_CONFIG_SKIP` | `1` = skip Hermes→BitNet wiring |
 | `HERMES_INSTALL_LOG` | Path for installer `tee` log |
 

@@ -18,7 +18,8 @@ Wants=network-online.target
 Type=simple
 Environment=HOME=%h
 WorkingDirectory=%h
-ExecStart=%h/.local/bin/openvscode-server --host 0.0.0.0 --port 3000 --connection-token-file %h/.config/hermes-bitnet-lxc/openvscode.token
+# Port 3010 default (avoids Gitea and others on 3000). Match OPENVS_CODE_PORT from 07-openvscode-server.sh or use systemctl edit drop-in.
+ExecStart=%h/.local/bin/openvscode-server --host 0.0.0.0 --port 3010 --connection-token-file %h/.config/hermes-bitnet-lxc/openvscode.token
 Restart=on-failure
 RestartSec=5
 
