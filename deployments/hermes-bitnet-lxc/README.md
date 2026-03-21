@@ -1,5 +1,26 @@
 # Hermes + BitNet + OpenVSCode Server + qminiwasm-core (Alma / Incus LXC)
 
+## Canonical paths (this workspace)
+
+| Role | Windows | WSL (typical) |
+|------|---------|----------------|
+| **Automation / bootstrap** | `C:\GiTeaRepos\devsecops-pipeline` | `/mnt/c/GiTeaRepos/devsecops-pipeline` |
+| **qminiwasm-core (train / edit)** | `C:\GitHub\LLM_Pract\qminiwasm-core` | `/mnt/c/GitHub/LLM_Pract/qminiwasm-core` |
+
+Bootstrap scripts auto-pick **qminiwasm-core** from the WSL path above when `.git` exists; otherwise they clone `QMINI_REPO` into `~/src/qminiwasm-core`. Set `QMINI_DIR` to force a path.
+
+## Browser URLs on your machine
+
+If **Gitea** is at **`http://localhost:3000`**, use this bundle as follows so ports do not clash:
+
+| App | URL |
+|-----|-----|
+| Gitea | `http://localhost:3000` |
+| OpenVSCode Server (this repo default) | `http://localhost:3010` |
+| BitNet `llama-server` (Hermes OpenAI base) | `http://localhost:8080/v1` |
+
+---
+
 Idempotent bootstrap for an **AlmaLinux**-style environment (bare metal, VM, **Incus LXC**, or **WSL AlmaLinux**) to run:
 
 - **Hermes Agent** ([NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent)) via official `install.sh`
@@ -93,12 +114,15 @@ After `05-qminiwasm.sh`:
 
 ```bash
 source ~/venvs/qminiwasm-core/bin/activate
-cd ~/src/qminiwasm-core
-# Follow repo README / engine entrypoints; keep checkpoints on local ext4 (not /mnt/c).
+# Repo checkout (canonical on your PC): C:\GitHub\LLM_Pract\qminiwasm-core → WSL:
+cd /mnt/c/GitHub/LLM_Pract/qminiwasm-core
+# If bootstrap cloned to ~/src instead, cd there. From repo root: source deployments/hermes-bitnet-lxc/lib/common.sh && cd "$QMINI_DIR"
+# Follow qminiwasm-core README (training loop, optional pip install -e ".[serve]"); prefer checkpoints on Linux ext4 for IO.
 ```
 
 ## Troubleshooting
 
+- **Paths / ports (WSL):** run `bash deployments/hermes-bitnet-lxc/lib/verify-wsl-paths.sh` from WSL — confirms `qminiwasm-core` and **QMINI_DIR**, and prints **3010** vs Gitea **3000**.
 - **BitNet CMake / Clang errors**: `04-bitnet-build.sh` patches `setup_env.py` to **GCC** + `LLAMA_BUILD_SERVER=ON`; manual CMake already uses GCC.
 - **OOM during conversion**: increase guest RAM, use WSL `.wslconfig`, or convert on another machine and copy `ggml-model-i2_s.gguf`.
 - **Hermes still on OpenRouter**: re-run `08-hermes-bitnet-config.sh` after the GGUF exists, or fix `~/.hermes/config.yaml` manually.

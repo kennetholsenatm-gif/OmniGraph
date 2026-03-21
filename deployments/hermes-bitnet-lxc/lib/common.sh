@@ -15,17 +15,19 @@ ensure_dir() {
 
 SRC_ROOT="${HERMES_BITNET_SRC_ROOT:-$HOME/src}"
 BITNET_DIR="${BITNET_DIR:-$SRC_ROOT/BitNet}"
-# Canonical local clone (Windows: C:\GitHub\LLM_Pract\qminiwasm-core → WSL / Git Bash / Incus bind-mount).
-QMINI_LOCAL_DEFAULT="/mnt/c/GitHub/LLM_Pract/qminiwasm-core"
-# Alias: QMINI_REPO_URL overrides QMINI_REPO when set (same Git URL).
+# Canonical local tree (your GitHub checkout): Windows C:\GitHub\LLM_Pract\qminiwasm-core → WSL /mnt/c/GitHub/LLM_Pract/qminiwasm-core
+# Override with QMINI_LOCAL_DEFAULT or set QMINI_DIR explicitly (Incus bind-mount, etc.).
+QMINI_LOCAL_DEFAULT="${QMINI_LOCAL_DEFAULT:-/mnt/c/GitHub/LLM_Pract/qminiwasm-core}"
+# Remote used only when cloning into QMINI_DIR (no .git yet). Point at your fork or mirror; local editing stays on LLM_Pract path when detected.
 QMINI_REPO="${QMINI_REPO_URL:-${QMINI_REPO:-https://github.com/kennetholsenatm-gif/qminiwasm-core.git}}"
 if [[ -z "${QMINI_DIR:-}" ]]; then
-  # .git may be a file (worktree) or directory; use -e
-  if [[ -e "$QMINI_LOCAL_DEFAULT/.git" ]]; then
-    QMINI_DIR="$QMINI_LOCAL_DEFAULT"
-  else
-    QMINI_DIR="$SRC_ROOT/qminiwasm-core"
-  fi
+  QMINI_DIR="$SRC_ROOT/qminiwasm-core"
+  # Prefer first existing local clone among candidates (.git may be file for worktrees).
+  for _q in "$QMINI_LOCAL_DEFAULT" "${QMINI_LOCAL_ALT:-}"; do
+    [[ -n "$_q" && -e "$_q/.git" ]] || continue
+    QMINI_DIR="$_q"
+    break
+  done
 fi
 BITNET_VENV="${BITNET_VENV:-$BITNET_DIR/.venv}"
 # Keep the venv on the Linux filesystem (ext4) — not under /mnt/c — so pip/torch unpack is fast.
