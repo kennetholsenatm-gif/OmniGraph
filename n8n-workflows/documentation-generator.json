@@ -75,11 +75,11 @@
       "typeVersion": 4.2,
       "position": [1200, 0],
       "parameters": {
-        "url": "={{ $env.GITEA_URL || 'http://gitea:3000' }}/api/v1/repos/ai_pipeline/project-omega/wiki/Architecture",
+        "url": "={{ ($env.GITEA_URL || 'http://gitea:3000') + '/api/v1/repos/' + ($env.GITEA_WIKI_OWNER || 'kbolsen') + '/' + ($env.GITEA_WIKI_REPO || 'devsecops-pipeline') + '/wiki/new' }}",
         "method": "POST",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ title: 'Architecture', content: $json.output || $json.text, message: 'Doc update from pipeline' }) }}"
+        "jsonBody": "={{ JSON.stringify({ title: 'Architecture', message: 'Doc update from pipeline', content_base64: Buffer.from(String($json.output || $json.text || ''), 'utf8').toString('base64') }) }}"
       },
       "credentials": {
         "httpHeaderAuth": { "id": "gitea_api", "name": "Gitea API" }
