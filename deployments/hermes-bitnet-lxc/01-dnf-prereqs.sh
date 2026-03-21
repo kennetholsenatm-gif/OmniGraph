@@ -14,7 +14,7 @@ else
   die "run as root or with sudo available"
 fi
 
-log "dnf: installing base packages (git, ripgrep, ffmpeg, build chain, clang, cmake)..."
+log "dnf: installing base packages (git, nodejs, ripgrep, ffmpeg, build chain, cmake, jq)..."
 
 $SUDO dnf install -y \
   git \
@@ -24,6 +24,7 @@ $SUDO dnf install -y \
   tar \
   xz \
   which \
+  jq \
   ripgrep \
   ffmpeg-free \
   gcc \
@@ -39,6 +40,8 @@ $SUDO dnf install -y \
   zlib-devel \
   perl-IPC-Cmd \
   git-lfs \
+  nodejs \
+  npm \
   || die "dnf install failed"
 
 # Prefer clang for BitNet upstream; Alma 10 AppStream typically provides a recent clang.

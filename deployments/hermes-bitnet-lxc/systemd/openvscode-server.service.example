@@ -1,0 +1,26 @@
+# User systemd unit — install to ~/.config/systemd/user/openvscode-server.service
+# Requires: 07-openvscode-server.sh (token file + unpacked release).
+#
+#   mkdir -p ~/.config/systemd/user
+#   cp systemd/openvscode-server.service.example ~/.config/systemd/user/openvscode-server.service
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now openvscode-server
+#   loginctl enable-linger "$USER"   # optional: survive logout
+#
+# Security: never expose --without-connection-token on untrusted networks.
+
+[Unit]
+Description=OpenVSCode Server (browser IDE)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=HOME=%h
+WorkingDirectory=%h
+ExecStart=%h/.local/bin/openvscode-server --host 0.0.0.0 --port 3000 --connection-token-file %h/.config/hermes-bitnet-lxc/openvscode.token
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

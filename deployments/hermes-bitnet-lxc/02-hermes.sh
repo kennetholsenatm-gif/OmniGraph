@@ -10,13 +10,21 @@ require_cmd git
 
 HERMES_INSTALLER_URL="${HERMES_INSTALLER_URL:-https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh}"
 SKIP_SETUP="${HERMES_SKIP_SETUP:-1}"
+HERMES_INSTALL_LOG="${HERMES_INSTALL_LOG:-$HOME/log/hermes-install.log}"
+ensure_dir "$(dirname "$HERMES_INSTALL_LOG")"
 
 if [[ "$SKIP_SETUP" == "1" ]]; then
   log "Running Hermes installer with --skip-setup (set HERMES_SKIP_SETUP=0 for interactive wizard)."
-  curl -fsSL "$HERMES_INSTALLER_URL" | bash -s -- --skip-setup
+  log "Logging installer stream to $HERMES_INSTALL_LOG"
+  curl -fsSL "$HERMES_INSTALLER_URL" | tee "$HERMES_INSTALL_LOG" | bash -s -- --skip-setup
 else
   log "Running Hermes installer (interactive)."
-  curl -fsSL "$HERMES_INSTALLER_URL" | bash
+  log "Logging installer stream to $HERMES_INSTALL_LOG"
+  curl -fsSL "$HERMES_INSTALLER_URL" | tee "$HERMES_INSTALL_LOG" | bash
+fi
+
+if [[ "$(id -u)" -eq 0 ]] && [[ -w /var/log ]]; then
+  cp -a "$HERMES_INSTALL_LOG" /var/log/hermes-install.log 2>/dev/null || true
 fi
 
 if ! echo "${PATH:-}" | tr ':' '\n' | grep -qx "$HOME/.local/bin"; then

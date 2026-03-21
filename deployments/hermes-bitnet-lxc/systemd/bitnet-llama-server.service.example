@@ -17,6 +17,8 @@ WorkingDirectory=%h/src/BitNet
 Environment=BITNET_DIR=%h/src/BitNet
 Environment=BITNET_BUILD_DIR=%h/src/BitNet/build
 Environment=BITNET_PORT=8080
+# After bootstrap (Falcon3-10B-Instruct i2_s default path); override if you changed BITNET_MODEL_DIR:
+Environment=BITNET_GGUF=%h/src/BitNet/models/falcon3-10b-instruct/Falcon3-10B-Instruct-1.58bit/ggml-model-i2_s.gguf
 # EnvironmentFile=-%h/.config/hermes-bitnet-lxc/bitnet.env
 # After bootstrap, run-bitnet-server is symlinked to ~/.local/bin (see bootstrap-all.sh).
 ExecStart=%h/.local/bin/run-bitnet-server.sh

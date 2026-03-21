@@ -7,6 +7,11 @@ source "$ROOT_DIR/lib/common.sh"
 
 require_cmd curl
 
+if [[ "${CODE_SERVER_SKIP:-0}" == "1" ]]; then
+  log "CODE_SERVER_SKIP=1 — skipping Coder code-server install (use OpenVSCode via 07-openvscode-server.sh)."
+  exit 0
+fi
+
 CODE_SERVER_INSTALL_SH="${CODE_SERVER_INSTALL_SH:-https://code-server.dev/install.sh}"
 
 log "Installing code-server from $CODE_SERVER_INSTALL_SH ..."

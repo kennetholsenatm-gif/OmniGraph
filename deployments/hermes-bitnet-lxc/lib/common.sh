@@ -17,7 +17,8 @@ SRC_ROOT="${HERMES_BITNET_SRC_ROOT:-$HOME/src}"
 BITNET_DIR="${BITNET_DIR:-$SRC_ROOT/BitNet}"
 # Canonical local clone (Windows: C:\GitHub\LLM_Pract\qminiwasm-core → WSL / Git Bash / Incus bind-mount).
 QMINI_LOCAL_DEFAULT="/mnt/c/GitHub/LLM_Pract/qminiwasm-core"
-QMINI_REPO="${QMINI_REPO:-https://github.com/kennetholsenatm-gif/qminiwasm-core.git}"
+# Alias: QMINI_REPO_URL overrides QMINI_REPO when set (same Git URL).
+QMINI_REPO="${QMINI_REPO_URL:-${QMINI_REPO:-https://github.com/kennetholsenatm-gif/qminiwasm-core.git}}"
 if [[ -z "${QMINI_DIR:-}" ]]; then
   # .git may be a file (worktree) or directory; use -e
   if [[ -e "$QMINI_LOCAL_DEFAULT/.git" ]]; then
@@ -31,11 +32,17 @@ BITNET_VENV="${BITNET_VENV:-$BITNET_DIR/.venv}"
 QMINI_VENV="${QMINI_VENV:-$HOME/venvs/qminiwasm-core}"
 BITNET_PORT="${BITNET_PORT:-8080}"
 CODE_SERVER_PORT="${CODE_SERVER_PORT:-8443}"
+OPENVS_CODE_PORT="${OPENVS_CODE_PORT:-3000}"
+OPENVS_CODE_HOME="${OPENVS_CODE_HOME:-$HOME/openvscode-server}"
 # Largest model in BitNet setup_env.py --hf-repo list (fallback: 2B GGUF path in docs)
 BITNET_HF_REPO="${BITNET_HF_REPO:-tiiuae/Falcon3-10B-Instruct-1.58bit}"
 BITNET_QUANT="${BITNET_QUANT:-i2_s}"
-# Directory under BitNet repo for weights (created by setup_env / huggingface)
-BITNET_MODEL_DIR="${BITNET_MODEL_DIR:-models/falcon3-10b-1_58}"
+# Directory under BitNet repo for -md (parent of HF model_name folder); see BitNet setup_env.py.
+BITNET_MODEL_DIR="${BITNET_MODEL_DIR:-models/falcon3-10b-instruct}"
+# Subfolder name under BITNET_MODEL_DIR for Falcon3-10B-Instruct-1.58bit weights + gguf
+BITNET_HF_MODEL_NAME="${BITNET_HF_MODEL_NAME:-Falcon3-10B-Instruct-1.58bit}"
+# Expected GGUF after setup_env (set BITNET_GGUF to override for run-bitnet / Hermes)
+BITNET_GGUF_DEFAULT="$BITNET_DIR/$BITNET_MODEL_DIR/$BITNET_HF_MODEL_NAME/ggml-model-${BITNET_QUANT}.gguf"
 # BitNet setup_env maps Falcon/Llama3-class models to this codegen layout on x86_64 (see setup_env.py).
 BITNET_CODEGEN_MODEL="${BITNET_CODEGEN_MODEL:-Llama3-8B-1.58-100B-tokens}"
 # GCC builds cleanly on Alma 10; Clang 20 hit const errors in ggml-bitnet-mad.cpp in tested BitNet revision.

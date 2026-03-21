@@ -70,6 +70,9 @@ if [[ "${BITNET_SKIP_MODEL_DOWNLOAD:-0}" == "1" ]]; then
   exit 0
 fi
 
+log "Patching setup_env.py to use GCC + LLAMA_BUILD_SERVER=ON (upstream defaults to Clang; see lib/patch_bitnet_setup_env.py)."
+python3 "$ROOT_DIR/lib/patch_bitnet_setup_env.py" "$BITNET_DIR/setup_env.py"
+
 log "Downloading / preparing model via setup_env.py (repo=$BITNET_HF_REPO quant=$BITNET_QUANT dir=$BITNET_MODEL_DIR) ..."
 log "If OOM or HF errors, set BITNET_HF_REPO to a smaller model (see BitNet README / setup_env.py --help)."
 cd "$BITNET_DIR"
