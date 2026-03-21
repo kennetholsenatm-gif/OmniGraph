@@ -37,6 +37,9 @@ CODE_SERVER_PORT="${CODE_SERVER_PORT:-8443}"
 # Default 3010: many Gitea installs use 3000 on the same host/WSL — override with OPENVS_CODE_PORT.
 OPENVS_CODE_PORT="${OPENVS_CODE_PORT:-3010}"
 OPENVS_CODE_HOME="${OPENVS_CODE_HOME:-$HOME/openvscode-server}"
+# 0 = no URL token (--without-connection-token); bind OPENVS_CODE_BIND (default 127.0.0.1). 1 = --connection-token-file + ?tkn= for LAN.
+OPENVS_CODE_REQUIRE_TOKEN="${OPENVS_CODE_REQUIRE_TOKEN:-0}"
+OPENVS_CODE_BIND="${OPENVS_CODE_BIND:-127.0.0.1}"
 # Largest model in BitNet setup_env.py --hf-repo list (fallback: 2B GGUF path in docs)
 BITNET_HF_REPO="${BITNET_HF_REPO:-tiiuae/Falcon3-10B-Instruct-1.58bit}"
 BITNET_QUANT="${BITNET_QUANT:-i2_s}"

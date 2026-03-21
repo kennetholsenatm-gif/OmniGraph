@@ -1,16 +1,21 @@
 # User systemd unit — install to ~/.config/systemd/user/openvscode-server.service
-# Requires: 07-openvscode-server.sh (token file + unpacked release).
+#
+# Default (this file): no connection token — open http://127.0.0.1:3010/ directly.
+# Binds OPENVS_CODE_BIND (127.0.0.1) so the editor is not offered tokenless on all interfaces.
+# If your browser cannot reach WSL on 127.0.0.1, use: systemctl --user edit openvscode-server
+#   and set ExecStart to use --host 0.0.0.0 (still without token = only for trusted LAN).
+#
+# Token mode (LAN / shared host): use openvscode-server-token.service.example instead, or set
+# OPENVS_CODE_REQUIRE_TOKEN=1 when running 07-openvscode-server.sh.
 #
 #   mkdir -p ~/.config/systemd/user
 #   cp systemd/openvscode-server.service.example ~/.config/systemd/user/openvscode-server.service
 #   systemctl --user daemon-reload
 #   systemctl --user enable --now openvscode-server
-#   loginctl enable-linger "$USER"   # optional: survive logout
-#
-# Security: never expose --without-connection-token on untrusted networks.
+#   loginctl enable-linger "$USER"
 
 [Unit]
-Description=OpenVSCode Server (browser IDE)
+Description=OpenVSCode Server (browser IDE, localhost, no URL token)
 After=network-online.target
 Wants=network-online.target
 
@@ -18,8 +23,7 @@ Wants=network-online.target
 Type=simple
 Environment=HOME=%h
 WorkingDirectory=%h
-# Port 3010 default (avoids Gitea and others on 3000). Match OPENVS_CODE_PORT from 07-openvscode-server.sh or use systemctl edit drop-in.
-ExecStart=%h/.local/bin/openvscode-server --host 0.0.0.0 --port 3010 --connection-token-file %h/.config/hermes-bitnet-lxc/openvscode.token
+ExecStart=%h/.local/bin/openvscode-server --host 127.0.0.1 --port 3010 --without-connection-token --accept-server-license-terms
 Restart=on-failure
 RestartSec=5
 

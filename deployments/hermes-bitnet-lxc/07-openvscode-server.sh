@@ -31,16 +31,28 @@ ASSET_URL="$(
 )"
 [[ -n "$ASSET_URL" && "$ASSET_URL" != "null" ]] || die "no linux-x64.tar.gz asset for $TAG"
 
-ensure_dir "$OPENVS_CODE_HOME"
-ensure_dir "$(dirname "$OPENVS_CODE_HOME")"
 TOKEN_DIR="$HOME/.config/hermes-bitnet-lxc"
 ensure_dir "$TOKEN_DIR"
 TOKEN_FILE="${OPENVS_CODE_TOKEN_FILE:-$TOKEN_DIR/openvscode.token}"
-if [[ ! -f "$TOKEN_FILE" ]]; then
-  python3 -c "import secrets; print(secrets.token_hex(24))" >"$TOKEN_FILE"
-  chmod 600 "$TOKEN_FILE"
-  log "Wrote connection token to $TOKEN_FILE (keep secret)."
+
+if [[ "${OPENVS_CODE_REQUIRE_TOKEN:-0}" == "1" ]]; then
+  if [[ ! -f "$TOKEN_FILE" ]]; then
+    python3 -c "import secrets; print(secrets.token_hex(24))" >"$TOKEN_FILE"
+    chmod 600 "$TOKEN_FILE"
+    log "OPENVS_CODE_REQUIRE_TOKEN=1 — wrote connection token to $TOKEN_FILE"
+  fi
+  OVS_BIND="${OPENVS_CODE_BIND:-0.0.0.0}"
+  OVS_EXTRA=(--host "$OVS_BIND" --port "$OPENVS_CODE_PORT" --connection-token-file "$TOKEN_FILE" --accept-server-license-terms)
+  log "Token mode: open http://127.0.0.1:$OPENVS_CODE_PORT/?tkn=<token> (bind=$OVS_BIND)"
+else
+  OVS_BIND="${OPENVS_CODE_BIND:-127.0.0.1}"
+  OVS_EXTRA=(--host "$OVS_BIND" --port "$OPENVS_CODE_PORT" --without-connection-token --accept-server-license-terms)
+  log "No URL token (default): bind $OVS_BIND — open http://127.0.0.1:$OPENVS_CODE_PORT/"
+  log "If your browser cannot reach WSL, set OPENVS_CODE_BIND=0.0.0.0 (still no token — trusted network only)."
 fi
+
+ensure_dir "$OPENVS_CODE_HOME"
+ensure_dir "$(dirname "$OPENVS_CODE_HOME")"
 
 CACHE_DIR="${OPENVS_CODE_CACHE:-$HOME/.cache/openvscode-server}"
 ensure_dir "$CACHE_DIR"
@@ -83,11 +95,8 @@ if [[ -z "$CODE_SERVER_WORKSPACE" ]]; then
   fi
 fi
 
-log "systemd: copy $ROOT_DIR/systemd/openvscode-server.service.example to ~/.config/systemd/user/openvscode-server.service"
-log "  Set OPENVS_CODE_HOME / token file paths if non-default."
+log "systemd: copy $ROOT_DIR/systemd/openvscode-server.service.example (no token) or openvscode-server-token.service.example"
 log "  systemctl --user daemon-reload && systemctl --user enable --now openvscode-server"
-log "Browser: append token query param (root URL alone returns Forbidden):"
-log "  http://127.0.0.1:$OPENVS_CODE_PORT/?tkn=<contents of $TOKEN_FILE>"
 log "Manual run:"
-log "  $BIN --host 0.0.0.0 --port $OPENVS_CODE_PORT --connection-token-file \"$TOKEN_FILE\" \"$CODE_SERVER_WORKSPACE\""
+log "  exec $BIN ${OVS_EXTRA[*]} \"$CODE_SERVER_WORKSPACE\""
 log "07-openvscode-server: done"

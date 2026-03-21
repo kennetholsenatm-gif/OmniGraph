@@ -54,5 +54,5 @@ Nested Incus under WSL often fails or behaves oddly. If `incus launch` fails, ru
 
 ## Security
 
-- OpenVSCode Server **must** use a **connection token** (see `07-openvscode-server.sh` and `systemd/openvscode-server.service.example`).
-- Do not expose 3010/8080 (or your chosen OpenVSCode port) on untrusted networks without TLS and auth.
+- Default OpenVSCode unit binds **127.0.0.1** and uses **`--without-connection-token`** (no `?tkn=`). For **LAN** access, use **`openvscode-server-token.service.example`** or **`OPENVS_CODE_REQUIRE_TOKEN=1`**.
+- Do not expose **3010/8080** on untrusted networks without TLS and auth; **`0.0.0.0` without a token** is only for trusted LANs.

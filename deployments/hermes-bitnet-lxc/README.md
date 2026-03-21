@@ -16,7 +16,8 @@ If **Gitea** is at **`http://localhost:3000`**, use this bundle as follows so po
 | App | URL |
 |-----|-----|
 | Gitea | `http://localhost:3000` |
-| OpenVSCode Server (this repo default) | `http://localhost:3010/?tkn=TOKEN` — **required:** paste token from `~/.config/hermes-bitnet-lxc/openvscode.token` (opening `/` alone returns **Forbidden**) |
+| OpenVSCode Server (default) | `http://localhost:3010/` — **no token in URL** (`--without-connection-token`, binds **127.0.0.1**). If the browser cannot reach WSL, set `OPENVS_CODE_BIND=0.0.0.0` (trusted network only). |
+| OpenVSCode (optional token mode) | `OPENVS_CODE_REQUIRE_TOKEN=1` + `systemd/openvscode-server-token.service.example` → use `?tkn=` |
 | BitNet `llama-server` (Hermes OpenAI base) | `http://localhost:8080/v1` |
 
 ---
@@ -25,7 +26,7 @@ Idempotent bootstrap for an **AlmaLinux**-style environment (bare metal, VM, **I
 
 - **Hermes Agent** ([NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent)) via official `install.sh`
 - **BitNet.cpp** `llama-server` with the largest supported **1.58-bit** stack in BitNet’s `setup_env.py` by default: **`tiiuae/Falcon3-10B-Instruct-1.58bit`** → `ggml-model-i2_s.gguf`
-- **OpenVSCode Server** ([gitpod-io/openvscode-server](https://github.com/gitpod-io/openvscode-server)) in the browser (token auth)
+- **OpenVSCode Server** ([gitpod-io/openvscode-server](https://github.com/gitpod-io/openvscode-server)) in the browser (default: **no URL token**, localhost bind; optional token mode for LAN)
 - Optional **Coder code-server** ([03-code-server.sh](03-code-server.sh)) — set `CODE_SERVER_SKIP=1` to install only OpenVSCode
 - **qminiwasm-core** from [kennetholsenatm-gif/qminiwasm-core](https://github.com/kennetholsenatm-gif/qminiwasm-core) (override with `QMINI_REPO` / `QMINI_REPO_URL`)
 
@@ -45,6 +46,7 @@ Then install **user systemd** units (optional):
 mkdir -p ~/.config/systemd/user
 cp systemd/bitnet-llama-server.service.example ~/.config/systemd/user/bitnet-llama-server.service
 cp systemd/openvscode-server.service.example ~/.config/systemd/user/openvscode-server.service
+# LAN + URL token instead: use systemd/openvscode-server-token.service.example
 # Edit BITNET_GGUF in bitnet unit if non-default
 systemctl --user daemon-reload
 systemctl --user enable --now bitnet-llama-server openvscode-server
@@ -76,7 +78,7 @@ From **Windows → WSL2**: `localhost:8080` usually forwards to WSL automaticall
 
 ## Security
 
-- **OpenVSCode Server**: never run with **`--without-connection-token`** on untrusted networks. Rotate the token file if leaked.
+- **OpenVSCode Server (default):** runs **without** a connection token on **127.0.0.1** only — fine for single-user WSL; do **not** switch to **`0.0.0.0`** without a token on untrusted networks. For LAN exposure use **`OPENVS_CODE_REQUIRE_TOKEN=1`** and the **token** unit example.
 - **BitNet / Hermes**: `OPENAI_API_KEY=dummy` is fine for local `llama-server`; do not expose **8080** without a firewall.
 
 ## Environment variables (common)
@@ -91,6 +93,8 @@ From **Windows → WSL2**: `localhost:8080` usually forwards to WSL automaticall
 | `CODE_SERVER_SKIP` | `1` = skip Coder code-server |
 | `OPENVS_CODE_SKIP` | `1` = skip OpenVSCode Server |
 | `OPENVS_CODE_PORT` | Browser IDE port (**default `3010`** so Gitea can keep `3000`) |
+| `OPENVS_CODE_REQUIRE_TOKEN` | `1` = URL token + `openvscode-server-token.service.example`; **`0` (default)** = no token |
+| `OPENVS_CODE_BIND` | Listen address (default **`127.0.0.1`** without token; use **`0.0.0.0`** if Windows cannot reach the editor) |
 | `HERMES_BITNET_CONFIG_SKIP` | `1` = skip Hermes→BitNet wiring |
 | `HERMES_INSTALL_LOG` | Path for installer `tee` log |
 
