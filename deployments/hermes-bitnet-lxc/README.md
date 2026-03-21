@@ -16,7 +16,7 @@ If **Gitea** is at **`http://localhost:3000`**, use this bundle as follows so po
 | App | URL |
 |-----|-----|
 | Gitea | `http://localhost:3000` |
-| OpenVSCode Server (this repo default) | `http://localhost:3010` |
+| OpenVSCode Server (this repo default) | `http://localhost:3010/?tkn=TOKEN` — **required:** paste token from `~/.config/hermes-bitnet-lxc/openvscode.token` (opening `/` alone returns **Forbidden**) |
 | BitNet `llama-server` (Hermes OpenAI base) | `http://localhost:8080/v1` |
 
 ---

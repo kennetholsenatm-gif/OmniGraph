@@ -86,6 +86,8 @@ fi
 log "systemd: copy $ROOT_DIR/systemd/openvscode-server.service.example to ~/.config/systemd/user/openvscode-server.service"
 log "  Set OPENVS_CODE_HOME / token file paths if non-default."
 log "  systemctl --user daemon-reload && systemctl --user enable --now openvscode-server"
+log "Browser: append token query param (root URL alone returns Forbidden):"
+log "  http://127.0.0.1:$OPENVS_CODE_PORT/?tkn=<contents of $TOKEN_FILE>"
 log "Manual run:"
 log "  $BIN --host 0.0.0.0 --port $OPENVS_CODE_PORT --connection-token-file \"$TOKEN_FILE\" \"$CODE_SERVER_WORKSPACE\""
 log "07-openvscode-server: done"
