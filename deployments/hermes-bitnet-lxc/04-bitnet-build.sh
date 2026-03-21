@@ -35,9 +35,22 @@ if [[ -f "$BITNET_DIR/requirements.txt" ]]; then
   pip install -r "$BITNET_DIR/requirements.txt"
 fi
 
+cd "$BITNET_DIR"
+log "Installing gguf-py and generating include/bitnet-lut-kernels.h (codegen_tl2, model=$BITNET_CODEGEN_MODEL) ..."
+pip install "$BITNET_DIR/3rdparty/llama.cpp/gguf-py"
+python utils/codegen_tl2.py \
+  --model "$BITNET_CODEGEN_MODEL" \
+  --BM 256,128,256,128 \
+  --BK 96,96,96,96 \
+  --bm 32,32,32,32
+
 BITNET_BUILD_DIR="${BITNET_BUILD_DIR:-$BITNET_DIR/build}"
-log "Configuring CMake build (LLAMA_BUILD_SERVER=ON) ..."
-cmake -S "$BITNET_DIR" -B "$BITNET_BUILD_DIR" -DLLAMA_BUILD_SERVER=ON
+log "Configuring CMake (LLAMA_BUILD_SERVER=ON, BITNET_X86_TL2=OFF, CC=$BITNET_CC CXX=$BITNET_CXX) ..."
+cmake -S "$BITNET_DIR" -B "$BITNET_BUILD_DIR" \
+  -DLLAMA_BUILD_SERVER=ON \
+  -DBITNET_X86_TL2=OFF \
+  -DCMAKE_C_COMPILER="$BITNET_CC" \
+  -DCMAKE_CXX_COMPILER="$BITNET_CXX"
 cmake --build "$BITNET_BUILD_DIR" -j"$(nproc 2>/dev/null || echo 4)"
 
 LLAMA_SERVER=""

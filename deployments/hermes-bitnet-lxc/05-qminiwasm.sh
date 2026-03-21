@@ -10,7 +10,7 @@ require_cmd python3
 
 ensure_dir "$SRC_ROOT"
 
-if [[ ! -d "$QMINI_DIR/.git" ]]; then
+if [[ ! -e "$QMINI_DIR/.git" ]]; then
   log "No git repo at $QMINI_DIR — cloning $QMINI_REPO (branch $QMINI_BRANCH) ..."
   ensure_dir "$(dirname "$QMINI_DIR")"
   git clone --branch "$QMINI_BRANCH" --single-branch "$QMINI_REPO" "$QMINI_DIR"
@@ -34,6 +34,11 @@ source "$QMINI_VENV/bin/activate"
 python -m pip install --upgrade pip wheel setuptools
 
 cd "$QMINI_DIR"
+# Default: CPU-only PyTorch from pytorch.org (avoids multi-GB CUDA wheels on machines without NVIDIA).
+if [[ "${QMINI_USE_CPU_TORCH:-1}" == "1" ]]; then
+  log "Installing CPU-only torch first (QMINI_USE_CPU_TORCH=0 to skip and use PyPI default)."
+  pip install --upgrade "torch>=2.0.0" --index-url https://download.pytorch.org/whl/cpu
+fi
 if [[ "${QMINI_USE_ARC:-0}" == "1" ]]; then
   log "Installing with [arc] extra (Intel Arc/XPU-oriented; verify for Iris Xe before relying on it)."
   pip install -e ".[arc]"

@@ -19,7 +19,8 @@ BITNET_DIR="${BITNET_DIR:-$SRC_ROOT/BitNet}"
 QMINI_LOCAL_DEFAULT="/mnt/c/GitHub/LLM_Pract/qminiwasm-core"
 QMINI_REPO="${QMINI_REPO:-https://github.com/kennetholsenatm-gif/qminiwasm-core.git}"
 if [[ -z "${QMINI_DIR:-}" ]]; then
-  if [[ -d "$QMINI_LOCAL_DEFAULT/.git" ]]; then
+  # .git may be a file (worktree) or directory; use -e
+  if [[ -e "$QMINI_LOCAL_DEFAULT/.git" ]]; then
     QMINI_DIR="$QMINI_LOCAL_DEFAULT"
   else
     QMINI_DIR="$SRC_ROOT/qminiwasm-core"
@@ -34,4 +35,9 @@ BITNET_HF_REPO="${BITNET_HF_REPO:-tiiuae/Falcon3-10B-Instruct-1.58bit}"
 BITNET_QUANT="${BITNET_QUANT:-i2_s}"
 # Directory under BitNet repo for weights (created by setup_env / huggingface)
 BITNET_MODEL_DIR="${BITNET_MODEL_DIR:-models/falcon3-10b-1_58}"
+# BitNet setup_env maps Falcon/Llama3-class models to this codegen layout on x86_64 (see setup_env.py).
+BITNET_CODEGEN_MODEL="${BITNET_CODEGEN_MODEL:-Llama3-8B-1.58-100B-tokens}"
+# GCC builds cleanly on Alma 10; Clang 20 hit const errors in ggml-bitnet-mad.cpp in tested BitNet revision.
+BITNET_CC="${BITNET_CC:-gcc}"
+BITNET_CXX="${BITNET_CXX:-g++}"
 QMINI_BRANCH="${QMINI_BRANCH:-white-paper-integration}"

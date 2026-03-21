@@ -25,13 +25,13 @@ $SUDO dnf install -y \
   xz \
   which \
   ripgrep \
-  ffmpeg \
+  ffmpeg-free \
   gcc \
   gcc-c++ \
   make \
   cmake \
   ninja-build \
-  pkgconf-pkgconfig \
+  pkgconf-pkg-config \
   openssl-devel \
   python3 \
   python3-devel \
