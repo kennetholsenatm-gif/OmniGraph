@@ -2,6 +2,8 @@
 
 This repo uses **Gitea Actions** (`.gitea/workflows/`) so lint and Semaphore sync are **declarative**—configure the forge once, not ad-hoc shell from an agent.
 
+**Vocabulary:** When working in this codebase, informal talk about **Git** (push, PRs, Actions, “the remote”) usually means **Gitea**. **Actions** in repo docs and workflows means **Gitea Actions**, not GitHub Actions, unless a mirror or comparison to GitHub is explicitly in scope.
+
 ## Prerequisites
 
 1. **Gitea:** Enable **Actions** and register at least one [Act runner](https://docs.gitea.com/usage/actions/act-runner) with the label your workflows use (default in this repo: **`ubuntu-latest`**). Change `runs-on` in `.gitea/workflows/*.yml` if your runner uses a different label (e.g. `self-hosted`).

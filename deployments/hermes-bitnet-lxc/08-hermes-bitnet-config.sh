@@ -10,10 +10,33 @@ if [[ "${HERMES_BITNET_CONFIG_SKIP:-0}" == "1" ]]; then
   exit 0
 fi
 
+HERMES_RUN_AGENT="${HERMES_RUN_AGENT:-$HOME/.hermes/hermes-agent/run_agent.py}"
+if [[ -f "$HERMES_RUN_AGENT" ]]; then
+  python3 "$ROOT_DIR/lib/patch_hermes_run_agent_no_tools.py" "$HERMES_RUN_AGENT"
+else
+  log "warn: $HERMES_RUN_AGENT missing — install Hermes (02-hermes.sh) before BitNet ACP chat."
+fi
+
+append_env_kv() {
+  local f="$1"
+  local key="$2"
+  local val="$3"
+  [[ -f "$f" ]] || return 0
+  if grep -q "^${key}=" "$f" 2>/dev/null; then
+    return 0
+  fi
+  printf '\n# BitNet llama-server OpenAI compat (no tools param); see 08 + README\n%s=%s\n' "$key" "$val" >>"$f"
+}
+
+# Hermes → BitNet: vendor server rejects ``tools`` in /v1/chat/completions (no OpenAI function-calling on this build).
+# Enables Hermes chat/ACP against BitNet; full coding-agent tool loop needs a llama-server that accepts ``tools`` (see README).
+append_env_kv "$HOME/.hermes/.env" HERMES_CHAT_COMPLETIONS_NO_TOOLS 1
+
 GGUF="${BITNET_GGUF:-$BITNET_GGUF_DEFAULT}"
 if [[ ! -f "$GGUF" ]]; then
-  log "BitNet GGUF not found yet at $GGUF — skip Hermes wiring (run 04-bitnet-build.sh first)."
-  log "You can re-run 08-hermes-bitnet-config.sh after weights exist."
+  log "BitNet GGUF not found yet at $GGUF — skip Hermes config.yaml + OPENAI_* append (run 04-bitnet-build.sh first)."
+  log "Patch + HERMES_CHAT_COMPLETIONS_NO_TOOLS=.env already applied when possible."
+  log "Re-run 08-hermes-bitnet-config.sh after weights exist."
   exit 0
 fi
 

@@ -13,16 +13,33 @@ if [[ "${CODE_SERVER_SKIP:-0}" == "1" ]]; then
 fi
 
 CODE_SERVER_INSTALL_SH="${CODE_SERVER_INSTALL_SH:-https://code-server.dev/install.sh}"
+# Alma/RHEL map to "fedora" in code-server's installer → it runs `sudo rpm -U`, which fails
+# without passwordless sudo. Standalone unpacks to ~/.local (no root), same idea as 07-openvscode-server.
+CODE_SERVER_INSTALL_METHOD="${CODE_SERVER_INSTALL_METHOD:-standalone}"
 
-log "Installing code-server from $CODE_SERVER_INSTALL_SH ..."
-if ! curl -fsSL "$CODE_SERVER_INSTALL_SH" | sh; then
-  log "Install script failed (often sudo password on Alma/RHEL). As root run:"
-  log "  rpm -U \"\$HOME/.cache/code-server\"/code-server-*-amd64.rpm"
+INSTALL_ARGS=(--method "$CODE_SERVER_INSTALL_METHOD")
+if [[ -n "${CODE_SERVER_INSTALL_VERSION:-}" ]]; then
+  INSTALL_ARGS+=(--version "$CODE_SERVER_INSTALL_VERSION")
+fi
+
+log "Installing code-server from $CODE_SERVER_INSTALL_SH (${INSTALL_ARGS[*]}) ..."
+if ! curl -fsSL "$CODE_SERVER_INSTALL_SH" | sh -s -- "${INSTALL_ARGS[@]}"; then
+  log "Install failed. Tips:"
+  log "  - Default is --method standalone (no sudo). Re-run or set CODE_SERVER_INSTALL_METHOD=standalone"
+  log "  - For system RPM: sudo rpm -U \"\$HOME/.cache/code-server\"/code-server-<ver>-amd64.rpm (see cache dir for exact name)"
   die "code-server install failed"
 fi
 
+if [[ -x "$HOME/.local/bin/code-server" ]]; then
+  :
+elif command -v code-server >/dev/null 2>&1; then
+  :
+else
+  die "code-server not found after install (expected ~/.local/bin/code-server with standalone method)"
+fi
+
 if ! command -v code-server >/dev/null 2>&1; then
-  die "code-server not on PATH after install"
+  log "Add to PATH if needed: export PATH=\"\$HOME/.local/bin:\$PATH\""
 fi
 
 ensure_dir "$SRC_ROOT"

@@ -22,6 +22,10 @@ Wants=network-online.target
 [Service]
 Type=simple
 Environment=HOME=%h
+# So the integrated terminal and ACP-launched tools find hermes, uv, etc.
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+# BitNet llama-server rejects OpenAI ``tools``; Hermes honors this env (patched run_agent.py via 08-hermes-bitnet-config.sh).
+Environment=HERMES_CHAT_COMPLETIONS_NO_TOOLS=1
 WorkingDirectory=%h
 ExecStart=%h/.local/bin/openvscode-server --host 127.0.0.1 --port 3010 --without-connection-token --accept-server-license-terms
 Restart=on-failure
