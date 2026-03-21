@@ -15,7 +15,16 @@ ensure_dir() {
 
 SRC_ROOT="${HERMES_BITNET_SRC_ROOT:-$HOME/src}"
 BITNET_DIR="${BITNET_DIR:-$SRC_ROOT/BitNet}"
-QMINI_DIR="${QMINI_DIR:-$SRC_ROOT/qminiwasm-core}"
+# Canonical local clone (Windows: C:\GitHub\LLM_Pract\qminiwasm-core → WSL / Git Bash / Incus bind-mount).
+QMINI_LOCAL_DEFAULT="/mnt/c/GitHub/LLM_Pract/qminiwasm-core"
+QMINI_REPO="${QMINI_REPO:-https://github.com/kennetholsenatm-gif/qminiwasm-core.git}"
+if [[ -z "${QMINI_DIR:-}" ]]; then
+  if [[ -d "$QMINI_LOCAL_DEFAULT/.git" ]]; then
+    QMINI_DIR="$QMINI_LOCAL_DEFAULT"
+  else
+    QMINI_DIR="$SRC_ROOT/qminiwasm-core"
+  fi
+fi
 BITNET_VENV="${BITNET_VENV:-$BITNET_DIR/.venv}"
 QMINI_VENV="${QMINI_VENV:-$QMINI_DIR/.venv}"
 BITNET_PORT="${BITNET_PORT:-8080}"

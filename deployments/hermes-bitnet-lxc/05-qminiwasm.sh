@@ -9,16 +9,21 @@ require_cmd git
 require_cmd python3
 
 ensure_dir "$SRC_ROOT"
-QMINI_REPO="${QMINI_REPO:-https://github.com/kennetholsenatm-gif/qminiwasm-core.git}"
 
 if [[ ! -d "$QMINI_DIR/.git" ]]; then
-  log "Cloning $QMINI_REPO (branch $QMINI_BRANCH) ..."
+  log "No git repo at $QMINI_DIR — cloning $QMINI_REPO (branch $QMINI_BRANCH) ..."
+  ensure_dir "$(dirname "$QMINI_DIR")"
   git clone --branch "$QMINI_BRANCH" --single-branch "$QMINI_REPO" "$QMINI_DIR"
 else
-  log "Repo exists at $QMINI_DIR; fetch and checkout $QMINI_BRANCH ..."
-  git -C "$QMINI_DIR" fetch origin
-  git -C "$QMINI_DIR" checkout "$QMINI_BRANCH"
-  git -C "$QMINI_DIR" pull --ff-only origin "$QMINI_BRANCH" || true
+  log "Using qminiwasm-core at $QMINI_DIR"
+  if [[ "${QMINI_SYNC_BRANCH:-0}" == "1" ]]; then
+    log "QMINI_SYNC_BRANCH=1 — fetching and checking out $QMINI_BRANCH ..."
+    git -C "$QMINI_DIR" fetch origin
+    git -C "$QMINI_DIR" checkout "$QMINI_BRANCH"
+    git -C "$QMINI_DIR" pull --ff-only origin "$QMINI_BRANCH" || true
+  else
+    log "Leaving branch/worktree unchanged (set QMINI_SYNC_BRANCH=1 to align with origin/$QMINI_BRANCH)."
+  fi
 fi
 
 if [[ ! -d "$QMINI_VENV" ]]; then

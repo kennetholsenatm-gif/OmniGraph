@@ -25,6 +25,8 @@ fi
 
 if [[ -x "$HOME/.local/bin/hermes" ]]; then
   "$HOME/.local/bin/hermes" version || true
+  log "Primary qminiwasm-core tree for tools/agent work: $QMINI_DIR"
+  log "(Windows: C:\\GitHub\\LLM_Pract\\qminiwasm-core — use WSL path $QMINI_LOCAL_DEFAULT when available.)"
   log "Next: configure model provider — after BitNet llama-server is up:"
   log "  export OPENAI_BASE_URL=http://127.0.0.1:${BITNET_PORT}/v1"
   log "  export OPENAI_API_KEY=local"
