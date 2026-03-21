@@ -27,7 +27,8 @@ if [[ -z "${QMINI_DIR:-}" ]]; then
   fi
 fi
 BITNET_VENV="${BITNET_VENV:-$BITNET_DIR/.venv}"
-QMINI_VENV="${QMINI_VENV:-$QMINI_DIR/.venv}"
+# Keep the venv on the Linux filesystem (ext4) — not under /mnt/c — so pip/torch unpack is fast.
+QMINI_VENV="${QMINI_VENV:-$HOME/venvs/qminiwasm-core}"
 BITNET_PORT="${BITNET_PORT:-8080}"
 CODE_SERVER_PORT="${CODE_SERVER_PORT:-8443}"
 # Largest model in BitNet setup_env.py --hf-repo list (fallback: 2B GGUF path in docs)

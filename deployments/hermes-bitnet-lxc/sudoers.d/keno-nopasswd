@@ -1,0 +1,7 @@
+# Install on Alma/RHEL WSL (as root):
+#   install -m 440 -o root -g root keno-nopasswd /etc/sudoers.d/keno
+#   visudo -c -f /etc/sudoers.d/keno
+#
+# Grants user keno full passwordless sudo (dev WSL only — do not use on shared servers).
+
+keno ALL=(ALL) NOPASSWD: ALL
