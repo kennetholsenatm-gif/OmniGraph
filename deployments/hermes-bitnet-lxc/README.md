@@ -122,6 +122,10 @@ cd /mnt/c/GitHub/LLM_Pract/qminiwasm-core
 
 ## Troubleshooting
 
+- **`http://localhost:8080/` says “llama.cpp” — is this really BitNet?**  
+  **Yes, if you followed this bundle.** Microsoft [BitNet](https://github.com/microsoft/BitNet) builds a server binary still named **`llama-server`**, from a **vendored llama.cpp** tree with **BitNet** kernels and codegen. The web UI and `/v1/models` JSON often still say **llama.cpp** / `owned_by: llamacpp` — that is upstream branding, not proof you built vanilla llama.cpp. **Verify the binary path** is under your BitNet clone, e.g.  
+  `readlink -f ~/src/BitNet/build/bin/llama-server`  
+  If you instead built and run **`llama-server` from a plain [ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp) clone** (no BitNet repo), that would *not* be BitNet.cpp — rebuild from **`microsoft/BitNet`** and use `04-bitnet-build.sh` / `run-bitnet-server.sh`.
 - **Paths / ports (WSL):** run `bash deployments/hermes-bitnet-lxc/lib/verify-wsl-paths.sh` from WSL — confirms `qminiwasm-core` and **QMINI_DIR**, and prints **3010** vs Gitea **3000**.
 - **BitNet CMake / Clang errors**: `04-bitnet-build.sh` patches `setup_env.py` to **GCC** + `LLAMA_BUILD_SERVER=ON`; manual CMake already uses GCC.
 - **OOM during conversion**: increase guest RAM, use WSL `.wslconfig`, or convert on another machine and copy `ggml-model-i2_s.gguf`.

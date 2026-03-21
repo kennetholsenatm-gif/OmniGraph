@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Clone Microsoft BitNet, Python venv, pip deps, cmake build with llama-server, optional model setup.
+# Clone Microsoft BitNet, Python venv, pip deps, CMake build, optional model setup.
+# Output binary is build/bin/llama-server (BitNet's llama.cpp fork + BitNet kernels — not a separate bitnet-server name).
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh

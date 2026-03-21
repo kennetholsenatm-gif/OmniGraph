@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-# Run BitNet llama-server with OpenAI-compatible API for Hermes (127.0.0.1).
+# Run Microsoft BitNet's OpenAI-compatible server on 127.0.0.1.
+#
+# The *binary name* is still "llama-server" because BitNet builds from a vendored
+# llama.cpp tree under 3rdparty/ — with BitNet CMake targets, codegen
+# (bitnet-lut-kernels), and 1.58-bit GGUF. That is BitNet.cpp inference, not a
+# standalone "bitnet-server" binary. API JSON may show owned_by "llamacpp"; ignore
+# that string — what matters is the executable path under $BITNET_DIR/build/bin/.
 set -euo pipefail
 _SCRIPT="${BASH_SOURCE[0]}"
 [[ -L "$_SCRIPT" ]] && _SCRIPT="$(readlink -f "$_SCRIPT" 2>/dev/null || readlink "$_SCRIPT")"
@@ -15,7 +21,7 @@ for c in "$BITNET_BUILD_DIR/bin/llama-server" "$BITNET_BUILD_DIR/bin/llama-serve
     break
   fi
 done
-[[ -n "$LLAMA_SERVER" ]] || die "llama-server not found under $BITNET_BUILD_DIR/bin — run 04-bitnet-build.sh first"
+[[ -n "$LLAMA_SERVER" ]] || die "BitNet llama-server not found under $BITNET_BUILD_DIR/bin — build microsoft/BitNet (04-bitnet-build.sh), not upstream llama.cpp alone"
 
 if [[ -n "${BITNET_GGUF:-}" ]]; then
   MODEL="$BITNET_GGUF"
@@ -27,7 +33,8 @@ fi
 THREADS="${BITNET_THREADS:-$(nproc 2>/dev/null || echo 4)}"
 CTX="${BITNET_CTX:-4096}"
 
-log "Starting llama-server: $LLAMA_SERVER"
+log "Starting BitNet-built llama-server: $LLAMA_SERVER"
+log "  (BitNet repo: $BITNET_DIR — binary name is llama-server by upstream layout)"
 log "  model=$MODEL"
 log "  bind=127.0.0.1 port=$BITNET_PORT threads=$THREADS ctx=$CTX"
 log "Hermes: OPENAI_BASE_URL=http://127.0.0.1:${BITNET_PORT}/v1 OPENAI_API_KEY=local"
