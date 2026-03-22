@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kennetholsenatm-gif/omnigraph/schemas/graph.v1.schema.json",
+  "title": "OmniGraphGraph",
+  "description": "Versioned graph document for visualization and PR artifacts (omnigraph/graph/v1).",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "omnigraph/graph/v1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "Graph"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "generatedAt": { "type": "string" },
+        "project": { "type": "string" },
+        "environment": { "type": "string" }
+      },
+      "required": ["generatedAt"]
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "phase": { "type": "string" },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string" },
+              "kind": { "type": "string" },
+              "label": { "type": "string" },
+              "state": { "type": "string" },
+              "attributes": { "type": "object" }
+            },
+            "required": ["id", "kind", "label"]
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "from": { "type": "string" },
+              "to": { "type": "string" },
+              "kind": { "type": "string" }
+            },
+            "required": ["from", "to"]
+          }
+        },
+        "phases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string" },
+              "status": { "type": "string" },
+              "detail": { "type": "string" }
+            },
+            "required": ["name", "status"]
+          }
+        },
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "validateOk": { "type": "boolean" },
+            "coerceOk": { "type": "boolean" },
+            "inventoryPreview": { "type": "string" }
+          }
+        }
+      },
+      "required": ["phase", "nodes", "edges"]
+    }
+  },
+  "required": ["apiVersion", "kind", "metadata", "spec"]
+}

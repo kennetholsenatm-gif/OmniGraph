@@ -1,0 +1,24 @@
+{
+  "format_version": "1.2",
+  "planned_values": {
+    "outputs": {
+      "preview_ip": {
+        "value": "10.0.5.99"
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_instance.web",
+          "mode": "managed",
+          "type": "aws_instance",
+          "name": "web",
+          "values": {
+            "public_ip": "10.0.5.99",
+            "private_ip": "10.0.5.99"
+          }
+        }
+      ]
+    }
+  }
+}
