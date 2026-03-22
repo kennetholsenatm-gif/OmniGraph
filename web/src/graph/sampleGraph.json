@@ -1,0 +1,35 @@
+{
+  "apiVersion": "omnigraph/graph/v1",
+  "kind": "Graph",
+  "metadata": {
+    "generatedAt": "2025-01-01T00:00:00Z",
+    "project": "demo",
+    "environment": "staging"
+  },
+  "spec": {
+    "phase": "plan",
+    "nodes": [
+      { "id": "project", "kind": "project", "label": "demo", "state": "active" },
+      { "id": "tf", "kind": "tool", "label": "OpenTofu", "state": "pending" },
+      { "id": "ansible", "kind": "tool", "label": "Ansible", "state": "pending" },
+      {
+        "id": "planned-aws_instance_web",
+        "kind": "host",
+        "label": "aws_instance.web",
+        "state": "planned",
+        "attributes": { "ansible_host": "10.0.5.99" }
+      }
+    ],
+    "edges": [
+      { "from": "project", "to": "tf", "kind": "provisions" },
+      { "from": "tf", "to": "ansible", "kind": "configures" },
+      { "from": "tf", "to": "planned-aws_instance_web", "kind": "creates" }
+    ],
+    "phases": [
+      { "name": "validate", "status": "ok" },
+      { "name": "coerce", "status": "ok" },
+      { "name": "plan", "status": "pending" }
+    ],
+    "summary": { "validateOk": true, "coerceOk": true }
+  }
+}
