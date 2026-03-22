@@ -28,6 +28,7 @@ func newRoot() *cobra.Command {
 	root.AddCommand(
 		newValidateCmd(),
 		newCoerceCmd(),
+		newOrchestrateCmd(),
 		newStateCmd(),
 		newInventoryCmd(),
 		newGraphCmd(),

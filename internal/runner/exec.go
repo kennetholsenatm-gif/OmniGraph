@@ -43,13 +43,7 @@ func (ExecRunner) Run(ctx context.Context, s Step) (*Result, error) {
 	}
 	var ee *exec.ExitError
 	if errors.As(err, &ee) {
-		if ee.ProcessState != nil {
-			if code, ok := exitStatus(ee.ProcessState); ok {
-				res.ExitCode = code
-				return res, nil
-			}
-		}
-		res.ExitCode = 1
+		res.ExitCode = ee.ExitCode()
 		return res, nil
 	}
 	return nil, fmt.Errorf("runner: %w", err)
