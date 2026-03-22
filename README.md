@@ -11,6 +11,7 @@ OmniGraph is a state-aware, multi-paradigm DevSecOps orchestration platform. It 
 | Web UI (React, Tailwind; future D3 graph + Wasm linters) | `web/` |
 | Control plane CLI (Go) | `cmd/omnigraph/` |
 | JSON Schema for `.omnigraph.schema` | `schemas/` |
+| Wiki source (GitHub Wiki companion) | `wiki/` |
 | Architecture and ADRs | `docs/` |
 | Wasm linter roadmap | `wasm/` |
 
@@ -20,6 +21,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for prerequisites, local development, and
 
 ## Documentation
 
+- [Wiki (companion pages)](wiki/Home.md) — copy into GitHub Wiki or browse in-repo
 - [Architecture overview](docs/architecture.md)
 - [Execution matrix (plugins)](docs/execution-matrix.md)
 - [Integrations](docs/integrations.md)
