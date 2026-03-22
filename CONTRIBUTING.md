@@ -20,10 +20,15 @@ From the repository root:
 go vet ./...
 go test ./...
 go build -o bin/omnigraph ./cmd/omnigraph
-./bin/omnigraph -version
+./bin/omnigraph --version
+./bin/omnigraph validate testdata/sample.omnigraph.schema
+./bin/omnigraph coerce --format=tfvars testdata/sample.omnigraph.schema
+./bin/omnigraph graph emit testdata/sample.omnigraph.schema \
+  --plan-json internal/plan/testdata/minimal-plan.json \
+  --tfstate internal/state/testdata/minimal.state.json
 ```
 
-On Windows PowerShell you can use `.\bin\omnigraph.exe -version` after `go build -o bin/omnigraph.exe ./cmd/omnigraph`.
+On Windows PowerShell you can use `.\bin\omnigraph.exe --version` after `go build -o bin\omnigraph.exe .\cmd\omnigraph`.
 
 Optional: if you have `make` installed, `make vet`, `make test`, and `make build` run the same steps.
 
@@ -43,6 +48,16 @@ npm ci
 npm run lint
 npm run build
 ```
+
+Optional Wasm spike (browser `WebAssembly.instantiate` smoke test):
+
+```bash
+cd web
+set VITE_ENABLE_WASM_SPIKE=true
+npm run dev
+```
+
+(On PowerShell, use `$env:VITE_ENABLE_WASM_SPIKE = "true"` before `npm run dev`.)
 
 ## Secrets and sensitive data
 

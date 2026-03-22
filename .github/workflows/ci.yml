@@ -25,6 +25,16 @@ jobs:
       - name: Build
         run: go build -o omnigraph ./cmd/omnigraph
 
+      - name: Validate sample schema
+        run: ./omnigraph validate testdata/sample.omnigraph.schema
+
+      - name: Emit graph JSON (smoke)
+        run: |
+          ./omnigraph graph emit testdata/sample.omnigraph.schema \
+            --plan-json internal/plan/testdata/minimal-plan.json \
+            --tfstate internal/state/testdata/minimal.state.json \
+            | head -c 400
+
   web:
     runs-on: ubuntu-latest
     defaults:
@@ -46,4 +56,6 @@ jobs:
         run: npm run lint
 
       - name: Build
+        env:
+          VITE_ENABLE_WASM_SPIKE: "true"
         run: npm run build
