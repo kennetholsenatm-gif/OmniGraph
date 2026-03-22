@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest an idea for OmniGraph
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: Share context so we can align with the architecture and ADRs.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to achieve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Primary layer (if known)
+      options:
+        - Web / IDE
+        - Control plane (Go)
+        - Runners / execution matrix
+        - Integrations / telemetry
+        - Not sure
+    validations:
+      required: false
