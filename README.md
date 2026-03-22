@@ -21,6 +21,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for prerequisites, local development, and
 
 ## Documentation
 
+- `omnigraph orchestrate` (alias `pipeline`) — plan → ansible check → apply → ansible apply ([CONTRIBUTING.md](CONTRIBUTING.md))
 - [Wiki (companion pages)](wiki/Home.md) — copy into GitHub Wiki or browse in-repo
 - [Architecture overview](docs/architecture.md)
 - [Execution matrix (plugins)](docs/execution-matrix.md)

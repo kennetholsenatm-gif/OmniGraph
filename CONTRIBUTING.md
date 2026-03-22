@@ -59,6 +59,27 @@ npm run dev
 
 (On PowerShell, use `$env:VITE_ENABLE_WASM_SPIKE = "true"` before `npm run dev`.)
 
+### HCL diagnostics Wasm (ADR 001)
+
+The web app loads `/wasm/hcldiag.wasm` for real-time HCL parse feedback. Build it with Go 1.22+:
+
+```bash
+make wasm-hcldiag
+```
+
+`web/public/wasm/wasm_exec.js` is checked in (from the Go distribution). CI rebuilds both `wasm_exec.js` and `hcldiag.wasm` before the web build.
+
+### Orchestrate (magic handoff)
+
+From the repo root (with a real OpenTofu workspace and playbook):
+
+```bash
+go build -o bin/omnigraph ./cmd/omnigraph
+./bin/omnigraph orchestrate --workdir /path/to/tf/root --playbook site.yml --auto-approve --skip-ansible
+```
+
+Use `--runner=container` and `--container-runtime=docker` to run OpenTofu/Ansible inside ephemeral containers (see `docs/execution-matrix.md`).
+
 ## Secrets and sensitive data
 
 Do **not** commit real credentials, `.env` files with secrets, or Terraform/OpenTofu state. See [docs/adr/003-memory-only-secrets.md](docs/adr/003-memory-only-secrets.md).

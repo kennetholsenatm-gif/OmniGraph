@@ -35,13 +35,30 @@ jobs:
             --tfstate internal/state/testdata/minimal.state.json \
             | head -c 400
 
+      - name: Build HCL diagnostics wasm
+        run: |
+          mkdir -p web/public/wasm
+          cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" web/public/wasm/
+          cd wasm/hcldiag && go mod verify && GOOS=js GOARCH=wasm go build -trimpath -o ../../web/public/wasm/hcldiag.wasm .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wasm-dist
+          path: web/public/wasm
+
   web:
+    needs: go
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: web
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: wasm-dist
+          path: web/public/wasm
 
       - uses: actions/setup-node@v4
         with:
