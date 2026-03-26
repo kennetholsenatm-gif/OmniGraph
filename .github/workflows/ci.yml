@@ -46,7 +46,7 @@ jobs:
           fi
 
       - name: Lint (golangci-lint)
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9
         with:
           # Prebuilt releases may lag the Go toolchain; goinstall builds with setup-go’s Go (matches go.mod).
           version: v1.64.8
