@@ -84,6 +84,26 @@ func NewEngine() *Engine {
 	}
 }
 
+// EngineKey returns the internal registry key for a policy set (name, or name:version when version is set).
+func EngineKey(ps *PolicySet) string {
+	if ps.Metadata.Version != "" {
+		return fmt.Sprintf("%s:%s", ps.Metadata.Name, ps.Metadata.Version)
+	}
+	return ps.Metadata.Name
+}
+
+func (e *Engine) resolvePolicySetKey(nameOrKey string) (string, error) {
+	if _, ok := e.policySets[nameOrKey]; ok {
+		return nameOrKey, nil
+	}
+	for key, ps := range e.policySets {
+		if ps.Metadata.Name == nameOrKey {
+			return key, nil
+		}
+	}
+	return "", fmt.Errorf("policy set not found: %s", nameOrKey)
+}
+
 // LoadPolicySet loads a policy set from a file
 func (e *Engine) LoadPolicySet(path string) (*PolicySet, error) {
 	data, err := os.ReadFile(path)
@@ -125,10 +145,7 @@ func (e *Engine) LoadPolicySet(path string) (*PolicySet, error) {
 		return nil, fmt.Errorf("failed to compile policies: %w", err)
 	}
 
-	key := policySet.Metadata.Name
-	if policySet.Metadata.Version != "" {
-		key = fmt.Sprintf("%s:%s", key, policySet.Metadata.Version)
-	}
+	key := EngineKey(&policySet)
 	e.policySets[key] = &policySet
 
 	return &policySet, nil
@@ -204,23 +221,24 @@ func (e *Engine) compilePolicies(ps *PolicySet) error {
 		return fmt.Errorf("failed to compile Rego modules: %w", err)
 	}
 
-	key := ps.Metadata.Name
-	if ps.Metadata.Version != "" {
-		key = fmt.Sprintf("%s:%s", key, ps.Metadata.Version)
-	}
-	e.compiled[key] = compiler
+	e.compiled[EngineKey(ps)] = compiler
 
 	return nil
 }
 
 // Evaluate evaluates input against a policy set
 func (e *Engine) Evaluate(ctx context.Context, policySetName string, input interface{}) (*PolicyReport, error) {
-	ps, ok := e.policySets[policySetName]
+	key, err := e.resolvePolicySetKey(policySetName)
+	if err != nil {
+		return nil, err
+	}
+
+	ps, ok := e.policySets[key]
 	if !ok {
 		return nil, fmt.Errorf("policy set not found: %s", policySetName)
 	}
 
-	compiler, ok := e.compiled[policySetName]
+	compiler, ok := e.compiled[key]
 	if !ok {
 		return nil, fmt.Errorf("compiled policies not found: %s", policySetName)
 	}
@@ -265,14 +283,17 @@ func (e *Engine) Evaluate(ctx context.Context, policySetName string, input inter
 
 // evaluatePolicy evaluates input against a single policy
 func (e *Engine) evaluatePolicy(ctx context.Context, compiler *ast.Compiler, policy Policy, input map[string]interface{}) ([]Violation, error) {
-	// Extract package name from Rego
+	// Extract package name from Rego (path after `package`, without `data.` prefix).
 	packageName := extractPackageName(policy.Rego)
 	if packageName == "" {
-		packageName = "data.omnigraph.policy"
+		packageName = "omnigraph.policy"
+	}
+	if strings.HasPrefix(packageName, "data.") {
+		packageName = strings.TrimPrefix(packageName, "data.")
 	}
 
-	// Create query for deny rules
-	query := fmt.Sprintf("%s.deny", packageName)
+	// OPA requires the `data.` document root; `omnigraph.compliance.deny` is parsed as vars.
+	query := "data." + packageName + ".deny"
 
 	// Create Rego query
 	r := rego.New(
@@ -360,13 +381,13 @@ func (e *Engine) EvaluateFile(ctx context.Context, policySetName, filePath strin
 	return e.Evaluate(ctx, policySetName, input)
 }
 
-// GetPolicySet returns a policy set by name
+// GetPolicySet returns a policy set by engine key or metadata.name
 func (e *Engine) GetPolicySet(name string) (*PolicySet, error) {
-	ps, ok := e.policySets[name]
-	if !ok {
-		return nil, fmt.Errorf("policy set not found: %s", name)
+	key, err := e.resolvePolicySetKey(name)
+	if err != nil {
+		return nil, err
 	}
-	return ps, nil
+	return e.policySets[key], nil
 }
 
 // ListPolicySets returns all loaded policy sets
