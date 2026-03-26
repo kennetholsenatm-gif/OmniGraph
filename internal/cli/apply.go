@@ -92,7 +92,7 @@ func runApply(cmd *cobra.Command, manifestPath, namespace string, dryRun, wait b
 
 	controller := reconcile.NewController(interval)
 
-	// Register Incus provider
+	// Register Incus provider (stub implementation)
 	incusProvider, err := incus.NewProvider(incus.Config{
 		SocketPath: "/var/lib/incus/unix.socket",
 	})
@@ -190,14 +190,11 @@ func validateManifest(manifest *resources.Manifest) error {
 }
 
 func showDiff(ctx context.Context, controller *reconcile.Controller, resource resources.Resource) error {
-	// Get provider for the resource
-	providerName := resource.Spec.Provider
-	if providerName == "" {
-		providerName = "incus" // default
-	}
+	// Get provider for the resource - default to incus
+	providerName := "incus"
 
 	// Check if resource exists
-	exists, err := controller.Provider(providerName).Exists(ctx, resource)
+	exists, err := controller.GetProvider(providerName).Exists(ctx, resource)
 	if err != nil {
 		return err
 	}
@@ -208,7 +205,7 @@ func showDiff(ctx context.Context, controller *reconcile.Controller, resource re
 	}
 
 	// Get actual state
-	actual, err := controller.Provider(providerName).GetActualState(ctx, resource)
+	actual, err := controller.GetProvider(providerName).GetActualState(ctx, resource)
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@ package reconcile
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -45,7 +46,7 @@ type Provider interface {
 	Exists(ctx context.Context, resource resources.Resource) (bool, error)
 	
 	// Watch watches for changes
-	Watch(ctx context.Context, resource resources.Resource) (<-chan ResourceEvent, error)
+	Watch(ctx context.Context, resource resources.Resource) (<-chan resources.ResourceEvent, error)
 }
 
 // StateWatcher watches for state changes
@@ -171,6 +172,13 @@ func (c *Controller) RegisterProvider(name string, provider Provider) {
 	c.providers[name] = provider
 }
 
+// GetProvider returns a provider by name
+func (c *Controller) GetProvider(name string) Provider {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.providers[name]
+}
+
 // AddResource adds a resource to be managed
 func (c *Controller) AddResource(ctx context.Context, resource resources.Resource) error {
 	c.mu.Lock()
@@ -241,9 +249,17 @@ func (c *Controller) reconcileAll(ctx context.Context) error {
 
 // reconcileResource reconciles a single resource
 func (c *Controller) reconcileResource(ctx context.Context, entry *ResourceEntry) error {
-	provider, ok := c.providers[entry.Desired.Spec.Provider]
+	// Unmarshal spec to get provider
+	var spec struct {
+		Provider string `json:"provider"`
+	}
+	if err := json.Unmarshal(entry.Desired.Spec, &spec); err != nil {
+		return fmt.Errorf("failed to unmarshal spec: %w", err)
+	}
+	
+	provider, ok := c.providers[spec.Provider]
 	if !ok {
-		return fmt.Errorf("provider %s not found", entry.Desired.Spec.Provider)
+		return fmt.Errorf("provider %s not found", spec.Provider)
 	}
 	
 	// Get actual state

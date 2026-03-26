@@ -168,13 +168,19 @@ type InstanceDetails struct {
 	Name         string            `json:"name,omitempty" yaml:"name,omitempty"`
 	Type         string            `json:"type,omitempty" yaml:"type,omitempty"`
 	State        string            `json:"state,omitempty" yaml:"state,omitempty"`
+	Status       string            `json:"status,omitempty" yaml:"status,omitempty"`
 	IPv4         []string          `json:"ipv4,omitempty" yaml:"ipv4,omitempty"`
 	IPv6         []string          `json:"ipv6,omitempty" yaml:"ipv6,omitempty"`
 	Architecture string            `json:"architecture,omitempty" yaml:"architecture,omitempty"`
 	CreatedAt    time.Time         `json:"createdAt,omitempty" yaml:"createdAt,omitempty"`
 	UpdatedAt    time.Time         `json:"updatedAt,omitempty" yaml:"updatedAt,omitempty"`
+	LastUsedAt   time.Time         `json:"lastUsedAt,omitempty" yaml:"lastUsedAt,omitempty"`
 	Location     string            `json:"location,omitempty" yaml:"location,omitempty"`
 	Project      string            `json:"project,omitempty" yaml:"project,omitempty"`
+	Ephemeral    bool              `json:"ephemeral,omitempty" yaml:"ephemeral,omitempty"`
+	Profiles     []string          `json:"profiles,omitempty" yaml:"profiles,omitempty"`
+	Config       map[string]string `json:"config,omitempty" yaml:"config,omitempty"`
+	Devices      map[string]Device `json:"devices,omitempty" yaml:"devices,omitempty"`
 }
 
 // Network represents an Incus network
@@ -288,6 +294,21 @@ type ProfileDetails struct {
 	UsedBy      []string          `json:"usedBy,omitempty" yaml:"usedBy,omitempty"`
 	Description string            `json:"description,omitempty" yaml:"description,omitempty"`
 }
+
+// ResourceEvent represents a resource change event
+type ResourceEvent struct {
+	Type      string    `json:"type" yaml:"type"`
+	Resource  Resource  `json:"resource" yaml:"resource"`
+	Timestamp time.Time `json:"timestamp" yaml:"timestamp"`
+}
+
+// EventType constants
+const (
+	EventTypeCreated = "Created"
+	EventTypeUpdated = "Updated"
+	EventTypeDeleted = "Deleted"
+	EventTypeError   = "Error"
+)
 
 // Helper functions
 

@@ -104,7 +104,26 @@ func describeInstance(ctx context.Context, provider *incus.Provider, resource *r
 	fmt.Printf("\nDevices:\n")
 	for name, dev := range instance.Devices {
 		fmt.Printf("  %s:\n", name)
-		for k, v := range dev {
+		fmt.Printf("    type: %s\n", dev.Type)
+		if dev.Name != "" {
+			fmt.Printf("    name: %s\n", dev.Name)
+		}
+		if dev.Parent != "" {
+			fmt.Printf("    parent: %s\n", dev.Parent)
+		}
+		if dev.NICType != "" {
+			fmt.Printf("    nictype: %s\n", dev.NICType)
+		}
+		if dev.Path != "" {
+			fmt.Printf("    path: %s\n", dev.Path)
+		}
+		if dev.Pool != "" {
+			fmt.Printf("    pool: %s\n", dev.Pool)
+		}
+		if dev.Size != "" {
+			fmt.Printf("    size: %s\n", dev.Size)
+		}
+		for k, v := range dev.Properties {
 			fmt.Printf("    %s: %s\n", k, v)
 		}
 	}
@@ -188,7 +207,26 @@ func describeProfile(ctx context.Context, provider *incus.Provider, resource *re
 	fmt.Printf("\nDevices:\n")
 	for name, dev := range profile.Devices {
 		fmt.Printf("  %s:\n", name)
-		for k, v := range dev {
+		fmt.Printf("    type: %s\n", dev.Type)
+		if dev.Name != "" {
+			fmt.Printf("    name: %s\n", dev.Name)
+		}
+		if dev.Parent != "" {
+			fmt.Printf("    parent: %s\n", dev.Parent)
+		}
+		if dev.NICType != "" {
+			fmt.Printf("    nictype: %s\n", dev.NICType)
+		}
+		if dev.Path != "" {
+			fmt.Printf("    path: %s\n", dev.Path)
+		}
+		if dev.Pool != "" {
+			fmt.Printf("    pool: %s\n", dev.Pool)
+		}
+		if dev.Size != "" {
+			fmt.Printf("    size: %s\n", dev.Size)
+		}
+		for k, v := range dev.Properties {
 			fmt.Printf("    %s: %s\n", k, v)
 		}
 	}
