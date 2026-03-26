@@ -9,7 +9,10 @@ import (
 type scriptHost struct {
 	label  string
 	linux  bool
-	script map[string]struct{ out, err string; code int }
+	script map[string]struct {
+		out, err string
+		code     int
+	}
 }
 
 func (h scriptHost) Label() string { return h.label }
@@ -30,7 +33,10 @@ func (h scriptHost) Run(ctx context.Context, argv []string) (stdout, stderr stri
 
 func TestRun_FilterModule(t *testing.T) {
 	ctx := context.Background()
-	h := scriptHost{label: "t", linux: true, script: map[string]struct{ out, err string; code int }{
+	h := scriptHost{label: "t", linux: true, script: map[string]struct {
+		out, err string
+		code     int
+	}{
 		"uname\x00-a": {out: "Linux test 1", code: 0},
 	}}
 	doc := Run(ctx, h, "local", "p", "", Filter{ModuleID: "T1082_system_info"}, 0)

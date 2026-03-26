@@ -8,11 +8,11 @@ import (
 
 // Resource represents a declarative infrastructure resource
 type Resource struct {
-	APIVersion string            `json:"apiVersion" yaml:"apiVersion"`
-	Kind       string            `json:"kind" yaml:"kind"`
-	Metadata   ResourceMetadata  `json:"metadata" yaml:"metadata"`
-	Spec       json.RawMessage   `json:"spec" yaml:"spec"`
-	Status     *ResourceStatus   `json:"status,omitempty" yaml:"status,omitempty"`
+	APIVersion string           `json:"apiVersion" yaml:"apiVersion"`
+	Kind       string           `json:"kind" yaml:"kind"`
+	Metadata   ResourceMetadata `json:"metadata" yaml:"metadata"`
+	Spec       json.RawMessage  `json:"spec" yaml:"spec"`
+	Status     *ResourceStatus  `json:"status,omitempty" yaml:"status,omitempty"`
 }
 
 // ResourceMetadata contains resource identification and labels
@@ -26,12 +26,12 @@ type ResourceMetadata struct {
 
 // ResourceStatus represents the current state of a resource
 type ResourceStatus struct {
-	ObservedGeneration int64              `json:"observedGeneration,omitempty" yaml:"observedGeneration,omitempty"`
-	State              string             `json:"state,omitempty" yaml:"state,omitempty"`
-	Conditions         []Condition        `json:"conditions,omitempty" yaml:"conditions,omitempty"`
-	Resources          *ResourceUsage     `json:"resources,omitempty" yaml:"resources,omitempty"`
+	ObservedGeneration int64                 `json:"observedGeneration,omitempty" yaml:"observedGeneration,omitempty"`
+	State              string                `json:"state,omitempty" yaml:"state,omitempty"`
+	Conditions         []Condition           `json:"conditions,omitempty" yaml:"conditions,omitempty"`
+	Resources          *ResourceUsage        `json:"resources,omitempty" yaml:"resources,omitempty"`
 	Reconciliation     *ReconciliationStatus `json:"reconciliation,omitempty" yaml:"reconciliation,omitempty"`
-	Provider           *ProviderStatus    `json:"provider,omitempty" yaml:"provider,omitempty"`
+	Provider           *ProviderStatus       `json:"provider,omitempty" yaml:"provider,omitempty"`
 }
 
 // Condition represents a status condition (Kubernetes-style)
@@ -45,8 +45,8 @@ type Condition struct {
 
 // ResourceUsage tracks resource consumption
 type ResourceUsage struct {
-	CPU     *ResourceMetric `json:"cpu,omitempty" yaml:"cpu,omitempty"`
-	Memory  *ResourceMetric `json:"memory,omitempty" yaml:"memory,omitempty"`
+	CPU     *ResourceMetric            `json:"cpu,omitempty" yaml:"cpu,omitempty"`
+	Memory  *ResourceMetric            `json:"memory,omitempty" yaml:"memory,omitempty"`
 	Storage map[string]*ResourceMetric `json:"storage,omitempty" yaml:"storage,omitempty"`
 }
 
@@ -68,20 +68,20 @@ type ReconciliationStatus struct {
 
 // ProviderStatus contains provider-specific status
 type ProviderStatus struct {
-	ID           string            `json:"id,omitempty" yaml:"id,omitempty"`
-	Addresses    []string          `json:"addresses,omitempty" yaml:"addresses,omitempty"`
-	Architecture string            `json:"architecture,omitempty" yaml:"architecture,omitempty"`
-	CreatedAt    time.Time         `json:"createdAt,omitempty" yaml:"createdAt,omitempty"`
-	UpdatedAt    time.Time         `json:"updatedAt,omitempty" yaml:"updatedAt,omitempty"`
+	ID           string                 `json:"id,omitempty" yaml:"id,omitempty"`
+	Addresses    []string               `json:"addresses,omitempty" yaml:"addresses,omitempty"`
+	Architecture string                 `json:"architecture,omitempty" yaml:"architecture,omitempty"`
+	CreatedAt    time.Time              `json:"createdAt,omitempty" yaml:"createdAt,omitempty"`
+	UpdatedAt    time.Time              `json:"updatedAt,omitempty" yaml:"updatedAt,omitempty"`
 	Extra        map[string]interface{} `json:"extra,omitempty" yaml:"extra,omitempty"`
 }
 
 // Manifest represents a collection of resources
 type Manifest struct {
-	APIVersion string     `json:"apiVersion" yaml:"apiVersion"`
-	Kind       string     `json:"kind" yaml:"kind"`
+	APIVersion string           `json:"apiVersion" yaml:"apiVersion"`
+	Kind       string           `json:"kind" yaml:"kind"`
 	Metadata   ManifestMetadata `json:"metadata" yaml:"metadata"`
-	Spec       ManifestSpec `json:"spec" yaml:"spec"`
+	Spec       ManifestSpec     `json:"spec" yaml:"spec"`
 }
 
 // ManifestMetadata contains manifest identification
@@ -92,15 +92,15 @@ type ManifestMetadata struct {
 
 // ManifestSpec contains the desired state
 type ManifestSpec struct {
-	Resources       []Resource           `json:"resources" yaml:"resources"`
-	Reconciliation  *ReconciliationPolicy `json:"reconciliation,omitempty" yaml:"reconciliation,omitempty"`
+	Resources      []Resource            `json:"resources" yaml:"resources"`
+	Reconciliation *ReconciliationPolicy `json:"reconciliation,omitempty" yaml:"reconciliation,omitempty"`
 }
 
 // ReconciliationPolicy defines how reconciliation should behave
 type ReconciliationPolicy struct {
-	Interval   string          `json:"interval,omitempty" yaml:"interval,omitempty"` // e.g., "5m"
-	OnDrift    string          `json:"onDrift,omitempty" yaml:"onDrift,omitempty"` // auto, manual, alert
-	RetryPolicy *RetryPolicy    `json:"retryPolicy,omitempty" yaml:"retryPolicy,omitempty"`
+	Interval    string       `json:"interval,omitempty" yaml:"interval,omitempty"` // e.g., "5m"
+	OnDrift     string       `json:"onDrift,omitempty" yaml:"onDrift,omitempty"`   // auto, manual, alert
+	RetryPolicy *RetryPolicy `json:"retryPolicy,omitempty" yaml:"retryPolicy,omitempty"`
 }
 
 // RetryPolicy defines retry behavior
@@ -111,23 +111,23 @@ type RetryPolicy struct {
 
 // ComputeInstance represents an Incus container or VM
 type ComputeInstance struct {
-	APIVersion string                   `json:"apiVersion" yaml:"apiVersion"`
-	Kind       string                   `json:"kind" yaml:"kind"`
-	Metadata   ResourceMetadata         `json:"metadata" yaml:"metadata"`
-	Spec       ComputeInstanceSpec      `json:"spec" yaml:"spec"`
-	Status     *ComputeInstanceStatus   `json:"status,omitempty" yaml:"status,omitempty"`
+	APIVersion string                 `json:"apiVersion" yaml:"apiVersion"`
+	Kind       string                 `json:"kind" yaml:"kind"`
+	Metadata   ResourceMetadata       `json:"metadata" yaml:"metadata"`
+	Spec       ComputeInstanceSpec    `json:"spec" yaml:"spec"`
+	Status     *ComputeInstanceStatus `json:"status,omitempty" yaml:"status,omitempty"`
 }
 
 // ComputeInstanceSpec defines the desired state of a compute instance
 type ComputeInstanceSpec struct {
-	Provider   string                 `json:"provider" yaml:"provider"`
-	Type       string                 `json:"type" yaml:"type"` // container, virtual-machine
-	Source     *InstanceSource        `json:"source,omitempty" yaml:"source,omitempty"`
-	Config     map[string]string      `json:"config,omitempty" yaml:"config,omitempty"`
-	Devices    map[string]Device      `json:"devices,omitempty" yaml:"devices,omitempty"`
-	Profiles   []string               `json:"profiles,omitempty" yaml:"profiles,omitempty"`
-	State      string                 `json:"state,omitempty" yaml:"state,omitempty"` // running, stopped, frozen
-	Ephemeral  bool                   `json:"ephemeral,omitempty" yaml:"ephemeral,omitempty"`
+	Provider  string            `json:"provider" yaml:"provider"`
+	Type      string            `json:"type" yaml:"type"` // container, virtual-machine
+	Source    *InstanceSource   `json:"source,omitempty" yaml:"source,omitempty"`
+	Config    map[string]string `json:"config,omitempty" yaml:"config,omitempty"`
+	Devices   map[string]Device `json:"devices,omitempty" yaml:"devices,omitempty"`
+	Profiles  []string          `json:"profiles,omitempty" yaml:"profiles,omitempty"`
+	State     string            `json:"state,omitempty" yaml:"state,omitempty"` // running, stopped, frozen
+	Ephemeral bool              `json:"ephemeral,omitempty" yaml:"ephemeral,omitempty"`
 }
 
 // InstanceSource defines where to get the instance image
@@ -153,13 +153,13 @@ type Device struct {
 
 // ComputeInstanceStatus represents the actual state
 type ComputeInstanceStatus struct {
-	ObservedGeneration int64              `json:"observedGeneration,omitempty" yaml:"observedGeneration,omitempty"`
-	State              string             `json:"state,omitempty" yaml:"state,omitempty"`
-	Conditions         []Condition        `json:"conditions,omitempty" yaml:"conditions,omitempty"`
-	Resources          *ResourceUsage     `json:"resources,omitempty" yaml:"resources,omitempty"`
+	ObservedGeneration int64                 `json:"observedGeneration,omitempty" yaml:"observedGeneration,omitempty"`
+	State              string                `json:"state,omitempty" yaml:"state,omitempty"`
+	Conditions         []Condition           `json:"conditions,omitempty" yaml:"conditions,omitempty"`
+	Resources          *ResourceUsage        `json:"resources,omitempty" yaml:"resources,omitempty"`
 	Reconciliation     *ReconciliationStatus `json:"reconciliation,omitempty" yaml:"reconciliation,omitempty"`
-	Provider           *ProviderStatus    `json:"provider,omitempty" yaml:"provider,omitempty"`
-	Instance           *InstanceDetails   `json:"instance,omitempty" yaml:"instance,omitempty"`
+	Provider           *ProviderStatus       `json:"provider,omitempty" yaml:"provider,omitempty"`
+	Instance           *InstanceDetails      `json:"instance,omitempty" yaml:"instance,omitempty"`
 }
 
 // InstanceDetails contains Incus-specific instance details
@@ -203,12 +203,12 @@ type NetworkSpec struct {
 
 // NetworkStatus represents the actual state
 type NetworkStatus struct {
-	ObservedGeneration int64              `json:"observedGeneration,omitempty" yaml:"observedGeneration,omitempty"`
-	State              string             `json:"state,omitempty" yaml:"state,omitempty"`
-	Conditions         []Condition        `json:"conditions,omitempty" yaml:"conditions,omitempty"`
+	ObservedGeneration int64                 `json:"observedGeneration,omitempty" yaml:"observedGeneration,omitempty"`
+	State              string                `json:"state,omitempty" yaml:"state,omitempty"`
+	Conditions         []Condition           `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 	Reconciliation     *ReconciliationStatus `json:"reconciliation,omitempty" yaml:"reconciliation,omitempty"`
-	Provider           *ProviderStatus    `json:"provider,omitempty" yaml:"provider,omitempty"`
-	Network            *NetworkDetails    `json:"network,omitempty" yaml:"network,omitempty"`
+	Provider           *ProviderStatus       `json:"provider,omitempty" yaml:"provider,omitempty"`
+	Network            *NetworkDetails       `json:"network,omitempty" yaml:"network,omitempty"`
 }
 
 // NetworkDetails contains Incus-specific network details
@@ -242,12 +242,12 @@ type StoragePoolSpec struct {
 
 // StoragePoolStatus represents the actual state
 type StoragePoolStatus struct {
-	ObservedGeneration int64              `json:"observedGeneration,omitempty" yaml:"observedGeneration,omitempty"`
-	State              string             `json:"state,omitempty" yaml:"state,omitempty"`
-	Conditions         []Condition        `json:"conditions,omitempty" yaml:"conditions,omitempty"`
+	ObservedGeneration int64                 `json:"observedGeneration,omitempty" yaml:"observedGeneration,omitempty"`
+	State              string                `json:"state,omitempty" yaml:"state,omitempty"`
+	Conditions         []Condition           `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 	Reconciliation     *ReconciliationStatus `json:"reconciliation,omitempty" yaml:"reconciliation,omitempty"`
-	Provider           *ProviderStatus    `json:"provider,omitempty" yaml:"provider,omitempty"`
-	Pool               *StoragePoolDetails `json:"pool,omitempty" yaml:"pool,omitempty"`
+	Provider           *ProviderStatus       `json:"provider,omitempty" yaml:"provider,omitempty"`
+	Pool               *StoragePoolDetails   `json:"pool,omitempty" yaml:"pool,omitempty"`
 }
 
 // StoragePoolDetails contains Incus-specific pool details
@@ -279,11 +279,11 @@ type ProfileSpec struct {
 
 // ProfileStatus represents the actual state
 type ProfileStatus struct {
-	ObservedGeneration int64              `json:"observedGeneration,omitempty" yaml:"observedGeneration,omitempty"`
-	Conditions         []Condition        `json:"conditions,omitempty" yaml:"conditions,omitempty"`
+	ObservedGeneration int64                 `json:"observedGeneration,omitempty" yaml:"observedGeneration,omitempty"`
+	Conditions         []Condition           `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 	Reconciliation     *ReconciliationStatus `json:"reconciliation,omitempty" yaml:"reconciliation,omitempty"`
-	Provider           *ProviderStatus    `json:"provider,omitempty" yaml:"provider,omitempty"`
-	Profile            *ProfileDetails    `json:"profile,omitempty" yaml:"profile,omitempty"`
+	Provider           *ProviderStatus       `json:"provider,omitempty" yaml:"provider,omitempty"`
+	Profile            *ProfileDetails       `json:"profile,omitempty" yaml:"profile,omitempty"`
 }
 
 // ProfileDetails contains Incus-specific profile details

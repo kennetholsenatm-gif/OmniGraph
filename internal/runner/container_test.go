@@ -12,7 +12,7 @@ func TestBuildContainerRunArgs(t *testing.T) {
 		Mounts: []VolumeMount{
 			{HostPath: "/host/proj", ContainerPath: "/workspace", ReadOnly: false},
 		},
-		Env: map[string]string{"TF_VAR_project_name": "demo"},
+		Env:  map[string]string{"TF_VAR_project_name": "demo"},
 		Argv: []string{"tofu", "version"},
 	}
 	args, err := BuildContainerRunArgs("docker", s)

@@ -108,7 +108,7 @@ func (b *InternalBroker) Subscribe(ctx context.Context, topic string, handler Ev
 		return Subscription{}, fmt.Errorf("broker is closed")
 	}
 
-	subCtx, cancel := context.WithCancel(ctx)
+	_, cancel := context.WithCancel(ctx)
 	sub := &subscription{
 		id:      fmt.Sprintf("sub-%d", time.Now().UnixNano()),
 		topic:   topic,
@@ -176,7 +176,7 @@ func (b *InternalBroker) SubscribeWithFilter(ctx context.Context, pattern string
 		return Subscription{}, fmt.Errorf("broker is closed")
 	}
 
-	subCtx, cancel := context.WithCancel(ctx)
+	_, cancel := context.WithCancel(ctx)
 	sub := &subscription{
 		id:      fmt.Sprintf("sub-%d", time.Now().UnixNano()),
 		pattern: pattern,

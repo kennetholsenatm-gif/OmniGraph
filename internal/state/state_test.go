@@ -18,8 +18,8 @@ func TestExtractHosts(t *testing.T) {
 	}
 	got := ExtractHosts(st)
 	want := map[string]string{
-		"output.bastion_ip":   "203.0.113.10",
-		"aws_instance.web":    "10.0.5.21",
+		"output.bastion_ip": "203.0.113.10",
+		"aws_instance.web":  "10.0.5.21",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("hosts mismatch\n got: %#v\nwant: %#v", got, want)

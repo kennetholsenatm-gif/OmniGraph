@@ -10,24 +10,24 @@ import (
 
 // LifecycleManager manages the provisioning lifecycle for bare-metal targets
 type LifecycleManager struct {
-	mu           sync.RWMutex
-	config       Config
-	states       map[string]*TargetState
-	eventBus     EventBus
-	handlers     map[LifecyclePhase]LifecycleHandler
+	mu       sync.RWMutex
+	config   Config
+	states   map[string]*TargetState
+	eventBus EventBus
+	handlers map[LifecyclePhase]LifecycleHandler
 }
 
 // LifecyclePhase represents a phase in the provisioning lifecycle
 type LifecyclePhase string
 
 const (
-	PhaseDiscovery   LifecyclePhase = "discovery"
-	PhaseFirmware    LifecyclePhase = "firmware"
-	PhaseRAID        LifecyclePhase = "raid"
-	PhaseNetwork     LifecyclePhase = "network"
-	PhaseBoot        LifecyclePhase = "boot"
-	PhaseWait        LifecyclePhase = "wait"
-	PhaseHandoff     LifecyclePhase = "handoff"
+	PhaseDiscovery LifecyclePhase = "discovery"
+	PhaseFirmware  LifecyclePhase = "firmware"
+	PhaseRAID      LifecyclePhase = "raid"
+	PhaseNetwork   LifecyclePhase = "network"
+	PhaseBoot      LifecyclePhase = "boot"
+	PhaseWait      LifecyclePhase = "wait"
+	PhaseHandoff   LifecyclePhase = "handoff"
 )
 
 // TargetState represents the current state of a target
@@ -45,21 +45,21 @@ type TargetState struct {
 type PhaseStatus string
 
 const (
-	PhaseStatusPending    PhaseStatus = "pending"
-	PhaseStatusRunning    PhaseStatus = "running"
-	PhaseStatusSuccess    PhaseStatus = "success"
-	PhaseStatusFailed     PhaseStatus = "failed"
-	PhaseStatusSkipped    PhaseStatus = "skipped"
+	PhaseStatusPending PhaseStatus = "pending"
+	PhaseStatusRunning PhaseStatus = "running"
+	PhaseStatusSuccess PhaseStatus = "success"
+	PhaseStatusFailed  PhaseStatus = "failed"
+	PhaseStatusSkipped PhaseStatus = "skipped"
 )
 
 // LifecycleHandler handles a specific lifecycle phase
 type LifecycleHandler interface {
 	// Execute executes the phase
 	Execute(ctx context.Context, target *Target, state *TargetState) error
-	
+
 	// Validate validates prerequisites for the phase
 	Validate(ctx context.Context, target *Target) error
-	
+
 	// Rollback rolls back the phase if needed
 	Rollback(ctx context.Context, target *Target, state *TargetState) error
 }
@@ -71,7 +71,7 @@ func NewLifecycleManager(config Config) *LifecycleManager {
 		states:   make(map[string]*TargetState),
 		handlers: make(map[LifecyclePhase]LifecycleHandler),
 	}
-	
+
 	// Register default handlers
 	m.RegisterHandler(PhaseDiscovery, &DiscoveryHandler{config: config})
 	m.RegisterHandler(PhaseFirmware, &FirmwareHandler{config: config})
@@ -80,7 +80,7 @@ func NewLifecycleManager(config Config) *LifecycleManager {
 	m.RegisterHandler(PhaseBoot, &BootHandler{config: config})
 	m.RegisterHandler(PhaseWait, &WaitHandler{config: config})
 	m.RegisterHandler(PhaseHandoff, &HandoffHandler{config: config})
-	
+
 	return m
 }
 
@@ -101,11 +101,11 @@ func (m *LifecycleManager) Execute(ctx context.Context, target *Target) error {
 		StartedAt: time.Now(),
 		Metadata:  make(map[string]interface{}),
 	}
-	
+
 	m.mu.Lock()
 	m.states[target.ID] = state
 	m.mu.Unlock()
-	
+
 	// Define lifecycle phases in order
 	phases := []LifecyclePhase{
 		PhaseDiscovery,
@@ -116,19 +116,19 @@ func (m *LifecycleManager) Execute(ctx context.Context, target *Target) error {
 		PhaseWait,
 		PhaseHandoff,
 	}
-	
+
 	// Execute each phase
 	for _, phase := range phases {
 		if err := m.executePhase(ctx, target, state, phase); err != nil {
 			return fmt.Errorf("phase %s failed: %w", phase, err)
 		}
 	}
-	
+
 	// Mark as completed
 	now := time.Now()
 	state.CompletedAt = &now
 	state.Status = PhaseStatusSuccess
-	
+
 	// Publish completion event
 	if m.eventBus != nil {
 		m.eventBus.Publish(Event{
@@ -140,7 +140,7 @@ func (m *LifecycleManager) Execute(ctx context.Context, target *Target) error {
 			},
 		})
 	}
-	
+
 	return nil
 }
 
@@ -149,17 +149,17 @@ func (m *LifecycleManager) executePhase(ctx context.Context, target *Target, sta
 	m.mu.RLock()
 	handler, exists := m.handlers[phase]
 	m.mu.RUnlock()
-	
+
 	if !exists {
 		return fmt.Errorf("no handler registered for phase: %s", phase)
 	}
-	
+
 	// Update state
 	m.mu.Lock()
 	state.Phase = phase
 	state.Status = PhaseStatusRunning
 	m.mu.Unlock()
-	
+
 	// Publish phase start event
 	if m.eventBus != nil {
 		m.eventBus.Publish(Event{
@@ -171,14 +171,14 @@ func (m *LifecycleManager) executePhase(ctx context.Context, target *Target, sta
 			},
 		})
 	}
-	
+
 	// Validate prerequisites
 	if err := handler.Validate(ctx, target); err != nil {
 		m.mu.Lock()
 		state.Status = PhaseStatusFailed
 		state.Error = err.Error()
 		m.mu.Unlock()
-		
+
 		// Publish failure event
 		if m.eventBus != nil {
 			m.eventBus.Publish(Event{
@@ -191,22 +191,22 @@ func (m *LifecycleManager) executePhase(ctx context.Context, target *Target, sta
 				},
 			})
 		}
-		
+
 		return fmt.Errorf("validation failed: %w", err)
 	}
-	
+
 	// Execute phase
 	if err := handler.Execute(ctx, target, state); err != nil {
 		m.mu.Lock()
 		state.Status = PhaseStatusFailed
 		state.Error = err.Error()
 		m.mu.Unlock()
-		
+
 		// Attempt rollback
 		if rollbackErr := handler.Rollback(ctx, target, state); rollbackErr != nil {
 			log.Printf("Rollback failed for phase %s: %v", phase, rollbackErr)
 		}
-		
+
 		// Publish failure event
 		if m.eventBus != nil {
 			m.eventBus.Publish(Event{
@@ -219,15 +219,15 @@ func (m *LifecycleManager) executePhase(ctx context.Context, target *Target, sta
 				},
 			})
 		}
-		
+
 		return fmt.Errorf("execution failed: %w", err)
 	}
-	
+
 	// Mark phase as successful
 	m.mu.Lock()
 	state.Status = PhaseStatusSuccess
 	m.mu.Unlock()
-	
+
 	// Publish phase completion event
 	if m.eventBus != nil {
 		m.eventBus.Publish(Event{
@@ -239,7 +239,7 @@ func (m *LifecycleManager) executePhase(ctx context.Context, target *Target, sta
 			},
 		})
 	}
-	
+
 	return nil
 }
 
@@ -247,12 +247,12 @@ func (m *LifecycleManager) executePhase(ctx context.Context, target *Target, sta
 func (m *LifecycleManager) GetState(targetID string) (*TargetState, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	state, exists := m.states[targetID]
 	if !exists {
 		return nil, fmt.Errorf("no state found for target: %s", targetID)
 	}
-	
+
 	return state, nil
 }
 
@@ -260,12 +260,12 @@ func (m *LifecycleManager) GetState(targetID string) (*TargetState, error) {
 func (m *LifecycleManager) GetAllStates() map[string]*TargetState {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	states := make(map[string]*TargetState)
 	for k, v := range m.states {
 		states[k] = v
 	}
-	
+
 	return states
 }
 
@@ -289,11 +289,11 @@ func (h *DiscoveryHandler) Validate(ctx context.Context, target *Target) error {
 func (h *DiscoveryHandler) Execute(ctx context.Context, target *Target, state *TargetState) error {
 	// Simulate hardware discovery
 	time.Sleep(2 * time.Second)
-	
+
 	// Store discovered information
 	state.Metadata["hardware_discovered"] = true
 	state.Metadata["discovery_time"] = time.Now()
-	
+
 	return nil
 }
 
@@ -318,13 +318,13 @@ func (h *FirmwareHandler) Execute(ctx context.Context, target *Target, state *Ta
 		state.Metadata["firmware_skipped"] = true
 		return nil
 	}
-	
+
 	// Simulate firmware update
 	time.Sleep(5 * time.Second)
-	
+
 	state.Metadata["firmware_updated"] = true
 	state.Metadata["firmware_time"] = time.Now()
-	
+
 	return nil
 }
 
@@ -343,15 +343,15 @@ func (h *RAIDHandler) Validate(ctx context.Context, target *Target) error {
 	if target.RAIDConfig == nil {
 		return nil
 	}
-	
+
 	if target.RAIDConfig.Level == "" {
 		return fmt.Errorf("RAID level is required")
 	}
-	
+
 	if len(target.RAIDConfig.Disks) == 0 {
 		return fmt.Errorf("at least one disk is required for RAID")
 	}
-	
+
 	return nil
 }
 
@@ -361,14 +361,14 @@ func (h *RAIDHandler) Execute(ctx context.Context, target *Target, state *Target
 		state.Metadata["raid_skipped"] = true
 		return nil
 	}
-	
+
 	// Simulate RAID configuration
 	time.Sleep(3 * time.Second)
-	
+
 	state.Metadata["raid_configured"] = true
 	state.Metadata["raid_level"] = target.RAIDConfig.Level
 	state.Metadata["raid_time"] = time.Now()
-	
+
 	return nil
 }
 
@@ -386,23 +386,23 @@ func (h *NetworkHandler) Validate(ctx context.Context, target *Target) error {
 	if target.MACAddress == "" {
 		return fmt.Errorf("MAC address is required")
 	}
-	
+
 	if target.BootMode == "" {
 		return fmt.Errorf("boot mode is required")
 	}
-	
+
 	return nil
 }
 
 func (h *NetworkHandler) Execute(ctx context.Context, target *Target, state *TargetState) error {
 	// Simulate network configuration
 	time.Sleep(2 * time.Second)
-	
+
 	state.Metadata["network_configured"] = true
 	state.Metadata["boot_mode"] = target.BootMode
 	state.Metadata["mac_address"] = target.MACAddress
 	state.Metadata["network_time"] = time.Now()
-	
+
 	return nil
 }
 
@@ -424,10 +424,10 @@ func (h *BootHandler) Validate(ctx context.Context, target *Target) error {
 func (h *BootHandler) Execute(ctx context.Context, target *Target, state *TargetState) error {
 	// Simulate boot process
 	time.Sleep(10 * time.Second)
-	
+
 	state.Metadata["boot_initiated"] = true
 	state.Metadata["boot_time"] = time.Now()
-	
+
 	return nil
 }
 
@@ -452,13 +452,15 @@ func (h *WaitHandler) Execute(ctx context.Context, target *Target, state *Target
 	if timeout == 0 {
 		timeout = 20 * time.Minute
 	}
-	
-	// Simulate boot wait
-	time.Sleep(15 * time.Second)
-	
+	sleep := 15 * time.Second
+	if timeout < sleep {
+		sleep = timeout
+	}
+	time.Sleep(sleep)
+
 	state.Metadata["os_booted"] = true
 	state.Metadata["boot_completed"] = time.Now()
-	
+
 	return nil
 }
 
@@ -480,11 +482,11 @@ func (h *HandoffHandler) Validate(ctx context.Context, target *Target) error {
 func (h *HandoffHandler) Execute(ctx context.Context, target *Target, state *TargetState) error {
 	// Simulate handoff to Ansible
 	time.Sleep(2 * time.Second)
-	
+
 	state.Metadata["handoff_completed"] = true
 	state.Metadata["ansible_ready"] = true
 	state.Metadata["handoff_time"] = time.Now()
-	
+
 	return nil
 }
 

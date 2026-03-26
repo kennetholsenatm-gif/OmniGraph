@@ -54,8 +54,8 @@ type Trigger struct {
 
 // ZTEEConfig defines Zero-Trust Enclave Enrollment settings
 type ZTEEConfig struct {
-	Enabled    bool   `json:"enabled"`
-	EnrollURL  string `json:"enrollUrl,omitempty"`
+	Enabled   bool   `json:"enabled"`
+	EnrollURL string `json:"enrollUrl,omitempty"`
 }
 
 // Agent represents a running Wasm agent instance
@@ -176,40 +176,40 @@ type Host struct {
 
 // OptimizedPath represents an optimized inventory traversal
 type OptimizedPath struct {
-	Nodes      []InventoryNode `json:"nodes"`
-	Order      []string        `json:"order"`
-	TotalCost  float64         `json:"totalCost"`
-	Generated  time.Time       `json:"generated"`
+	Nodes     []InventoryNode `json:"nodes"`
+	Order     []string        `json:"order"`
+	TotalCost float64         `json:"totalCost"`
+	Generated time.Time       `json:"generated"`
 }
 
 // ExecutionPlan represents an optimized execution plan
 type ExecutionPlan struct {
-	Playbooks  []Playbook  `json:"playbooks"`
-	Order      []string    `json:"order"`
-	Parallel   [][]string  `json:"parallel,omitempty"`
-	Estimated  time.Duration `json:"estimated"`
-	Generated  time.Time   `json:"generated"`
+	Playbooks []Playbook    `json:"playbooks"`
+	Order     []string      `json:"order"`
+	Parallel  [][]string    `json:"parallel,omitempty"`
+	Estimated time.Duration `json:"estimated"`
+	Generated time.Time     `json:"generated"`
 }
 
 // TelemetryData represents telemetry data for traffic optimization
 type TelemetryData struct {
-	Source     string    `json:"source"`
-	Dest       string    `json:"dest"`
-	Bytes      int64     `json:"bytes"`
-	Latency    float64   `json:"latency"`
-	Timestamp  time.Time `json:"timestamp"`
+	Source    string    `json:"source"`
+	Dest      string    `json:"dest"`
+	Bytes     int64     `json:"bytes"`
+	Latency   float64   `json:"latency"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // TrafficPolicy represents optimized traffic routing
 type TrafficPolicy struct {
-	Rules      []TrafficRule `json:"rules"`
-	Generated  time.Time     `json:"generated"`
+	Rules     []TrafficRule `json:"rules"`
+	Generated time.Time     `json:"generated"`
 }
 
 // TrafficRule represents a single traffic routing rule
 type TrafficRule struct {
-	Source    string `json:"source"`
-	Dest      string `json:"dest"`
-	Action    string `json:"action"`
-	Priority  int    `json:"priority"`
+	Source   string `json:"source"`
+	Dest     string `json:"dest"`
+	Action   string `json:"action"`
+	Priority int    `json:"priority"`
 }

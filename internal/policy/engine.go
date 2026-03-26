@@ -61,13 +61,13 @@ type Violation struct {
 
 // PolicyReport represents a policy evaluation report
 type PolicyReport struct {
-	Timestamp  time.Time   `json:"timestamp" yaml:"timestamp"`
-	PolicySet  string      `json:"policySet" yaml:"policySet"`
-	Enforcement string     `json:"enforcement" yaml:"enforcement"`
-	Violations []Violation `json:"violations" yaml:"violations"`
-	Passed     int         `json:"passed" yaml:"passed"`
-	Failed     int         `json:"failed" yaml:"failed"`
-	Warnings   int         `json:"warnings" yaml:"warnings"`
+	Timestamp   time.Time   `json:"timestamp" yaml:"timestamp"`
+	PolicySet   string      `json:"policySet" yaml:"policySet"`
+	Enforcement string      `json:"enforcement" yaml:"enforcement"`
+	Violations  []Violation `json:"violations" yaml:"violations"`
+	Passed      int         `json:"passed" yaml:"passed"`
+	Failed      int         `json:"failed" yaml:"failed"`
+	Warnings    int         `json:"warnings" yaml:"warnings"`
 }
 
 // Engine manages policy evaluation
@@ -185,12 +185,12 @@ func (e *Engine) validatePolicySet(ps *PolicySet) error {
 // compilePolicies compiles all Rego policies in a policy set
 func (e *Engine) compilePolicies(ps *PolicySet) error {
 	modules := make(map[string]string)
-	
+
 	for _, policy := range ps.Spec.Policies {
 		if policy.Rego == "" {
 			continue
 		}
-		
+
 		moduleName := fmt.Sprintf("%s/%s", ps.Metadata.Name, policy.Name)
 		modules[moduleName] = policy.Rego
 	}
@@ -248,7 +248,7 @@ func (e *Engine) Evaluate(ctx context.Context, policySetName string, input inter
 		if len(violations) > 0 {
 			report.Violations = append(report.Violations, violations...)
 			report.Failed++
-			
+
 			// Count warnings
 			for _, v := range violations {
 				if v.Severity == "warning" {
@@ -294,7 +294,7 @@ func (e *Engine) evaluatePolicy(ctx context.Context, compiler *ast.Compiler, pol
 	for _, result := range rs {
 		for _, expr := range result.Expressions {
 			value := expr.Value
-			
+
 			// Handle different result types
 			switch v := value.(type) {
 			case string:
