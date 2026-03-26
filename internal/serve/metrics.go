@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/kennetholsenatm-gif/omnigraph/internal/policy"
 )
 
 // MetricsCollector collects and exposes metrics in Prometheus format
@@ -48,6 +50,12 @@ type MetricsCollector struct {
 	netboxSyncsTotal    int64
 	vaultFetchesTotal   int64
 	notificationsSent   int64
+
+	// Policy metrics
+	policyEvaluationsTotal  int64
+	policyViolationsTotal   int64
+	policyPassedTotal       int64
+	policyWarningsTotal     int64
 
 	// Start time for uptime calculation
 	startTime time.Time
@@ -122,6 +130,17 @@ func (m *MetricsCollector) RecordIntegrationMetrics(netboxSyncs, vaultFetches, n
 	m.netboxSyncsTotal += netboxSyncs
 	m.vaultFetchesTotal += vaultFetches
 	m.notificationsSent += notifications
+}
+
+// RecordPolicyMetrics records policy evaluation metrics
+func (m *MetricsCollector) RecordPolicyMetrics(report *policy.PolicyReport) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.policyEvaluationsTotal++
+	m.policyViolationsTotal += int64(len(report.Violations))
+	m.policyPassedTotal += int64(report.Passed)
+	m.policyWarningsTotal += int64(report.Warnings)
 }
 
 // UpdateResourceMetrics updates resource usage metrics
@@ -255,6 +274,23 @@ func (m *MetricsCollector) Handler() http.Handler {
 		fmt.Fprintf(w, "# HELP omnigraph_notifications_sent_total Total notifications sent\n")
 		fmt.Fprintf(w, "# TYPE omnigraph_notifications_sent_total counter\n")
 		fmt.Fprintf(w, "omnigraph_notifications_sent_total %d\n", m.notificationsSent)
+
+		// Policy metrics
+		fmt.Fprintf(w, "# HELP omnigraph_policy_evaluations_total Total policy evaluations\n")
+		fmt.Fprintf(w, "# TYPE omnigraph_policy_evaluations_total counter\n")
+		fmt.Fprintf(w, "omnigraph_policy_evaluations_total %d\n", m.policyEvaluationsTotal)
+
+		fmt.Fprintf(w, "# HELP omnigraph_policy_violations_total Total policy violations\n")
+		fmt.Fprintf(w, "# TYPE omnigraph_policy_violations_total counter\n")
+		fmt.Fprintf(w, "omnigraph_policy_violations_total %d\n", m.policyViolationsTotal)
+
+		fmt.Fprintf(w, "# HELP omnigraph_policy_passed_total Total policies passed\n")
+		fmt.Fprintf(w, "# TYPE omnigraph_policy_passed_total counter\n")
+		fmt.Fprintf(w, "omnigraph_policy_passed_total %d\n", m.policyPassedTotal)
+
+		fmt.Fprintf(w, "# HELP omnigraph_policy_warnings_total Total policy warnings\n")
+		fmt.Fprintf(w, "# TYPE omnigraph_policy_warnings_total counter\n")
+		fmt.Fprintf(w, "omnigraph_policy_warnings_total %d\n", m.policyWarningsTotal)
 	})
 }
 

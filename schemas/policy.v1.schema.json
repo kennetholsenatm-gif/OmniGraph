@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kennetholsenatm-gif/omnigraph/schemas/policy.v1.schema.json",
+  "title": "omnigraph/policy/v1 PolicySet",
+  "description": "Policy-as-Code definition for OmniGraph governance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "omnigraph/policy/v1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "PolicySet"
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    },
+    "spec": {
+      "$ref": "#/$defs/spec"
+    }
+  },
+  "$defs": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$",
+          "maxLength": 63
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "description": {
+          "type": "string"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policies"],
+      "properties": {
+        "targetKinds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Resource kinds this policy set applies to"
+        },
+        "enforcement": {
+          "type": "string",
+          "enum": ["warn", "deny"],
+          "default": "deny",
+          "description": "Enforcement level for policy violations"
+        },
+        "policies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/policy"
+          }
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "rego"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+        },
+        "description": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["info", "warning", "error", "critical"],
+          "default": "error"
+        },
+        "rego": {
+          "type": "string",
+          "description": "Rego policy code"
+        },
+        "regoFile": {
+          "type": "string",
+          "description": "Path to Rego policy file (alternative to inline rego)"
+        },
+        "inputSchema": {
+          "type": "string",
+          "description": "JSON Schema for policy input validation"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,151 @@
+apiVersion: omnigraph/policy/v1
+kind: PolicySet
+metadata:
+  name: cost-optimization
+  version: "1.0.0"
+  description: Cost optimization policies to reduce infrastructure spend
+  labels:
+    category: cost
+    severity: medium
+spec:
+  enforcement: warn
+  policies:
+    - name: right-sizing
+      description: Recommend right-sizing for over-provisioned instances
+      severity: warning
+      rego: |
+        package omnigraph.cost
+        
+        # Flag instances with high CPU utilization patterns
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.compute.instance"
+          cpu := input.spec.components[i].config.cpu
+          memory_gb := input.spec.components[i].config.memory_gb
+          
+          # If CPU is high but memory is low, suggest memory-optimized
+          cpu >= 8
+          memory_gb <= cpu
+          msg := sprintf("Instance '%s' has %d CPUs but only %d GB memory. Consider memory-optimized instance type", [input.spec.components[i].id, cpu, memory_gb])
+        }
+        
+        # Flag instances with low utilization
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.compute.instance"
+          cpu := input.spec.components[i].config.cpu
+          input.spec.components[i].config.tags.environment == "development"
+          cpu > 4
+          msg := sprintf("Development instance '%s' has %d CPUs. Consider smaller instance for non-production", [input.spec.components[i].id, cpu])
+        }
+      tags:
+        - cost
+        - optimization
+        - right-sizing
+
+    - name: storage-optimization
+      description: Optimize storage costs
+      severity: warning
+      rego: |
+        package omnigraph.cost
+        
+        # Flag large development volumes
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.storage.volume"
+          size_gb := input.spec.components[i].config.size_gb
+          input.spec.components[i].config.tags.environment == "development"
+          size_gb > 100
+          msg := sprintf("Development volume '%s' is %d GB. Consider reducing size for non-production", [input.spec.components[i].id, size_gb])
+        }
+        
+        # Flag unencrypted volumes (may incur higher costs)
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.storage.volume"
+          not input.spec.components[i].config.encrypted
+          msg := sprintf("Volume '%s' is not encrypted. Encrypted volumes may have different pricing", [input.spec.components[i].id])
+        }
+      tags:
+        - cost
+        - storage
+        - optimization
+
+    - name: instance-scheduling
+      description: Recommend scheduling for non-production instances
+      severity: info
+      rego: |
+        package omnigraph.cost
+        
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.compute.instance"
+          input.spec.components[i].config.tags.environment != "production"
+          not input.spec.components[i].config.schedule
+          msg := sprintf("Non-production instance '%s' should have a schedule to stop during off-hours", [input.spec.components[i].id])
+        }
+      tags:
+        - cost
+        - scheduling
+        - automation
+
+    - name: reserved-capacity
+      description: Recommend reserved capacity for production workloads
+      severity: info
+      rego: |
+        package omnigraph.cost
+        
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.compute.instance"
+          input.spec.components[i].config.tags.environment == "production"
+          input.spec.components[i].config.tags.commitment != "reserved"
+          msg := sprintf("Production instance '%s' should consider reserved capacity for cost savings", [input.spec.components[i].id])
+        }
+      tags:
+        - cost
+        - reserved
+        - commitment
+
+    - name: unused-resources
+      description: Identify potentially unused resources
+      severity: warning
+      rego: |
+        package omnigraph.cost
+        
+        # Flag instances without traffic or usage tags
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.compute.instance"
+          not input.spec.components[i].config.tags["last-used"]
+          not input.spec.components[i].config.tags["status"]
+          msg := sprintf("Instance '%s' has no usage tracking tags. Add 'last-used' or 'status' tag to track utilization", [input.spec.components[i].id])
+        }
+        
+        # Flag detached volumes
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.storage.volume"
+          not input.spec.components[i].config.attached_to
+          msg := sprintf("Volume '%s' appears to be detached. Consider deleting unused volumes", [input.spec.components[i].id])
+        }
+      tags:
+        - cost
+        - cleanup
+        - unused
+
+    - name: network-cost
+      description: Optimize network-related costs
+      severity: info
+      rego: |
+        package omnigraph.cost
+        
+        # Flag public IPs (may incur charges)
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.network.elastic_ip"
+          not input.spec.components[i].config.associated
+          msg := sprintf("Elastic IP '%s' is not associated with an instance. Unattached IPs incur charges", [input.spec.components[i].id])
+        }
+        
+        # Flag cross-region data transfer
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.network.peering"
+          input.spec.components[i].config.cross_region == true
+          msg := sprintf("Network peering '%s' crosses regions. Monitor data transfer costs", [input.spec.components[i].id])
+        }
+      tags:
+        - cost
+        - network
+        - transfer

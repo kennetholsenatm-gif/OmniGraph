@@ -1,0 +1,142 @@
+apiVersion: omnigraph/policy/v1
+kind: PolicySet
+metadata:
+  name: compliance-baseline
+  version: "1.0.0"
+  description: Compliance baseline policies for regulatory requirements
+  labels:
+    category: compliance
+    severity: high
+spec:
+  enforcement: deny
+  policies:
+    - name: require-tags
+      description: Require mandatory tags on all resources
+      severity: error
+      rego: |
+        package omnigraph.compliance
+        
+        required_tags := {"environment", "owner", "cost-center", "project"}
+        
+        deny[msg] {
+          input.spec.components[i].componentType
+          provided_tags := {tag | input.spec.components[i].config.tags[tag]}
+          missing_tags := required_tags - provided_tags
+          count(missing_tags) > 0
+          msg := sprintf("Component '%s' is missing required tags: %v", [input.spec.components[i].id, missing_tags])
+        }
+      tags:
+        - compliance
+        - tagging
+        - governance
+
+    - name: environment-values
+      description: Restrict environment tag to valid values
+      severity: error
+      rego: |
+        package omnigraph.compliance
+        
+        valid_environments := {"production", "staging", "development", "testing", "sandbox"}
+        
+        deny[msg] {
+          input.spec.components[i].config.tags.environment
+          env := input.spec.components[i].config.tags.environment
+          not valid_environments[env]
+          msg := sprintf("Component '%s' has invalid environment '%s'. Must be one of: %v", [input.spec.components[i].id, env, valid_environments])
+        }
+      tags:
+        - compliance
+        - environment
+        - validation
+
+    - name: naming-convention
+      description: Enforce naming conventions for resources
+      severity: warning
+      rego: |
+        package omnigraph.compliance
+        
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.compute.instance"
+          name := input.spec.components[i].id
+          not regex.match("^[a-z][a-z0-9-]*[a-z0-9]$", name)
+          msg := sprintf("Instance '%s' must follow naming convention: lowercase letters, numbers, and hyphens only", [name])
+        }
+        
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.network.security_group"
+          name := input.spec.components[i].id
+          not regex.match("^sg-[a-z][a-z0-9-]*[a-z0-9]$", name)
+          msg := sprintf("Security group '%s' must start with 'sg-' and follow naming convention", [name])
+        }
+      tags:
+        - compliance
+        - naming
+        - standards
+
+    - name: region-restriction
+      description: Restrict deployment to approved regions
+      severity: error
+      rego: |
+        package omnigraph.compliance
+        
+        approved_regions := {"us-east-1", "us-west-2", "eu-west-1", "ap-southeast-1"}
+        
+        deny[msg] {
+          input.spec.components[i].config.region
+          region := input.spec.components[i].config.region
+          not approved_regions[region]
+          msg := sprintf("Component '%s' uses region '%s'. Approved regions: %v", [input.spec.components[i].id, region, approved_regions])
+        }
+      tags:
+        - compliance
+        - region
+        - data-residency
+
+    - name: cost-allocation
+      description: Require cost allocation tags
+      severity: warning
+      rego: |
+        package omnigraph.compliance
+        
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.compute.instance"
+          not input.spec.components[i].config.tags["cost-center"]
+          msg := sprintf("Instance '%s' must have a cost-center tag for billing", [input.spec.components[i].id])
+        }
+        
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.compute.instance"
+          not input.spec.components[i].config.tags["project"]
+          msg := sprintf("Instance '%s' must have a project tag for tracking", [input.spec.components[i].id])
+        }
+      tags:
+        - compliance
+        - cost
+        - billing
+
+    - name: resource-limits
+      description: Enforce resource limits to prevent over-provisioning
+      severity: warning
+      rego: |
+        package omnigraph.compliance
+        
+        max_cpu := 16
+        max_memory_gb := 64
+        
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.compute.instance"
+          cpu := input.spec.components[i].config.cpu
+          cpu > max_cpu
+          msg := sprintf("Instance '%s' requests %d CPUs, maximum allowed is %d", [input.spec.components[i].id, cpu, max_cpu])
+        }
+        
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.compute.instance"
+          memory_gb := input.spec.components[i].config.memory_gb
+          memory_gb > max_memory_gb
+          msg := sprintf("Instance '%s' requests %d GB memory, maximum allowed is %d GB", [input.spec.components[i].id, memory_gb, max_memory_gb])
+        }
+      tags:
+        - compliance
+        - resources
+        - limits

@@ -1,0 +1,332 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kennetholsenatm-gif/omnigraph/schemas/baremetal.v1.schema.json",
+  "title": "omnigraph/baremetal/v1",
+  "description": "Schema for bare-metal provisioning targets in OmniGraph IR",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "omnigraph/baremetal/v1"
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["BareMetalTarget", "BareMetalProfile", "BareMetalCluster"]
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    },
+    "spec": {
+      "$ref": "#/$defs/spec"
+    }
+  },
+  "$defs": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$",
+          "maxLength": 63
+        },
+        "namespace": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$",
+          "maxLength": 63
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/target"
+          }
+        },
+        "profiles": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/profile"
+          }
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "macAddress"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$",
+          "maxLength": 63
+        },
+        "macAddress": {
+          "type": "string",
+          "pattern": "^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$",
+          "description": "MAC address of the target NIC"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "bmc": {
+          "$ref": "#/$defs/bmc"
+        },
+        "bootMode": {
+          "type": "string",
+          "enum": ["http", "ipxe", "pxe"],
+          "default": "http",
+          "description": "Boot mode for provisioning"
+        },
+        "osProfile": {
+          "type": "string",
+          "description": "OS profile name (e.g., ubuntu-22.04-server)"
+        },
+        "firmwarePolicy": {
+          "type": "string",
+          "enum": ["latest", "stable", "pinned", "none"],
+          "default": "stable",
+          "description": "Firmware update policy"
+        },
+        "raidConfiguration": {
+          "$ref": "#/$defs/raidConfig"
+        },
+        "network": {
+          "$ref": "#/$defs/networkConfig"
+        },
+        "storage": {
+          "$ref": "#/$defs/storageConfig"
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/userConfig"
+          }
+        }
+      }
+    },
+    "bmc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "address"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["redfish", "ipmi", "idrac", "ilo", "xclarity", "supermicro"],
+          "description": "BMC type"
+        },
+        "address": {
+          "type": "string",
+          "format": "ipv4",
+          "description": "BMC IP address"
+        },
+        "port": {
+          "type": "integer",
+          "default": 443,
+          "description": "BMC port (443 for Redfish, 623 for IPMI)"
+        },
+        "credentials": {
+          "$ref": "#/$defs/credentials"
+        }
+      }
+    },
+    "credentials": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "secretRef": {
+          "type": "string",
+          "description": "Reference to secret in Vault (e.g., vault:bmc/server-01)"
+        }
+      }
+    },
+    "raidConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["raid0", "raid1", "raid5", "raid6", "raid10"],
+          "description": "RAID level"
+        },
+        "disks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Disk devices to include in RAID"
+        },
+        "size": {
+          "type": "string",
+          "pattern": "^[0-9]+[KMGTP]i?$",
+          "description": "RAID volume size"
+        }
+      }
+    },
+    "networkConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "interface": {
+          "type": "string",
+          "description": "Network interface name (e.g., eno1)"
+        },
+        "ipAddress": {
+          "type": "string",
+          "format": "ipv4",
+          "description": "Static IP address"
+        },
+        "gateway": {
+          "type": "string",
+          "format": "ipv4",
+          "description": "Default gateway"
+        },
+        "dnsServers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "ipv4"
+          },
+          "description": "DNS servers"
+        },
+        "vlan": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4094,
+          "description": "VLAN ID"
+        },
+        "provisioning": {
+          "type": "boolean",
+          "default": false,
+          "description": "Is this the provisioning interface?"
+        }
+      }
+    },
+    "storageConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "layout": {
+          "type": "string",
+          "enum": ["lvm", "plain", "btrfs", "zfs"],
+          "default": "lvm",
+          "description": "Storage layout"
+        },
+        "volumes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/volume"
+          },
+          "description": "Storage volumes"
+        }
+      }
+    },
+    "volume": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "size", "mount"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+        },
+        "size": {
+          "type": "string",
+          "pattern": "^[0-9]+[KMGTP]i?$"
+        },
+        "mount": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "filesystem": {
+          "type": "string",
+          "enum": ["ext4", "xfs", "btrfs"],
+          "default": "ext4"
+        }
+      }
+    },
+    "userConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_-]*$"
+        },
+        "sshAuthorizedKeys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "SSH public keys"
+        },
+        "sudo": {
+          "type": "string",
+          "description": "Sudo privileges (e.g., ALL=(ALL) NOPASSWD:ALL)"
+        },
+        "shell": {
+          "type": "string",
+          "default": "/bin/bash"
+        }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "firmwarePolicy": {
+          "type": "string",
+          "enum": ["latest", "stable", "pinned", "none"]
+        },
+        "raidConfiguration": {
+          "$ref": "#/$defs/raidConfig"
+        },
+        "bootMode": {
+          "type": "string",
+          "enum": ["http", "ipxe", "pxe"]
+        },
+        "network": {
+          "$ref": "#/$defs/networkConfig"
+        },
+        "storage": {
+          "$ref": "#/$defs/storageConfig"
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/userConfig"
+          }
+        }
+      }
+    }
+  }
+}

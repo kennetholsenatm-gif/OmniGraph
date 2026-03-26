@@ -1,0 +1,94 @@
+apiVersion: omnigraph/policy/v1
+kind: PolicySet
+metadata:
+  name: security-baseline
+  version: "1.0.0"
+  description: Security baseline policies for infrastructure compliance
+  labels:
+    category: security
+    severity: critical
+spec:
+  enforcement: deny
+  policies:
+    - name: no-public-ssh
+      description: Prevent SSH access from 0.0.0.0/0
+      severity: critical
+      rego: |
+        package omnigraph.security
+        
+        deny[msg] {
+          # Check security groups
+          input.spec.components[i].componentType == "omnigraph.network.security_group"
+          ingress := input.spec.components[i].config.ingress[j]
+          ingress.port == 22
+          ingress.cidr == "0.0.0.0/0"
+          msg := sprintf("Security group '%s' allows SSH from 0.0.0.0/0", [input.spec.components[i].id])
+        }
+        
+        deny[msg] {
+          # Check compute instances
+          input.spec.components[i].componentType == "omnigraph.compute.instance"
+          security_groups := input.spec.components[i].config.security_groups[j]
+          sg_ref := security_groups
+          msg := sprintf("Compute instance '%s' may have insecure SSH access via security group", [input.spec.components[i].id])
+        }
+      tags:
+        - security
+        - ssh
+        - network
+
+    - name: require-encryption
+      description: Require encryption at rest for storage resources
+      severity: error
+      rego: |
+        package omnigraph.security
+        
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.storage.volume"
+          not input.spec.components[i].config.encrypted
+          msg := sprintf("Storage volume '%s' must have encryption enabled", [input.spec.components[i].id])
+        }
+        
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.storage.bucket"
+          not input.spec.components[i].config.encryption
+          msg := sprintf("Storage bucket '%s' must have encryption enabled", [input.spec.components[i].id])
+        }
+      tags:
+        - security
+        - encryption
+        - storage
+
+    - name: require-backup
+      description: Require backup configuration for production resources
+      severity: warning
+      rego: |
+        package omnigraph.security
+        
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.compute.instance"
+          input.spec.components[i].config.tags.environment == "production"
+          not input.spec.components[i].config.backup_enabled
+          msg := sprintf("Production instance '%s' must have backup enabled", [input.spec.components[i].id])
+        }
+      tags:
+        - security
+        - backup
+        - production
+
+    - name: no-root-user
+      description: Prevent running containers as root
+      severity: error
+      rego: |
+        package omnigraph.security
+        
+        deny[msg] {
+          input.spec.components[i].componentType == "omnigraph.compute.instance"
+          input.spec.components[i].config.type == "container"
+          input.spec.components[i].config.run_as_root == true
+          msg := sprintf("Container '%s' must not run as root user", [input.spec.components[i].id])
+        }
+      tags:
+        - security
+        - container
+        - privilege
