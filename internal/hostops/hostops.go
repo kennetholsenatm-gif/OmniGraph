@@ -62,7 +62,7 @@ func JournalTail(ctx context.Context, c *ssh.Client, unit string, lines int) (st
 	argv := []string{"journalctl", "-u", unit, "-n", fmt.Sprintf("%d", lines), "--no-pager"}
 	cmd := remotecmd.RemoteShC(argv)
 	// argv are POSIX single-quoted by RemoteShC; unit is restricted to unitNameRe.
-	if err := sess.Run(cmd); err != nil { // lgtm[go/command-injection]
+	if err := sess.Run(cmd); err != nil { // codeql[go/command-injection]: argv built with RemoteShC (POSIX single-quote); unit constrained by unitNameRe
 		var ee *ssh.ExitError
 		if errors.As(err, &ee) {
 			return out.String(), fmt.Errorf("journalctl exited %d", ee.ExitStatus())
@@ -90,7 +90,7 @@ func RestartService(ctx context.Context, c *ssh.Client, unit string) (string, er
 	sess.Stdout = &out
 	sess.Stderr = &out
 	cmd := remotecmd.RemoteShC([]string{"systemctl", "restart", strings.TrimSpace(unit)})
-	if err := sess.Run(cmd); err != nil { // lgtm[go/command-injection]
+	if err := sess.Run(cmd); err != nil { // codeql[go/command-injection]: argv built with RemoteShC (POSIX single-quote); unit constrained by unitNameRe
 		var ee *ssh.ExitError
 		if errors.As(err, &ee) {
 			return out.String(), fmt.Errorf("systemctl restart exited %d", ee.ExitStatus())
