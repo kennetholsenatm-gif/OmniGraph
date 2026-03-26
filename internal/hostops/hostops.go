@@ -42,7 +42,8 @@ func JournalTail(ctx context.Context, c *ssh.Client, unit string, lines int) (st
 	if c == nil {
 		return "", fmt.Errorf("nil ssh client")
 	}
-	if !unitNameRe.MatchString(strings.TrimSpace(unit)) {
+	unit = strings.TrimSpace(unit)
+	if !unitNameRe.MatchString(unit) {
 		return "", fmt.Errorf("invalid unit name")
 	}
 	if lines <= 0 {
@@ -61,8 +62,7 @@ func JournalTail(ctx context.Context, c *ssh.Client, unit string, lines int) (st
 	sess.Stdout = &out
 	argv := []string{"journalctl", "-u", unit, "-n", fmt.Sprintf("%d", lines), "--no-pager"}
 	cmd := remotecmd.RemoteShC(argv)
-	// argv are POSIX single-quoted by RemoteShC; unit is restricted to unitNameRe.
-	if err := sess.Run(cmd); err != nil { // codeql[go/command-injection]: argv built with RemoteShC (POSIX single-quote); unit constrained by unitNameRe
+	if err := sess.Run(cmd); err != nil {
 		var ee *ssh.ExitError
 		if errors.As(err, &ee) {
 			return out.String(), fmt.Errorf("journalctl exited %d", ee.ExitStatus())
@@ -77,7 +77,8 @@ func RestartService(ctx context.Context, c *ssh.Client, unit string) (string, er
 	if c == nil {
 		return "", fmt.Errorf("nil ssh client")
 	}
-	if !unitNameRe.MatchString(strings.TrimSpace(unit)) {
+	unit = strings.TrimSpace(unit)
+	if !unitNameRe.MatchString(unit) {
 		return "", fmt.Errorf("invalid unit name")
 	}
 	sess, err := c.NewSession()
@@ -89,8 +90,8 @@ func RestartService(ctx context.Context, c *ssh.Client, unit string) (string, er
 	var out strings.Builder
 	sess.Stdout = &out
 	sess.Stderr = &out
-	cmd := remotecmd.RemoteShC([]string{"systemctl", "restart", strings.TrimSpace(unit)})
-	if err := sess.Run(cmd); err != nil { // codeql[go/command-injection]: argv built with RemoteShC (POSIX single-quote); unit constrained by unitNameRe
+	cmd := remotecmd.RemoteShC([]string{"systemctl", "restart", unit})
+	if err := sess.Run(cmd); err != nil {
 		var ee *ssh.ExitError
 		if errors.As(err, &ee) {
 			return out.String(), fmt.Errorf("systemctl restart exited %d", ee.ExitStatus())
