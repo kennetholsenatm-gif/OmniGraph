@@ -37,6 +37,9 @@ type Config struct {
 	// BMC configuration
 	BMCCredentialsPath string
 	BMCTimeout         time.Duration
+	// RedfishInsecureTLS disables TLS certificate verification for Redfish BMC HTTPS (self-signed BMC certs).
+	// When false (zero value), certificates are verified.
+	RedfishInsecureTLS bool
 
 	// Lifecycle configuration
 	ProvisioningTimeout time.Duration

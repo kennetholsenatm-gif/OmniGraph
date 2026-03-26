@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/kennetholsenatm-gif/omnigraph/internal/remotecmd"
+	"github.com/kennetholsenatm-gif/omnigraph/internal/safepath"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
 )
@@ -44,13 +45,9 @@ func DialSSH(cfg SSHDialConfig) (*SSHHost, error) {
 	if port == "" {
 		port = "22"
 	}
-	keyPath := cfg.KeyPath
-	if keyPath == "" {
-		h, err := os.UserHomeDir()
-		if err != nil {
-			return nil, fmt.Errorf("ssh key path: %w", err)
-		}
-		keyPath = h + string(os.PathSeparator) + ".ssh" + string(os.PathSeparator) + "id_rsa"
+	keyPath, err := safepath.SSHKeyUnderHome(cfg.KeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("ssh key path: %w", err)
 	}
 	keyBytes, err := os.ReadFile(keyPath)
 	if err != nil {

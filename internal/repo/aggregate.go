@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/kennetholsenatm-gif/omnigraph/internal/safepath"
 	"github.com/kennetholsenatm-gif/omnigraph/internal/state"
 )
 
@@ -44,7 +45,11 @@ func AggregateStateHosts(root string, maxFiles int, maxBytes int64) ([]StateHost
 		if n >= maxFiles {
 			break
 		}
-		full := filepath.Join(absRoot, filepath.FromSlash(f.Path))
+		full, pathErr := safepath.UnderRoot(absRoot, f.Path)
+		if pathErr != nil {
+			errs = append(errs, fmt.Sprintf("%s: %v", f.Path, pathErr))
+			continue
+		}
 		b, rerr := readFileLimited(full, maxBytes)
 		if rerr != nil {
 			errs = append(errs, fmt.Sprintf("%s: %v", f.Path, rerr))

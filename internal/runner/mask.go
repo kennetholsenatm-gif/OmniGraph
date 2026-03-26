@@ -51,11 +51,10 @@ func Redact(data []byte, secrets []string, repl []byte) []byte {
 
 // secretValuesForStep returns env values plus RedactExtra for log redaction.
 func secretValuesForStep(s Step) []string {
-	n := len(s.Env) + len(s.RedactExtra)
-	if n == 0 {
+	if len(s.Env) == 0 && len(s.RedactExtra) == 0 {
 		return nil
 	}
-	out := make([]string, 0, n)
+	var out []string
 	for _, v := range s.Env {
 		out = append(out, v)
 	}

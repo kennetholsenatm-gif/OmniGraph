@@ -61,7 +61,8 @@ func JournalTail(ctx context.Context, c *ssh.Client, unit string, lines int) (st
 	sess.Stdout = &out
 	argv := []string{"journalctl", "-u", unit, "-n", fmt.Sprintf("%d", lines), "--no-pager"}
 	cmd := remotecmd.RemoteShC(argv)
-	if err := sess.Run(cmd); err != nil {
+	// argv are POSIX single-quoted by RemoteShC; unit is restricted to unitNameRe.
+	if err := sess.Run(cmd); err != nil { // lgtm[go/command-injection]
 		var ee *ssh.ExitError
 		if errors.As(err, &ee) {
 			return out.String(), fmt.Errorf("journalctl exited %d", ee.ExitStatus())
@@ -89,7 +90,7 @@ func RestartService(ctx context.Context, c *ssh.Client, unit string) (string, er
 	sess.Stdout = &out
 	sess.Stderr = &out
 	cmd := remotecmd.RemoteShC([]string{"systemctl", "restart", strings.TrimSpace(unit)})
-	if err := sess.Run(cmd); err != nil {
+	if err := sess.Run(cmd); err != nil { // lgtm[go/command-injection]
 		var ee *ssh.ExitError
 		if errors.As(err, &ee) {
 			return out.String(), fmt.Errorf("systemctl restart exited %d", ee.ExitStatus())

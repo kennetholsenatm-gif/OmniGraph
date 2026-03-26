@@ -6,10 +6,12 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/kennetholsenatm-gif/omnigraph/internal/baremetal"
+	"github.com/kennetholsenatm-gif/omnigraph/internal/safepath"
 )
 
 // HTTPBootServer implements an HTTP server for network boot files
@@ -155,8 +157,11 @@ func (s *HTTPBootServer) handleIPXEBinary(w http.ResponseWriter, r *http.Request
 	// Extract filename from path
 	filename := filepath.Base(r.URL.Path)
 
-	// Check if file exists
-	filePath := filepath.Join(s.config.IPXEBinaryPath, filename)
+	filePath, err := safepath.UnderDir(s.config.IPXEBinaryPath, filename)
+	if err != nil {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
 
 	if s.config.Verbose {
 		log.Printf("Serving iPXE binary: %s", filePath)
@@ -558,8 +563,17 @@ func (s *HTTPBootServer) handleOmnigraphAgent(w http.ResponseWriter, r *http.Req
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte("#!/bin/bash\n# OmniGraph Agent Installer\necho 'Installing OmniGraph agent...'\n# Add actual installation logic here\n"))
 	} else {
-		// Serve agent binary
-		filePath := filepath.Join(s.config.ScriptsPath, path)
+		rel := strings.TrimPrefix(path, "/omnigraph")
+		rel = strings.TrimPrefix(rel, "/")
+		if rel == "" {
+			http.NotFound(w, r)
+			return
+		}
+		filePath, err := safepath.UnderDir(s.config.ScriptsPath, rel)
+		if err != nil {
+			http.Error(w, "Invalid path", http.StatusBadRequest)
+			return
+		}
 		http.ServeFile(w, r, filePath)
 	}
 }
