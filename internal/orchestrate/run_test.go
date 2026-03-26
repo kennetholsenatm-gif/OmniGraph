@@ -42,12 +42,12 @@ spec: {}
 	planJSON := []byte(`{"planned_values":{"outputs":{},"root_module":{"resources":[]}}}`)
 	graphOut := filepath.Join(dir, "graph.json")
 	o := Options{
-		Workdir:      dir,
-		SchemaPath:   ".omnigraph.schema",
-		AutoApprove:  true,
-		SkipAnsible:  true,
-		GraphOut:     graphOut,
-		Runner:       "exec",
+		Workdir:     dir,
+		SchemaPath:  ".omnigraph.schema",
+		AutoApprove: true,
+		SkipAnsible: true,
+		GraphOut:    graphOut,
+		Runner:      "exec",
 	}
 	fr := &fakeRunner{planJSON: planJSON}
 	if err := Run(context.Background(), fr, o, nil); err != nil {

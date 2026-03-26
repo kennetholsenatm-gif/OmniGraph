@@ -10,13 +10,13 @@ import (
 type FileKind string
 
 const (
-	KindTerraformState    FileKind = "terraform-state"
-	KindTerraformHCL      FileKind = "terraform-hcl"
-	KindOmnigraphSchema   FileKind = "omnigraph-schema"
-	KindAnsibleCfg        FileKind = "ansible-cfg"
-	KindAnsiblePlaybook   FileKind = "ansible-playbook"
-	KindAnsibleInventory  FileKind = "ansible-inventory"
-	KindTerraformPlanBin  FileKind = "terraform-plan-binary"
+	KindTerraformState   FileKind = "terraform-state"
+	KindTerraformHCL     FileKind = "terraform-hcl"
+	KindOmnigraphSchema  FileKind = "omnigraph-schema"
+	KindAnsibleCfg       FileKind = "ansible-cfg"
+	KindAnsiblePlaybook  FileKind = "ansible-playbook"
+	KindAnsibleInventory FileKind = "ansible-inventory"
+	KindTerraformPlanBin FileKind = "terraform-plan-binary"
 )
 
 // Discovered is one artifact found while walking a checkout.

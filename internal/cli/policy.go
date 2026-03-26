@@ -325,7 +325,7 @@ func runPolicyReport(cmd *cobra.Command, args []string, policyDir, format, outpu
 
 	var reports []fileReport
 	for _, file := range args {
-		report, err := engine.EvaluateFile(ctx, sets[0].Metadata.Name, file)
+		report, err := engine.EvaluateFile(ctx, policy.EngineKey(sets[0]), file)
 		if err != nil {
 			return fmt.Errorf("failed to evaluate %s: %w", file, err)
 		}

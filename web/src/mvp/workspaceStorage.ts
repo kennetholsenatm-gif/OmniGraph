@@ -43,6 +43,8 @@ export type WorkspaceSnapshotV1 = {
   inventoryPlanJsonText?: string
   /** Pasted Ansible INI */
   inventoryAnsibleIniText?: string
+  /** Posture / security JSON for the Posture tab */
+  postureSecurityJson?: string
 }
 
 export function defaultWorkspaceSnapshot(): WorkspaceSnapshotV1 {

@@ -19,8 +19,8 @@ type StateValues struct {
 
 // OutputValue is a state output wrapper.
 type OutputValue struct {
-	Value any    `json:"value"`
-	Type  any    `json:"type,omitempty"`
+	Value any `json:"value"`
+	Type  any `json:"type,omitempty"`
 }
 
 // RootModule lists resources at the module root.

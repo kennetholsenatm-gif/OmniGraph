@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"github.com/kennetholsenatm-gif/omnigraph/internal/schema"
 	"github.com/kennetholsenatm-gif/omnigraph/internal/serve"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 func newValidateCmd() *cobra.Command {
@@ -73,14 +75,25 @@ Examples:
 				if len(sets) == 0 {
 					fmt.Fprintln(cmd.OutOrStdout(), "Warning: no policy sets found in", policyDir)
 				} else {
-					// Evaluate document against policies
+					// Evaluate document against policies (OPA input: JSON object or YAML → generic map)
 					var input interface{}
-					if err := json.Unmarshal(raw, &input); err != nil {
-						return fmt.Errorf("failed to parse document for policy evaluation: %w", err)
+					trim := bytes.TrimSpace(raw)
+					if len(trim) == 0 {
+						return fmt.Errorf("empty document")
+					}
+					switch trim[0] {
+					case '{', '[':
+						if err := json.Unmarshal(trim, &input); err != nil {
+							return fmt.Errorf("failed to parse document for policy evaluation: %w", err)
+						}
+					default:
+						if err := yaml.Unmarshal(trim, &input); err != nil {
+							return fmt.Errorf("failed to parse document for policy evaluation: %w", err)
+						}
 					}
 
 					for _, ps := range sets {
-						report, err := engine.Evaluate(ctx, ps.Metadata.Name, input)
+						report, err := engine.Evaluate(ctx, policy.EngineKey(ps), input)
 						if err != nil {
 							return fmt.Errorf("failed to evaluate policies: %w", err)
 						}
@@ -104,7 +117,7 @@ Examples:
 								}
 							}
 						} else {
-							fmt.Fprintf(cmd.OutOrStdout(), "Policy check passed (%s): %d policies evaluated\n", 
+							fmt.Fprintf(cmd.OutOrStdout(), "Policy check passed (%s): %d policies evaluated\n",
 								ps.Metadata.Name, report.Passed)
 						}
 					}

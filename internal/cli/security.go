@@ -44,14 +44,14 @@ func newSecurityListModulesCmd() *cobra.Command {
 func newSecurityScanCmd() *cobra.Command {
 	var (
 		local, insecureSkipHostKey bool
-		inventoryPath             string
-		sshUser, sshKey, sshPort  string
-		sshKnownHosts             string
-		limit                     int
-		outputPath, outputDir     string
-		profile                   string
-		tactic, technique, module string
-		timeout                   time.Duration
+		inventoryPath              string
+		sshUser, sshKey, sshPort   string
+		sshKnownHosts              string
+		limit                      int
+		outputPath, outputDir      string
+		profile                    string
+		tactic, technique, module  string
+		timeout                    time.Duration
 	)
 	cmd := &cobra.Command{
 		Use:   "scan",

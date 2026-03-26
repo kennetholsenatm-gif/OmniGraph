@@ -172,8 +172,8 @@ func newEnclaveListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all enclaves",
-		Long: `List all deployed enclaves with their current status.`,
-		RunE: runEnclaveList,
+		Long:  `List all deployed enclaves with their current status.`,
+		RunE:  runEnclaveList,
 	}
 
 	return cmd
@@ -212,7 +212,7 @@ func newEnclaveDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete <name>",
 		Short: "Delete an enclave",
-		Long: `Delete an enclave and clean up its resources.`,
+		Long:  `Delete an enclave and clean up its resources.`,
 		Args:  cobra.ExactArgs(1),
 		RunE:  runEnclaveDelete,
 	}

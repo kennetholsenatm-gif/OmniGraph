@@ -10,20 +10,20 @@ import (
 
 // GraphConnector manages the bridge between OmniGraph and QminiWasm-core
 type GraphConnector struct {
-	mu           sync.RWMutex
-	manager      *Manager
-	graphs       map[string]*EnclaveGraph
-	subscribers  map[string][]GraphEventHandler
-	connected    bool
+	mu          sync.RWMutex
+	manager     *Manager
+	graphs      map[string]*EnclaveGraph
+	subscribers map[string][]GraphEventHandler
+	connected   bool
 }
 
 // EnclaveGraph represents a graph of interconnected enclaves
 type EnclaveGraph struct {
-	GraphID   string                 `json:"graphId"`
-	Nodes     []GraphNode            `json:"nodes"`
-	Edges     []GraphEdge            `json:"edges"`
-	Metadata  map[string]string      `json:"metadata,omitempty"`
-	UpdatedAt time.Time              `json:"updatedAt"`
+	GraphID   string            `json:"graphId"`
+	Nodes     []GraphNode       `json:"nodes"`
+	Edges     []GraphEdge       `json:"edges"`
+	Metadata  map[string]string `json:"metadata,omitempty"`
+	UpdatedAt time.Time         `json:"updatedAt"`
 }
 
 // GraphNode represents a node in the enclave graph
@@ -47,12 +47,12 @@ type GraphEventHandler func(event GraphEvent) error
 
 // GraphEvent represents a change in the enclave graph
 type GraphEvent struct {
-	Type      string       `json:"type"` // node_added, node_removed, edge_added, edge_removed, status_changed
-	GraphID   string       `json:"graphId"`
-	NodeID    string       `json:"nodeId,omitempty"`
-	Edge      *GraphEdge   `json:"edge,omitempty"`
-	Status    string       `json:"status,omitempty"`
-	Timestamp time.Time    `json:"timestamp"`
+	Type      string                 `json:"type"` // node_added, node_removed, edge_added, edge_removed, status_changed
+	GraphID   string                 `json:"graphId"`
+	NodeID    string                 `json:"nodeId,omitempty"`
+	Edge      *GraphEdge             `json:"edge,omitempty"`
+	Status    string                 `json:"status,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 

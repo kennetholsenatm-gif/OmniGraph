@@ -11,13 +11,13 @@ import (
 
 // PolicyVersion represents a versioned policy
 type PolicyVersion struct {
-	Version     string            `json:"version"`
-	Hash        string            `json:"hash"`
-	Timestamp   time.Time         `json:"timestamp"`
-	Author      string            `json:"author,omitempty"`
-	Message     string            `json:"message,omitempty"`
-	Changes     []string          `json:"changes,omitempty"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
+	Version   string            `json:"version"`
+	Hash      string            `json:"hash"`
+	Timestamp time.Time         `json:"timestamp"`
+	Author    string            `json:"author,omitempty"`
+	Message   string            `json:"message,omitempty"`
+	Changes   []string          `json:"changes,omitempty"`
+	Metadata  map[string]string `json:"metadata,omitempty"`
 }
 
 // PolicyManifest represents a policy with version information

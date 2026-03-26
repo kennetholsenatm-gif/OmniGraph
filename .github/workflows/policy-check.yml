@@ -49,7 +49,9 @@ jobs:
       - name: Validate policy files
         run: |
           echo "Validating policy files..."
-          find . -name "*.rego" -o -name "*.yaml" -o -name "*.yml" | while read file; do
+          # Exclude .github (workflow YAML embeds the grep pattern and would self-match)
+          find . -type f \( -name "*.rego" -o -name "*.yaml" -o -name "*.yml" \) \
+            ! -path "./.git/*" ! -path "./.github/*" ! -path "./node_modules/*" | while read -r file; do
             if grep -q "omnigraph/policy/v1" "$file" 2>/dev/null; then
               echo "  Checking $file..."
               ./omnigraph policy validate "$file" || exit 1

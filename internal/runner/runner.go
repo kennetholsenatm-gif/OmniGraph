@@ -7,9 +7,9 @@ import (
 
 // VolumeMount binds a host path into a container (Docker/Podman -v).
 type VolumeMount struct {
-	HostPath       string
-	ContainerPath  string
-	ReadOnly       bool
+	HostPath      string
+	ContainerPath string
+	ReadOnly      bool
 }
 
 // Step describes an external tool invocation executed by a Runner.

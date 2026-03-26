@@ -35,10 +35,10 @@ func (T1082SystemInfo) Check(ctx context.Context, h Host, targetLinux bool) Modu
 		return ModuleResult{Status: StatusError, Summary: "uname non-zero exit", Evidence: clip(stderr)}
 	}
 	return ModuleResult{
-		Status:      StatusNotVulnerable,
-		Summary:     "Kernel identity collected for baseline (expected on a scanned Linux host)",
-		Evidence:    clip(strings.TrimSpace(out)),
-		Remediation: "Restrict exposure of build/kernel details where organizational policy requires minimal disclosure.",
+		Status:         StatusNotVulnerable,
+		Summary:        "Kernel identity collected for baseline (expected on a scanned Linux host)",
+		Evidence:       clip(strings.TrimSpace(out)),
+		Remediation:    "Restrict exposure of build/kernel details where organizational policy requires minimal disclosure.",
 		ComplianceTags: []string{"baseline"},
 	}
 }
@@ -46,7 +46,7 @@ func (T1082SystemInfo) Check(ctx context.Context, h Host, targetLinux bool) Modu
 // SELinuxMode checks enforcing vs permissive/disabled.
 type SELinuxMode struct{}
 
-func (SELinuxMode) ID() string            { return "selinux_mode" }
+func (SELinuxMode) ID() string          { return "selinux_mode" }
 func (SELinuxMode) TechniqueID() string { return "T1562.001" }
 func (SELinuxMode) TechniqueName() string {
 	return "Impair Defenses: Disable or Modify Tools"
@@ -85,11 +85,13 @@ func (SELinuxMode) Check(ctx context.Context, h Host, targetLinux bool) ModuleRe
 // FirewalldActive checks whether firewalld is active (host firewall).
 type FirewalldActive struct{}
 
-func (FirewalldActive) ID() string            { return "firewalld_active" }
-func (FirewalldActive) TechniqueID() string   { return "T1562.004" }
-func (FirewalldActive) TechniqueName() string { return "Impair Defenses: Disable or Modify System Firewall" }
-func (FirewalldActive) Tactic() string        { return "defense_evasion" }
-func (FirewalldActive) Severity() string      { return SeverityMedium }
+func (FirewalldActive) ID() string          { return "firewalld_active" }
+func (FirewalldActive) TechniqueID() string { return "T1562.004" }
+func (FirewalldActive) TechniqueName() string {
+	return "Impair Defenses: Disable or Modify System Firewall"
+}
+func (FirewalldActive) Tactic() string   { return "defense_evasion" }
+func (FirewalldActive) Severity() string { return SeverityMedium }
 
 func (FirewalldActive) Check(ctx context.Context, h Host, targetLinux bool) ModuleResult {
 	if !targetLinux {
@@ -112,7 +114,7 @@ func (SSHDPermitRoot) ID() string            { return "sshd_permit_root" }
 func (SSHDPermitRoot) TechniqueID() string   { return "T1021.001" }
 func (SSHDPermitRoot) TechniqueName() string { return "Remote Services: SSH" }
 func (SSHDPermitRoot) Tactic() string        { return "lateral_movement" }
-func (SSHDPermitRoot) Severity() string     { return SeverityHigh }
+func (SSHDPermitRoot) Severity() string      { return SeverityHigh }
 
 func (SSHDPermitRoot) Check(ctx context.Context, h Host, targetLinux bool) ModuleResult {
 	if !targetLinux {
@@ -147,8 +149,8 @@ type SysctlASLR struct{}
 func (SysctlASLR) ID() string            { return "sysctl_aslr" }
 func (SysctlASLR) TechniqueID() string   { return "T1068" }
 func (SysctlASLR) TechniqueName() string { return "Exploitation for Privilege Escalation" }
-func (SysctlASLR) Tactic() string       { return "privilege_escalation" }
-func (SysctlASLR) Severity() string     { return SeverityMedium }
+func (SysctlASLR) Tactic() string        { return "privilege_escalation" }
+func (SysctlASLR) Severity() string      { return SeverityMedium }
 
 func (SysctlASLR) Check(ctx context.Context, h Host, targetLinux bool) ModuleResult {
 	if !targetLinux {
@@ -175,7 +177,7 @@ func (AuditdActive) ID() string            { return "auditd_active" }
 func (AuditdActive) TechniqueID() string   { return "T1562.001" }
 func (AuditdActive) TechniqueName() string { return "Impair Defenses: Disable or Modify Tools" }
 func (AuditdActive) Tactic() string        { return "defense_evasion" }
-func (AuditdActive) Severity() string    { return SeverityMedium }
+func (AuditdActive) Severity() string      { return SeverityMedium }
 
 func (AuditdActive) Check(ctx context.Context, h Host, targetLinux bool) ModuleResult {
 	if !targetLinux {
@@ -224,7 +226,7 @@ type IPv4Forward struct{}
 func (IPv4Forward) ID() string            { return "ipv4_forward" }
 func (IPv4Forward) TechniqueID() string   { return "T1562.001" }
 func (IPv4Forward) TechniqueName() string { return "Impair Defenses: Disable or Modify Tools" }
-func (IPv4Forward) Tactic() string       { return "defense_evasion" }
+func (IPv4Forward) Tactic() string        { return "defense_evasion" }
 func (IPv4Forward) Severity() string      { return SeverityMedium }
 
 func (IPv4Forward) Check(ctx context.Context, h Host, targetLinux bool) ModuleResult {
@@ -251,8 +253,8 @@ type PtraceScope struct{}
 func (PtraceScope) ID() string            { return "ptrace_scope" }
 func (PtraceScope) TechniqueID() string   { return "T1055" }
 func (PtraceScope) TechniqueName() string { return "Process Injection" }
-func (PtraceScope) Tactic() string       { return "defense_evasion" }
-func (PtraceScope) Severity() string     { return SeverityMedium }
+func (PtraceScope) Tactic() string        { return "defense_evasion" }
+func (PtraceScope) Severity() string      { return SeverityMedium }
 
 func (PtraceScope) Check(ctx context.Context, h Host, targetLinux bool) ModuleResult {
 	if !targetLinux {
@@ -279,7 +281,7 @@ func (PasswdUIDZero) ID() string            { return "passwd_uid_zero" }
 func (PasswdUIDZero) TechniqueID() string   { return "T1078" }
 func (PasswdUIDZero) TechniqueName() string { return "Valid Accounts" }
 func (PasswdUIDZero) Tactic() string        { return "persistence" }
-func (PasswdUIDZero) Severity() string     { return SeverityCritical }
+func (PasswdUIDZero) Severity() string      { return SeverityCritical }
 
 func (PasswdUIDZero) Check(ctx context.Context, h Host, targetLinux bool) ModuleResult {
 	if !targetLinux {

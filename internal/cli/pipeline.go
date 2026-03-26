@@ -68,7 +68,7 @@ Example:
 				return fmt.Errorf("failed to load pipeline definition: %w", err)
 			}
 
-			fmt.Fprintf(cmd.OutOrStdout(), "Pipeline definition loaded: %s (version %s)\n", 
+			fmt.Fprintf(cmd.OutOrStdout(), "Pipeline definition loaded: %s (version %s)\n",
 				def.Metadata.Name, def.Metadata.Version)
 
 			return nil
@@ -148,7 +148,7 @@ Example:
 				if len(desc) > 30 {
 					desc = desc[:27] + "..."
 				}
-				fmt.Fprintf(cmd.OutOrStdout(), "%-30s %-10s %-30s\n", 
+				fmt.Fprintf(cmd.OutOrStdout(), "%-30s %-10s %-30s\n",
 					def.Metadata.Name, def.Metadata.Version, desc)
 			}
 
@@ -282,9 +282,9 @@ Example:
 				return nil
 			}
 
-			fmt.Fprintf(cmd.OutOrStdout(), "%-20s %-30s %-10s %-20s %-10s\n", 
+			fmt.Fprintf(cmd.OutOrStdout(), "%-20s %-30s %-10s %-20s %-10s\n",
 				"ID", "PIPELINE", "STATUS", "COMPLETED", "DURATION")
-			fmt.Fprintf(cmd.OutOrStdout(), "%-20s %-30s %-10s %-20s %-10s\n", 
+			fmt.Fprintf(cmd.OutOrStdout(), "%-20s %-30s %-10s %-20s %-10s\n",
 				"--", "--------", "------", "---------", "--------")
 
 			for _, record := range history {

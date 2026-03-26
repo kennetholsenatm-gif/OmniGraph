@@ -48,7 +48,9 @@ jobs:
       - name: Lint (golangci-lint)
         uses: golangci/golangci-lint-action@v6
         with:
+          # Prebuilt releases may lag the Go toolchain; goinstall builds with setup-go’s Go (matches go.mod).
           version: v1.64.8
+          install-mode: goinstall
           args: --timeout=5m ./cmd/... ./internal/... ./schemas/...
 
       - name: Vet
@@ -81,7 +83,12 @@ jobs:
       - name: Build HCL diagnostics wasm
         run: |
           mkdir -p web/public/wasm
-          cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" web/public/wasm/
+          root="$(go env GOROOT)"
+          wasm_exec="${root}/lib/wasm/wasm_exec.js"
+          if [ ! -f "$wasm_exec" ]; then
+            wasm_exec="${root}/misc/wasm/wasm_exec.js"
+          fi
+          cp "$wasm_exec" web/public/wasm/
           cd wasm/hcldiag && go mod verify && GOOS=js GOARCH=wasm go build -trimpath -o ../../web/public/wasm/hcldiag.wasm .
 
       - uses: actions/upload-artifact@v7

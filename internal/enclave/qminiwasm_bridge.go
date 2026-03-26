@@ -10,11 +10,11 @@ import (
 
 // QminiWasmBridge manages the bridge between OmniGraph and QminiWasm-core
 type QminiWasmBridge struct {
-	mu           sync.RWMutex
-	connector    *GraphConnector
-	config       BridgeConfig
-	telemetryCh  chan TelemetryEvent
-	connected    bool
+	mu          sync.RWMutex
+	connector   *GraphConnector
+	config      BridgeConfig
+	telemetryCh chan TelemetryEvent
+	connected   bool
 }
 
 // BridgeConfig defines the bridge configuration
@@ -44,14 +44,14 @@ type TelemetryEvent struct {
 
 // GraphManifest represents a graph manifest for QminiWasm-core
 type GraphManifest struct {
-	GraphID               string                 `json:"graphId"`
-	NodeID                string                 `json:"nodeId"`
-	ArtifactManifestPath  string                 `json:"artifactManifestPath"`
-	Inputs                []string               `json:"inputs"`
-	Outputs               []string               `json:"outputs"`
-	RoutingPolicyRef      string                 `json:"routingPolicyRef"`
-	RequireEncryption     bool                   `json:"requireEncryption"`
-	BackendConstraints    map[string]interface{} `json:"backendConstraints"`
+	GraphID              string                 `json:"graphId"`
+	NodeID               string                 `json:"nodeId"`
+	ArtifactManifestPath string                 `json:"artifactManifestPath"`
+	Inputs               []string               `json:"inputs"`
+	Outputs              []string               `json:"outputs"`
+	RoutingPolicyRef     string                 `json:"routingPolicyRef"`
+	RequireEncryption    bool                   `json:"requireEncryption"`
+	BackendConstraints   map[string]interface{} `json:"backendConstraints"`
 }
 
 // GraphApplyResult represents the result of a graph apply operation
@@ -135,13 +135,13 @@ func (b *QminiWasmBridge) ApplyGraph(ctx context.Context, manifest GraphManifest
 // buildApplyPayload builds the payload for graph apply
 func (b *QminiWasmBridge) buildApplyPayload(manifest GraphManifest) map[string]interface{} {
 	return map[string]interface{}{
-		"graph_id":                manifest.GraphID,
-		"node_id":                 manifest.NodeID,
-		"artifact_manifest_path":  manifest.ArtifactManifestPath,
-		"inputs":                  manifest.Inputs,
-		"outputs":                 manifest.Outputs,
-		"routing_policy_ref":      manifest.RoutingPolicyRef,
-		"require_encryption":      manifest.RequireEncryption,
+		"graph_id":                 manifest.GraphID,
+		"node_id":                  manifest.NodeID,
+		"artifact_manifest_path":   manifest.ArtifactManifestPath,
+		"inputs":                   manifest.Inputs,
+		"outputs":                  manifest.Outputs,
+		"routing_policy_ref":       manifest.RoutingPolicyRef,
+		"require_encryption":       manifest.RequireEncryption,
 		"backend_constraints_json": manifest.BackendConstraints,
 	}
 }
@@ -202,7 +202,7 @@ func (b *QminiWasmBridge) GetEnclaveStatus(ctx context.Context, enclaveID string
 		},
 		RuntimeMetrics: &RuntimeMetrics{
 			MemoryUsageMb:  128.5,
-			CPUPercent:      45.2,
+			CPUPercent:     45.2,
 			InferenceCount: 100,
 			AvgLatencyMs:   23.5,
 		},

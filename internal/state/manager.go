@@ -13,31 +13,31 @@ import (
 
 // Manager provides enhanced state management with drift detection and locking
 type Manager struct {
-	mu          sync.RWMutex
-	rootDir     string
-	locks       map[string]*StateLock
-	watchers    map[string]*StateWatcher
-	history     map[string][]*StateVersion
-	driftCache  map[string]*DriftResult
+	mu         sync.RWMutex
+	rootDir    string
+	locks      map[string]*StateLock
+	watchers   map[string]*StateWatcher
+	history    map[string][]*StateVersion
+	driftCache map[string]*DriftResult
 }
 
 // StateLock represents a state lock
 type StateLock struct {
-	ID        string    `json:"id"`
-	Path      string    `json:"path"`
-	Owner     string    `json:"owner"`
-	Operation string    `json:"operation"`
-	LockedAt  time.Time `json:"lockedAt"`
-	ExpiresAt time.Time `json:"expiresAt"`
+	ID        string                 `json:"id"`
+	Path      string                 `json:"path"`
+	Owner     string                 `json:"owner"`
+	Operation string                 `json:"operation"`
+	LockedAt  time.Time              `json:"lockedAt"`
+	ExpiresAt time.Time              `json:"expiresAt"`
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // StateWatcher monitors state files for changes
 type StateWatcher struct {
-	Path      string
-	Interval  time.Duration
-	Callback  func(path string, oldHash, newHash string)
-	stopCh    chan struct{}
+	Path     string
+	Interval time.Duration
+	Callback func(path string, oldHash, newHash string)
+	stopCh   chan struct{}
 }
 
 // StateVersion represents a versioned state snapshot
@@ -65,10 +65,10 @@ type DriftResult struct {
 
 // DriftChange represents a single drift change
 type DriftChange struct {
-	Type      string      `json:"type"` // added, removed, modified
-	Path      string      `json:"path"`
-	OldValue  interface{} `json:"oldValue,omitempty"`
-	NewValue  interface{} `json:"newValue,omitempty"`
+	Type     string      `json:"type"` // added, removed, modified
+	Path     string      `json:"path"`
+	OldValue interface{} `json:"oldValue,omitempty"`
+	NewValue interface{} `json:"newValue,omitempty"`
 }
 
 // NewManager creates a new state manager

@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/kennetholsenatm-gif/omnigraph/internal/identity"
 )
 
 func TestPostWorkspaceSummary(t *testing.T) {
@@ -49,9 +51,12 @@ func TestPostWorkspaceSummary(t *testing.T) {
 }
 
 func TestRequireToken(t *testing.T) {
-	s := &server{authToken: "s3cret"}
+	s := &server{
+		authToken: "s3cret",
+		authz:     &identity.ExperimentalAuthorizer{StaticTokenConfigured: true},
+	}
 	called := false
-	ts := httptest.NewServer(http.HandlerFunc(s.requireToken(func(http.ResponseWriter, *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(s.requirePermission(identity.PermServeInventoryRead, func(http.ResponseWriter, *http.Request) {
 		called = true
 	})))
 	t.Cleanup(ts.Close)
@@ -88,8 +93,13 @@ func TestRequireToken(t *testing.T) {
 
 func TestGetInventoryRequiresAuth(t *testing.T) {
 	dir := t.TempDir()
-	s := &server{root: dir, authToken: "tok", audit: NewAuditLog(10)}
-	h := s.cors(s.requireToken(s.getInventory))
+	s := &server{
+		root:      dir,
+		authToken: "tok",
+		audit:     NewAuditLog(10),
+		authz:     &identity.ExperimentalAuthorizer{StaticTokenConfigured: true},
+	}
+	h := s.cors(s.requirePermission(identity.PermServeInventoryRead, s.getInventory))
 	ts := httptest.NewServer(http.HandlerFunc(h))
 	t.Cleanup(ts.Close)
 
@@ -109,8 +119,13 @@ func TestGetInventoryJSONAndINI(t *testing.T) {
 	stateJSON := []byte(`{"version":4,"values":{"outputs":{"x":{"value":"10.0.0.1"}},"root_module":{"resources":[]}}}`)
 	_ = os.WriteFile(filepath.Join(dir, "mod", "terraform.tfstate"), stateJSON, 0o600)
 
-	s := &server{root: dir, authToken: "tok", audit: NewAuditLog(10)}
-	h := s.cors(s.requireToken(s.getInventory))
+	s := &server{
+		root:      dir,
+		authToken: "tok",
+		audit:     NewAuditLog(10),
+		authz:     &identity.ExperimentalAuthorizer{StaticTokenConfigured: true},
+	}
+	h := s.cors(s.requirePermission(identity.PermServeInventoryRead, s.getInventory))
 	ts := httptest.NewServer(http.HandlerFunc(h))
 	t.Cleanup(ts.Close)
 
