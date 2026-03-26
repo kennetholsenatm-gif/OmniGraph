@@ -1,0 +1,103 @@
+apiVersion: omnigraph/enclave/v1
+kind: WasmEnclave
+metadata:
+  name: edge-inference-agent
+  namespace: production
+  labels:
+    app: inference
+    tier: edge
+    team: ml-platform
+  annotations:
+    description: "Edge ML inference agent for anomaly detection"
+    owner: "ml-team@example.com"
+
+spec:
+  dependsOn:
+    - edge-gateway
+  
+  deploymentStrategy: agent_mesh
+  replicas: 3
+
+  runtime:
+    engine: wasmedge
+    memoryLimitMb: 128
+    deterministicExecution: true
+    networkAccess: false
+    filesystemAccess: readonly
+    maxInstances: 10
+
+  trustBoundary:
+    enrollment: strict
+    attestationProvider: keycloak
+    allowedPeers:
+      - "targets.inference-agents.*"
+      - "targets.edge-gateway.*"
+    certificateRotation: 24h
+    auditLog: true
+
+  cognitivePayload:
+    sourceUri: "s3://models/anomaly-detector-v2-packed.bin"
+    weightFormat: ternary_packed
+    checksum: "sha256:a1b2c3d4e5f6..."
+    signature: "cosign:sha256:..."
+    inferenceMode: edge
+    preprocessing:
+      normalize: true
+      resize: "224x224"
+      quantize: true
+
+  routing:
+    strategy: dynamic_fallback
+    classicalHeuristic: cascade_rl
+    quantumFallback:
+      enabled: true
+      provider: ibm_qiskit_runtime
+      algorithm: qaoa
+      threshold: "mesh_latency > 50ms"
+      maxQubits: 16
+    triggers:
+      - metric: "mesh_latency"
+        condition: "> 50ms"
+        action: switch_strategy
+      - metric: "error_rate"
+        condition: "> 0.05"
+        action: alert
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "256Mi"
+    limits:
+      cpu: "2"
+      memory: "1Gi"
+
+  environment:
+    QMINI_ALGORITHM: "qaoa"
+    QMINI_ITERATIONS: "100"
+    MODEL_TYPE: "ternary-weight"
+    INFERENCE_MODE: "edge"
+    LOG_LEVEL: "info"
+
+  volumes:
+    - name: models
+      mountPath: /models
+      readOnly: true
+      source: s3://models/anomaly-detector-v2-packed.bin
+    - name: config
+      mountPath: /etc/enclave
+      readOnly: true
+      source: configmap://inference-config
+
+  healthCheck:
+    enabled: true
+    endpoint: /health
+    intervalSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  scaling:
+    minReplicas: 2
+    maxReplicas: 10
+    targetCpuPercent: 70
+    scaleUpCooldown: 2m
+    scaleDownCooldown: 5m

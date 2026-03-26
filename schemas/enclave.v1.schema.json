@@ -1,0 +1,482 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kennetholsenatm-gif/OmniGraph/schemas/enclave.v1.schema.json",
+  "title": "omnigraph/enclave/v1 WasmEnclave",
+  "description": "Enclave as Code - Declarative QminiWasm sandbox configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "omnigraph/enclave/v1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "WasmEnclave"
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    },
+    "spec": {
+      "$ref": "#/$defs/spec"
+    },
+    "status": {
+      "$ref": "#/$defs/status"
+    }
+  },
+  "$defs": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$",
+          "maxLength": 63
+        },
+        "namespace": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$",
+          "maxLength": 63
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runtime", "trustBoundary", "cognitivePayload"],
+      "properties": {
+        "dependsOn": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Target dependencies (e.g., edge-gateway)"
+        },
+        "deploymentStrategy": {
+          "type": "string",
+          "enum": ["standalone", "agent_mesh", "federated"],
+          "default": "agent_mesh",
+          "description": "Deployment strategy for the enclave"
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 1,
+          "description": "Number of enclave instances"
+        },
+        "runtime": {
+          "$ref": "#/$defs/runtime"
+        },
+        "trustBoundary": {
+          "$ref": "#/$defs/trustBoundary"
+        },
+        "cognitivePayload": {
+          "$ref": "#/$defs/cognitivePayload"
+        },
+        "routing": {
+          "$ref": "#/$defs/routing"
+        },
+        "resources": {
+          "$ref": "#/$defs/resources"
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Environment variables for the enclave"
+        },
+        "volumes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/volume"
+          }
+        },
+        "healthCheck": {
+          "$ref": "#/$defs/healthCheck"
+        },
+        "scaling": {
+          "$ref": "#/$defs/scaling"
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engine"],
+      "properties": {
+        "engine": {
+          "type": "string",
+          "enum": ["wasmedge", "wasmtime", "wazero"],
+          "default": "wasmedge",
+          "description": "Wasm runtime engine"
+        },
+        "memoryLimitMb": {
+          "type": "integer",
+          "minimum": 64,
+          "maximum": 8192,
+          "default": 128,
+          "description": "Memory limit in MB (TPEM constraint)"
+        },
+        "cpuLimitMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 3600000,
+          "description": "CPU time limit in milliseconds"
+        },
+        "deterministicExecution": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable deterministic execution for reproducibility"
+        },
+        "networkAccess": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow network access from enclave"
+        },
+        "filesystemAccess": {
+          "type": "string",
+          "enum": ["none", "readonly", "readwrite"],
+          "default": "none",
+          "description": "Filesystem access level"
+        },
+        "maxInstances": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 10,
+          "description": "Maximum concurrent Wasm instances"
+        }
+      }
+    },
+    "trustBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enrollment"],
+      "properties": {
+        "enrollment": {
+          "type": "string",
+          "enum": ["open", "strict", "mutual"],
+          "default": "strict",
+          "description": "ZTEE enrollment mode"
+        },
+        "attestationProvider": {
+          "type": "string",
+          "enum": ["keycloak", "vault", "custom"],
+          "description": "Identity provider for attestation"
+        },
+        "allowedPeers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of allowed peer enclaves"
+        },
+        "certificateRotation": {
+          "type": "string",
+          "default": "24h",
+          "description": "Certificate rotation interval"
+        },
+        "auditLog": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable audit logging"
+        }
+      }
+    },
+    "cognitivePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceUri"],
+      "properties": {
+        "sourceUri": {
+          "type": "string",
+          "description": "URI to ML model (s3://, ipfs://, file://)"
+        },
+        "weightFormat": {
+          "type": "string",
+          "enum": ["float32", "float16", "ternary_packed", "binary"],
+          "default": "float32",
+          "description": "Model weight format (TPEM optimization)"
+        },
+        "checksum": {
+          "type": "string",
+          "description": "SHA256 checksum of model"
+        },
+        "signature": {
+          "type": "string",
+          "description": "Cryptographic signature"
+        },
+        "inferenceMode": {
+          "type": "string",
+          "enum": ["batch", "streaming", "edge"],
+          "default": "edge",
+          "description": "Inference execution mode"
+        },
+        "preprocessing": {
+          "type": "object",
+          "properties": {
+            "normalize": { "type": "boolean" },
+            "resize": { "type": "string" },
+            "quantize": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "routing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": ["static", "dynamic_fallback", "quantum_optimized"],
+          "default": "dynamic_fallback",
+          "description": "Routing strategy"
+        },
+        "classicalHeuristic": {
+          "type": "string",
+          "enum": ["round_robin", "least_connections", "cascade_rl"],
+          "default": "cascade_rl",
+          "description": "Classical routing heuristic"
+        },
+        "quantumFallback": {
+          "$ref": "#/$defs/quantumFallback"
+        },
+        "triggers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/routingTrigger"
+          }
+        }
+      }
+    },
+    "quantumFallback": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "provider": {
+          "type": "string",
+          "enum": ["ibm_qiskit_runtime", "aws_braket", "azure_quantum"],
+          "description": "Quantum computing provider"
+        },
+        "algorithm": {
+          "type": "string",
+          "enum": ["qaoa", "vqe", "grover"],
+          "default": "qaoa",
+          "description": "Quantum algorithm"
+        },
+        "threshold": {
+          "type": "string",
+          "description": "Condition to trigger quantum routing (e.g., 'mesh_latency > 50ms')"
+        },
+        "maxQubits": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 128,
+          "default": 16
+        }
+      }
+    },
+    "routingTrigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "condition"],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "description": "Telemetry metric (e.g., mesh_latency, error_rate)"
+        },
+        "condition": {
+          "type": "string",
+          "description": "Condition expression (e.g., '> 50ms')"
+        },
+        "action": {
+          "type": "string",
+          "enum": ["switch_strategy", "scale", "alert"],
+          "default": "switch_strategy"
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requests": {
+          "$ref": "#/$defs/resourceList"
+        },
+        "limits": {
+          "$ref": "#/$defs/resourceList"
+        }
+      }
+    },
+    "resourceList": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cpu": {
+          "type": "string",
+          "description": "CPU request/limit (e.g., '500m', '2')"
+        },
+        "memory": {
+          "type": "string",
+          "description": "Memory request/limit (e.g., '128Mi', '2Gi')"
+        },
+        "storage": {
+          "type": "string",
+          "description": "Storage request/limit"
+        }
+      }
+    },
+    "volume": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "mountPath"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "mountPath": {
+          "type": "string"
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": true
+        },
+        "source": {
+          "type": "string",
+          "description": "Volume source (host path, PVC name)"
+        }
+      }
+    },
+    "healthCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "endpoint": {
+          "type": "string",
+          "default": "/health",
+          "description": "Health check endpoint"
+        },
+        "intervalSeconds": {
+          "type": "integer",
+          "default": 30
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "default": 5
+        },
+        "failureThreshold": {
+          "type": "integer",
+          "default": 3
+        }
+      }
+    },
+    "scaling": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "minReplicas": {
+          "type": "integer",
+          "default": 1
+        },
+        "maxReplicas": {
+          "type": "integer",
+          "default": 10
+        },
+        "targetCpuPercent": {
+          "type": "integer",
+          "default": 80
+        },
+        "scaleUpCooldown": {
+          "type": "string",
+          "default": "5m"
+        },
+        "scaleDownCooldown": {
+          "type": "string",
+          "default": "10m"
+        }
+      }
+    },
+    "status": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "phase": {
+          "type": "string",
+          "enum": ["pending", "enrolling", "running", "degraded", "failed", "terminating"]
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/condition"
+          }
+        },
+        "enrollmentStatus": {
+          "type": "object",
+          "properties": {
+            "enrolled": { "type": "boolean" },
+            "attestedAt": { "type": "string", "format": "date-time" },
+            "certificateExpiry": { "type": "string", "format": "date-time" }
+          }
+        },
+        "runtimeMetrics": {
+          "type": "object",
+          "properties": {
+            "memoryUsageMb": { "type": "number" },
+            "cpuUsagePercent": { "type": "number" },
+            "inferenceCount": { "type": "integer" },
+            "avgLatencyMs": { "type": "number" }
+          }
+        }
+      }
+    },
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "status"],
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["True", "False", "Unknown"]
+        },
+        "lastTransitionTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
