@@ -1,0 +1,103 @@
+# OmniGraph Agent Mesh Configuration Example
+# This example demonstrates QminiWasm-Core integration for:
+# 1. Route optimization using quantum-assisted algorithms
+# 2. ML inference for infrastructure decisions
+# 3. Policy evaluation with sandboxed Wasm execution
+
+apiVersion: omnigraph/v1
+kind: Project
+metadata:
+  name: agent-mesh-demo
+  environment: production
+
+spec:
+  network:
+    vpcCidr: "10.0.0.0/16"
+    publicPorts: [80, 443, 8080]
+
+  tags:
+    project: agent-mesh-demo
+    managed-by: omnigraph
+
+  # Agent Mesh Configuration
+  agentMesh:
+    enabled: true
+    
+    # Event broker configuration
+    broker:
+      type: internal
+      persistence: true
+      deadLetterQueue: true
+      maxRetries: 3
+
+    # Agent definitions
+    agents:
+      # Route optimization agent using QAOA algorithms
+      - id: route-optimizer
+        type: qminiwasm
+        module: wasm/route-optimizer.wasm
+        description: Quantum-assisted routing optimization
+        resources:
+          memory: 2Gi
+          cpu: "4"
+        triggers:
+          - topic: omnigraph.state.changed
+            filter: "spec.network"
+          - topic: omnigraph.route.optimize
+        environment:
+          QMINI_ALGORITHM: qaoa
+          QMINI_ITERATIONS: "100"
+        ztee:
+          enabled: true
+          enrollUrl: https://ztee.example.com/enroll
+
+      # Policy evaluation agent
+      - id: policy-engine
+        type: qminiwasm
+        module: wasm/policy-engine.wasm
+        description: Security and compliance policy evaluation
+        resources:
+          memory: 512Mi
+          cpu: "1"
+        triggers:
+          - topic: omnigraph.policy.evaluate
+          - topic: omnigraph.security.scan
+        environment:
+          POLICY_STRICTNESS: high
+
+      # ML inference agent for anomaly detection
+      - id: ml-anomaly-detector
+        type: qminiwasm
+        module: wasm/anomaly-detector.wasm
+        description: ML-based anomaly detection for telemetry
+        resources:
+          memory: 1Gi
+          cpu: "2"
+        triggers:
+          - topic: omnigraph.telemetry.alert
+          - topic: omnigraph.ml.inference
+        environment:
+          MODEL_TYPE: ternary-weight
+          INFERENCE_MODE: edge
+
+      # Ansible execution optimizer
+      - id: ansible-optimizer
+        type: qminiwasm
+        module: wasm/ansible-optimizer.wasm
+        description: Optimizes Ansible playbook execution order
+        resources:
+          memory: 1Gi
+          cpu: "2"
+        triggers:
+          - topic: omnigraph.orchestrate.optimize
+        environment:
+          OPTIMIZATION_LEVEL: aggressive
+
+    # Agent mesh policies
+    policies:
+      maxAgents: 10
+      defaultTimeout: 5m
+      retryPolicy:
+        maxAttempts: 3
+        backoff: exponential
+        initialDelay: 1s

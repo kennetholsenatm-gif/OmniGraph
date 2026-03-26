@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kennetholsenatm-gif/OmniGraph/schemas/agentmesh.v1.schema.json",
+  "title": "omnigraph/agentmesh/v1",
+  "description": "Agent mesh configuration for QminiWasm-Core integration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["enabled"],
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "description": "Enable agent mesh functionality"
+    },
+    "broker": {
+      "$ref": "#/$defs/broker"
+    },
+    "agents": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/agent"
+      },
+      "description": "List of Wasm agents"
+    },
+    "policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxAgents": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 10,
+          "description": "Maximum number of concurrent agents"
+        },
+        "defaultTimeout": {
+          "type": "string",
+          "default": "5m",
+          "description": "Default timeout for agent operations"
+        },
+        "retryPolicy": {
+          "$ref": "#/$defs/retryPolicy"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "broker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["internal", "solace", "nats", "rabbitmq"],
+          "default": "internal",
+          "description": "Event broker type"
+        },
+        "url": {
+          "type": "string",
+          "description": "Broker connection URL"
+        },
+        "persistence": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable message persistence"
+        },
+        "deadLetterQueue": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable dead letter queue for failed messages"
+        },
+        "maxRetries": {
+          "type": "integer",
+          "default": 3,
+          "description": "Maximum retry attempts"
+        }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "module"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "maxLength": 63,
+          "description": "Unique agent identifier"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["qminiwasm", "custom"],
+          "default": "qminiwasm",
+          "description": "Agent type"
+        },
+        "module": {
+          "type": "string",
+          "description": "Path to Wasm module"
+        },
+        "description": {
+          "type": "string",
+          "description": "Agent description"
+        },
+        "resources": {
+          "$ref": "#/$defs/resources"
+        },
+        "triggers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/trigger"
+          },
+          "description": "Event triggers for agent execution"
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Environment variables for agent"
+        },
+        "ztee": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable Zero-Trust Enclave Enrollment"
+            },
+            "enrollUrl": {
+              "type": "string",
+              "description": "ZTEE enrollment endpoint"
+            }
+          }
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "memory": {
+          "type": "string",
+          "default": "256Mi",
+          "description": "Memory limit (e.g., 256Mi, 1Gi)"
+        },
+        "cpu": {
+          "type": "string",
+          "default": "0.5",
+          "description": "CPU limit (e.g., 0.5, 1, 2)"
+        },
+        "storage": {
+          "type": "string",
+          "description": "Storage limit"
+        }
+      }
+    },
+    "trigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["topic"],
+      "properties": {
+        "topic": {
+          "type": "string",
+          "description": "Event topic to subscribe to"
+        },
+        "filter": {
+          "type": "string",
+          "description": "Topic filter expression"
+        },
+        "correlationId": {
+          "type": "string",
+          "description": "Correlation ID for request/response"
+        }
+      }
+    },
+    "retryPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxAttempts": {
+          "type": "integer",
+          "default": 3,
+          "description": "Maximum retry attempts"
+        },
+        "backoff": {
+          "type": "string",
+          "enum": ["fixed", "exponential"],
+          "default": "exponential",
+          "description": "Backoff strategy"
+        },
+        "initialDelay": {
+          "type": "string",
+          "default": "1s",
+          "description": "Initial delay between retries"
+        }
+      }
+    }
+  }
+}
