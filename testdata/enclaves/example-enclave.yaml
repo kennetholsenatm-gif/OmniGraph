@@ -1,0 +1,88 @@
+apiVersion: omnigraph/v1alpha1
+kind: Enclave
+metadata:
+  name: example-enclave
+  namespace: default
+  labels:
+    app: example
+    environment: dev
+  annotations:
+    description: "Example Wasm enclave for testing"
+    owner: "team@example.com"
+spec:
+  deployment_strategy: standalone
+  replicas: 1
+  
+  runtime:
+    engine: wasmedge
+    memory_limit_mb: 256
+    cpu_limit_ms: 1000
+    deterministic_execution: true
+    network_access: false
+    filesystem_access: none
+    max_instances: 1
+  
+  trust_boundary:
+    enrollment: open
+    attestation_provider: keycloak
+    allowed_peers:
+      - "example-peer-1"
+      - "example-peer-2"
+    certificate_rotation: 24h
+    audit_log: true
+  
+  cognitive_payload:
+    source_uri: "file:///path/to/model.wasm"
+    weight_format: float32
+    checksum: "sha256:abc123..."
+    signature: ""
+    inference_mode: batch
+    preprocessing:
+      normalize: true
+      resize: ""
+      quantize: false
+  
+  routing:
+    strategy: static
+    classical_heuristic: round_robin
+    quantum_fallback:
+      enabled: false
+      provider: ""
+      algorithm: qaoa
+      threshold: ""
+      max_qubits: 0
+    triggers: []
+  
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+      storage: "1Gi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+      storage: "2Gi"
+  
+  environment:
+    LOG_LEVEL: "info"
+    WORKER_THREADS: "4"
+  
+  volumes:
+    - name: data
+      mount_path: /data
+      read_only: false
+      source: "/host/data"
+  
+  health_check:
+    enabled: true
+    endpoint: /health
+    interval_seconds: 30
+    timeout_seconds: 5
+    failure_threshold: 3
+  
+  scaling:
+    min_replicas: 1
+    max_replicas: 5
+    target_cpu_percent: 80
+    scale_up_cooldown: 5m
+    scale_down_cooldown: 10m

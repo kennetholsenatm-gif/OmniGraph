@@ -1,0 +1,271 @@
+syntax = "proto3";
+
+package omnigraph.enclave;
+
+option go_package = "github.com/kennetholsenatm-gif/OmniGraph/proto/enclave";
+
+// EnclaveManifest defines the desired state of a Wasm enclave
+message EnclaveManifest {
+  string api_version = 1;
+  string kind = 2;
+  EnclaveMetadata metadata = 3;
+  EnclaveSpec spec = 4;
+}
+
+message EnclaveMetadata {
+  string name = 1;
+  string namespace = 2;
+  map<string, string> labels = 3;
+  map<string, string> annotations = 4;
+}
+
+message EnclaveSpec {
+  repeated string depends_on = 1;
+  string deployment_strategy = 2;
+  int32 replicas = 3;
+  RuntimeConfig runtime = 4;
+  TrustBoundary trust_boundary = 5;
+  CognitivePayload cognitive_payload = 6;
+  RoutingConfig routing = 7;
+  ResourceLimits resources = 8;
+  map<string, string> environment = 9;
+  repeated Volume volumes = 10;
+  HealthCheck health_check = 11;
+  ScalingConfig scaling = 12;
+}
+
+message RuntimeConfig {
+  string engine = 1; // wasmedge, wasmtime, wazero
+  int32 memory_limit_mb = 2;
+  int32 cpu_limit_ms = 3;
+  bool deterministic_execution = 4;
+  bool network_access = 5;
+  string filesystem_access = 6; // none, readonly, readwrite
+  int32 max_instances = 7;
+}
+
+message TrustBoundary {
+  string enrollment = 1; // open, strict, mutual
+  string attestation_provider = 2; // keycloak, vault, custom
+  repeated string allowed_peers = 3;
+  string certificate_rotation = 4;
+  bool audit_log = 5;
+}
+
+message CognitivePayload {
+  string source_uri = 1;
+  string weight_format = 2; // float32, float16, ternary_packed, binary
+  string checksum = 3;
+  string signature = 4;
+  string inference_mode = 5; // batch, streaming, edge
+  PreprocessingConfig preprocessing = 6;
+}
+
+message PreprocessingConfig {
+  bool normalize = 1;
+  string resize = 2;
+  bool quantize = 3;
+}
+
+message RoutingConfig {
+  string strategy = 1; // static, dynamic_fallback, quantum_optimized
+  string classical_heuristic = 2; // round_robin, least_connections, cascade_rl
+  QuantumFallback quantum_fallback = 3;
+  repeated RoutingTrigger triggers = 4;
+}
+
+message QuantumFallback {
+  bool enabled = 1;
+  string provider = 2; // ibm_qiskit_runtime, aws_braket, azure_quantum
+  string algorithm = 3; // qaoa, vqe, grover
+  string threshold = 4;
+  int32 max_qubits = 5;
+}
+
+message RoutingTrigger {
+  string metric = 1;
+  string condition = 2;
+  string action = 3; // switch_strategy, scale, alert
+}
+
+message ResourceLimits {
+  ResourceList requests = 1;
+  ResourceList limits = 2;
+}
+
+message ResourceList {
+  string cpu = 1;
+  string memory = 2;
+  string storage = 3;
+}
+
+message Volume {
+  string name = 1;
+  string mount_path = 2;
+  bool read_only = 3;
+  string source = 4;
+}
+
+message HealthCheck {
+  bool enabled = 1;
+  string endpoint = 2;
+  int32 interval_seconds = 3;
+  int32 timeout_seconds = 4;
+  int32 failure_threshold = 5;
+}
+
+message ScalingConfig {
+  int32 min_replicas = 1;
+  int32 max_replicas = 2;
+  int32 target_cpu_percent = 3;
+  string scale_up_cooldown = 4;
+  string scale_down_cooldown = 5;
+}
+
+// EnclaveStatus represents the observed state
+message EnclaveStatus {
+  string phase = 1; // pending, enrolling, running, degraded, failed, terminating
+  repeated Condition conditions = 2;
+  EnrollmentStatus enrollment_status = 3;
+  RuntimeMetrics runtime_metrics = 4;
+}
+
+message Condition {
+  string type = 1;
+  string status = 2; // True, False, Unknown
+  int64 last_transition_time = 3;
+  string reason = 4;
+  string message = 5;
+}
+
+message EnrollmentStatus {
+  bool enrolled = 1;
+  int64 attested_at = 2;
+  int64 certificate_expiry = 3;
+}
+
+message RuntimeMetrics {
+  double memory_usage_mb = 1;
+  double cpu_percent = 2;
+  int64 inference_count = 3;
+  double avg_latency_ms = 4;
+}
+
+// Request/Response messages for the gRPC service
+message CreateEnclaveRequest {
+  EnclaveManifest manifest = 1;
+}
+
+message CreateEnclaveResponse {
+  bool success = 1;
+  string message = 2;
+  string enclave_id = 3;
+}
+
+message GetEnclaveStatusRequest {
+  string name = 1;
+  string namespace = 2;
+}
+
+message GetEnclaveStatusResponse {
+  EnclaveStatus status = 1;
+}
+
+message ListEnclavesRequest {
+  string namespace = 1;
+  map<string, string> label_selector = 2;
+}
+
+message ListEnclavesResponse {
+  repeated EnclaveManifest manifests = 1;
+  repeated EnclaveStatus statuses = 2;
+}
+
+message DeleteEnclaveRequest {
+  string name = 1;
+  string namespace = 2;
+}
+
+message DeleteEnclaveResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message EnrollEnclaveRequest {
+  string name = 1;
+  string namespace = 2;
+  string attestation_provider = 3;
+}
+
+message EnrollEnclaveResponse {
+  bool success = 1;
+  string message = 2;
+  int64 certificate_expiry = 3;
+}
+
+message ExecuteInferenceRequest {
+  string enclave_name = 1;
+  string namespace = 2;
+  string model_name = 3;
+  bytes input_data = 4;
+  map<string, string> options = 5;
+}
+
+message ExecuteInferenceResponse {
+  bool success = 1;
+  string message = 2;
+  bytes output_data = 3;
+  double confidence = 4;
+  int64 processed_at = 5;
+}
+
+// Graph-related messages for OmniGraph integration
+message GraphNode {
+  string id = 1;
+  string type = 2; // enclave, target, service
+  map<string, string> properties = 3;
+  repeated string dependencies = 4;
+}
+
+message GraphEdge {
+  string from = 1;
+  string to = 2;
+  string relationship = 3; // depends_on, communicates_with, routes_to
+  map<string, string> metadata = 4;
+}
+
+message EnclaveGraph {
+  string graph_id = 1;
+  repeated GraphNode nodes = 2;
+  repeated GraphEdge edges = 3;
+  map<string, string> metadata = 4;
+}
+
+message SyncGraphRequest {
+  EnclaveGraph graph = 1;
+  bool force_update = 2;
+}
+
+message SyncGraphResponse {
+  bool success = 1;
+  string message = 2;
+  repeated string updated_enclaves = 3;
+}
+
+// Service definition for OmniGraph Enclave Management
+service OmniGraphEnclaveService {
+  // Enclave lifecycle
+  rpc CreateEnclave(CreateEnclaveRequest) returns (CreateEnclaveResponse);
+  rpc GetEnclaveStatus(GetEnclaveStatusRequest) returns (GetEnclaveStatusResponse);
+  rpc ListEnclaves(ListEnclavesRequest) returns (ListEnclavesResponse);
+  rpc DeleteEnclave(DeleteEnclaveRequest) returns (DeleteEnclaveResponse);
+  
+  // ZTEE operations
+  rpc EnrollEnclave(EnrollEnclaveRequest) returns (EnrollEnclaveResponse);
+  
+  // Inference
+  rpc ExecuteInference(ExecuteInferenceRequest) returns (ExecuteInferenceResponse);
+  
+  // Graph synchronization
+  rpc SyncGraph(SyncGraphRequest) returns (SyncGraphResponse);
+}
