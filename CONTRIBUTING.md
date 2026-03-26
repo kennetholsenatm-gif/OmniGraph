@@ -1,25 +1,44 @@
 # Contributing to OmniGraph
 
-## Prerequisites
+Thank you for your interest in contributing to OmniGraph! This guide covers everything you need to set up a development environment and contribute effectively.
 
-- **Go** 1.22+ (matches [CI](.github/workflows/ci.yml))
-- **Node.js** 20 LTS and npm (for `web/`)
+## Development Prerequisites
 
-## Clone and remotes
+### Required Software
+
+- **Go 1.22+** - Matches [CI workflow](.github/workflows/ci.yml)
+- **Node.js 20 LTS** and npm - For the web UI (`web/`)
+- **Git** - Version control
+
+### Optional Software
+
+- **Make** - Convenience build targets (not required)
+- **OpenTofu/Terraform** - For testing orchestration workflows
+- **Ansible** - For testing configuration management integration
+- **Docker/Podman** - For containerized execution testing
+
+## Development Setup
+
+### 1. Clone and Configure
 
 ```bash
 git clone https://github.com/kennetholsenatm-gif/OmniGraph.git
 cd OmniGraph
 ```
 
-## Control plane (Go)
+### 2. Control Plane (Go)
 
-From the repository root:
+Build and test the CLI:
 
 ```bash
+# Run tests
 go vet ./...
 go test ./...
+
+# Build binary
 go build -o bin/omnigraph ./cmd/omnigraph
+
+# Verify installation
 ./bin/omnigraph --version
 ./bin/omnigraph validate testdata/sample.omnigraph.schema
 ./bin/omnigraph coerce --format=tfvars testdata/sample.omnigraph.schema
@@ -28,11 +47,20 @@ go build -o bin/omnigraph ./cmd/omnigraph
   --tfstate internal/state/testdata/minimal.state.json
 ```
 
-On Windows PowerShell you can use `.\bin\omnigraph.exe --version` after `go build -o bin\omnigraph.exe .\cmd\omnigraph`.
+**Windows PowerShell:**
+```powershell
+go build -o bin\omnigraph.exe .\cmd\omnigraph
+.\bin\omnigraph.exe --version
+```
 
-Optional: if you have `make` installed, `make vet`, `make test`, and `make build` run the same steps.
+**Using Make (optional):**
+```bash
+make vet
+make test
+make build
+```
 
-## Web app
+### 3. Web Application
 
 ```bash
 cd web
@@ -40,7 +68,7 @@ npm ci
 npm run dev
 ```
 
-CI parity:
+CI parity commands:
 
 ```bash
 cd web
@@ -49,46 +77,122 @@ npm run lint
 npm run build
 ```
 
-Optional Wasm spike (browser `WebAssembly.instantiate` smoke test):
+#### Wasm Integration
 
-```bash
-cd web
-set VITE_ENABLE_WASM_SPIKE=true
-npm run dev
-```
-
-(On PowerShell, use `$env:VITE_ENABLE_WASM_SPIKE = "true"` before `npm run dev`.)
-
-### HCL diagnostics Wasm (ADR 001)
-
-The web app loads `/wasm/hcldiag.wasm` for real-time HCL parse feedback. Build it with Go 1.22+:
+The browser UI uses WebAssembly for HCL diagnostics. Build it with:
 
 ```bash
 make wasm-hcldiag
 ```
 
-`web/public/wasm/wasm_exec.js` is checked in (from the Go distribution). CI rebuilds both `wasm_exec.js` and `hcldiag.wasm` before the web build.
+Optional Wasm spike test:
 
-### Orchestrate (magic handoff)
+```bash
+cd web
+# Bash/Linux/macOS
+VITE_ENABLE_WASM_SPIKE=true npm run dev
 
-From the repo root (with a real OpenTofu workspace and playbook):
+# PowerShell
+$env:VITE_ENABLE_WASM_SPIKE = "true"
+npm run dev
+```
+
+### 4. Orchestration Testing
+
+Test the full orchestration pipeline (requires OpenTofu workspace and Ansible playbook):
 
 ```bash
 go build -o bin/omnigraph ./cmd/omnigraph
+
+# Dry run (skip Ansible)
 ./bin/omnigraph orchestrate --workdir /path/to/tf/root --playbook site.yml --auto-approve --skip-ansible
+
+# Full orchestration with containerized runners
+./bin/omnigraph orchestrate \
+  --workdir /path/to/tf/root \
+  --playbook site.yml \
+  --auto-approve \
+  --runner=container \
+  --container-runtime=docker
 ```
 
-Use `--runner=container` and `--container-runtime=docker` to run OpenTofu/Ansible inside ephemeral containers (see `docs/execution-matrix.md`).
+## Project Structure
 
-## Secrets and sensitive data
+```
+├── cmd/omnigraph/          # CLI entry point
+├── internal/
+│   ├── cli/                # Command implementations
+│   ├── coerce/             # Schema coercion engine
+│   ├── graph/              # Dependency graph generation
+│   ├── inventory/          # Dynamic inventory generation
+│   ├── ir/                 # Infrastructure Intent Reference
+│   ├── orchestrate/        # Pipeline orchestration
+│   ├── policy/             # Policy-as-Code (OPA/Rego)
+│   ├── runner/             # Execution runners (exec, container)
+│   ├── schema/             # Schema validation
+│   ├── security/           # Security scanning
+│   ├── serve/              # HTTP API server
+│   └── state/              # State management
+├── schemas/                # JSON Schema definitions
+├── web/                    # React frontend
+├── wasm/                   # WebAssembly modules
+├── docs/                   # Architecture and ADRs
+└── testdata/               # Test fixtures
+```
 
-Do **not** commit real credentials, `.env` files with secrets, or Terraform/OpenTofu state. See [docs/adr/003-memory-only-secrets.md](docs/adr/003-memory-only-secrets.md).
+## Code Standards
 
-## Pull requests
+### Go
 
-- Prefer focused changes with tests and docs updates as needed.
-- Use the PR template checklist before requesting review.
+- Follow [Effective Go](https://go.dev/doc/effective-go)
+- Run `go vet ./...` and `go test ./...` before committing
+- Use table-driven tests
+- Document exported functions and types
+
+### TypeScript/React
+
+- Use TypeScript strict mode
+- Follow ESLint configuration (`web/eslint.config.js`)
+- Run `npm run lint` before committing
+- Use functional components with hooks
+
+## Pull Request Process
+
+1. **Fork** the repository
+2. **Create a feature branch** from `main`
+3. **Make your changes** with tests and documentation
+4. **Run the test suite** to ensure CI parity:
+   ```bash
+   go vet ./...
+   go test ./...
+   cd web && npm run lint
+   ```
+5. **Submit a pull request** with a clear description
+
+### PR Checklist
+
+- [ ] Tests pass locally
+- [ ] Documentation updated (if applicable)
+- [ ] Commit messages are clear and descriptive
+- [ ] No secrets or sensitive data committed
+
+## Security
+
+- **Never commit credentials** or `.env` files with secrets
+- Use memory-only secret injection ([ADR 003](docs/adr/003-memory-only-secrets.md))
+- Report security vulnerabilities privately
 
 ## Architecture
 
-Start with [docs/architecture.md](docs/architecture.md) and the [ADRs](docs/adr/).
+Start with these resources:
+
+- [Architecture Overview](docs/architecture.md)
+- [Architecture Decision Records](docs/adr/)
+- [Execution Matrix](docs/execution-matrix.md)
+- [Integrations](docs/integrations.md)
+
+## Getting Help
+
+- Open an [issue](https://github.com/kennetholsenatm-gif/OmniGraph/issues) for bugs or feature requests
+- Check existing [discussions](https://github.com/kennetholsenatm-gif/OmniGraph/discussions) for questions
+- Review the [wiki](wiki/Home.md) for user guides
