@@ -36,10 +36,19 @@
             "additionalProperties": false,
             "properties": {
               "id": { "type": "string" },
-              "kind": { "type": "string" },
+              "kind": {
+                "type": "string",
+                "description": "e.g. project, tool, host, telemetry (CMDB/health context)"
+              },
               "label": { "type": "string" },
-              "state": { "type": "string" },
-              "attributes": { "type": "object" }
+              "state": {
+                "type": "string",
+                "description": "e.g. active, pending, planned, live, gray (unchanged/telemetry)"
+              },
+              "attributes": {
+                "type": "object",
+                "description": "Optional metadata; use attributes.source for netbox|prometheus on telemetry nodes"
+              }
             },
             "required": ["id", "kind", "label"]
           }

@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kennetholsenatm-gif/omnigraph/schemas/ir.v1.schema.json",
+  "title": "omnigraph/ir/v1 InfrastructureIntent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "omnigraph/ir/v1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "InfrastructureIntent"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "labels": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["targets", "components", "relations"],
+      "properties": {
+        "targets": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/target" }
+        },
+        "components": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/component" }
+        },
+        "relations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/relation" }
+        },
+        "emitHints": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "backends": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "ansibleHost": { "type": "string" },
+        "labels": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "componentType"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "componentType": { "type": "string", "minLength": 1 },
+        "config": { "type": "object" }
+      }
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "relationType"],
+      "properties": {
+        "from": { "type": "string", "minLength": 1 },
+        "to": { "type": "string", "minLength": 1 },
+        "relationType": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

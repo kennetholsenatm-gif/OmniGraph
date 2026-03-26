@@ -13,6 +13,7 @@ The `omnigraph` binary ([`cmd/omnigraph`](../cmd/omnigraph)) orchestrates tools;
 | `omnigraph graph emit [path]` | Emit **omnigraph/graph/v1** JSON (`--plan-json`, `--tfstate` optional) |
 | `omnigraph run -- <cmd> [args]` | Local `os/exec` runner (dev/CI) |
 | `omnigraph netbox sync` | POST illustrative sync JSON to a webhook URL (`--url`, `--ip`, `--role`, `--action`) |
+| `omnigraph repo scan --path <dir>` | Walk a Git checkout and list IaC artifacts (state, `.tf`/`.tofu`, Ansible, schema); JSON on stdout |
 
 Secrets are not written to disk by design; see [ADR 003: Memory-only secrets](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/adr/003-memory-only-secrets.md).
 

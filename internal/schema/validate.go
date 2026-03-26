@@ -12,16 +12,32 @@ import (
 
 // ValidateOmniGraph checks instance (JSON-like map) against the embedded OmniGraph JSON Schema.
 func ValidateOmniGraph(instance map[string]any) error {
+	if instance == nil {
+		return fmt.Errorf("nil document")
+	}
+	// Round-trip through JSON so YAML-decoded integers/slices match what the schema expects (avoids jsonschema panics on mixed types).
+	norm, err := json.Marshal(instance)
+	if err != nil {
+		return fmt.Errorf("normalize document: %w", err)
+	}
+	var normalized map[string]any
+	if err := json.Unmarshal(norm, &normalized); err != nil {
+		return fmt.Errorf("normalize document: %w", err)
+	}
+	var schemaDoc map[string]any
+	if err := json.Unmarshal(schemas.OmniGraphSchemaJSON, &schemaDoc); err != nil {
+		return fmt.Errorf("parse embedded omnigraph schema: %w", err)
+	}
 	c := jsonschema.NewCompiler()
 	const resID = "https://github.com/kennetholsenatm-gif/omnigraph/schemas/omnigraph.schema.json"
-	if err := c.AddResource(resID, bytes.NewReader(schemas.OmniGraphSchemaJSON)); err != nil {
+	if err := c.AddResource(resID, schemaDoc); err != nil {
 		return fmt.Errorf("load schema resource: %w", err)
 	}
 	sch, err := c.Compile(resID)
 	if err != nil {
 		return fmt.Errorf("compile schema: %w", err)
 	}
-	if err := sch.Validate(instance); err != nil {
+	if err := sch.Validate(normalized); err != nil {
 		return fmt.Errorf("validate: %w", err)
 	}
 	return nil

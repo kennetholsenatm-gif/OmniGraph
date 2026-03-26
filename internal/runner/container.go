@@ -43,9 +43,10 @@ func (r ContainerRunner) Run(ctx context.Context, s Step) (*Result, error) {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err = cmd.Run()
+	secrets := secretValuesForStep(s)
 	res := &Result{
-		Stdout: stdout.Bytes(),
-		Stderr: stderr.Bytes(),
+		Stdout: Redact(stdout.Bytes(), secrets, nil),
+		Stderr: Redact(stderr.Bytes(), secrets, nil),
 	}
 	if err == nil {
 		res.ExitCode = 0

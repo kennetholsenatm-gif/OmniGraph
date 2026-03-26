@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kennetholsenatm-gif/omnigraph/schemas/inventory-source.v1.schema.json",
+  "title": "OmniGraphInventorySnapshot",
+  "description": "Normalized inventory snapshot from one or more CMDB/telemetry sources before merge (omnigraph/inventory-source/v1). See docs/inventory-sources.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": { "type": "string", "const": "omnigraph/inventory-source/v1" },
+    "kind": { "type": "string", "const": "InventorySnapshot" },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "source": {
+          "type": "string",
+          "description": "Upstream system identifier",
+          "enum": ["netbox", "netdisco", "zabbix", "prometheus", "manual", "merged"]
+        },
+        "sourceInstance": { "type": "string", "description": "e.g. netbox-prod, zabbix-site-a" },
+        "idempotencyKey": { "type": "string" }
+      },
+      "required": ["generatedAt", "source"]
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "records": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/inventoryRecord" }
+        }
+      },
+      "required": ["records"]
+    }
+  },
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "$defs": {
+    "inventoryRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable id within this source (e.g. NetBox device id as string)"
+        },
+        "recordType": {
+          "type": "string",
+          "enum": ["host", "vm", "container", "network_device", "interface", "port_attachment", "service_endpoint"]
+        },
+        "names": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Hostnames or device names"
+        },
+        "primaryIpv4": { "type": "string" },
+        "primaryIpv6": { "type": "string" },
+        "ansibleHost": {
+          "type": "string",
+          "description": "Suggested ansible_host when this record represents a managed endpoint"
+        },
+        "site": { "type": "string" },
+        "role": { "type": "string" },
+        "observedAt": { "type": "string", "format": "date-time" },
+        "confidence": {
+          "type": "string",
+          "enum": ["authoritative", "high", "medium", "low", "unknown"],
+          "description": "Importer-assigned; used during merge (see docs/inventory-sources.md)"
+        },
+        "liveness": {
+          "type": "string",
+          "enum": ["up", "down", "unknown", "not_applicable"],
+          "description": "From Zabbix/Prometheus when applicable"
+        },
+        "parentRef": {
+          "type": "string",
+          "description": "Foreign key within same snapshot (e.g. interface -> device id)"
+        },
+        "links": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Cross-source correlation hints, e.g. netboxDeviceId, zabbixHostId"
+        },
+        "attributes": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque vendor fields (rack, port, MAC, etc.)"
+        }
+      },
+      "required": ["id", "recordType", "confidence"]
+    }
+  }
+}

@@ -1,0 +1,312 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/kennetholsenatm-gif/omnigraph/schemas/pipeline.v1.schema.json",
+  "title": "OmniGraph Pipeline Definition",
+  "description": "Schema for defining CI/OT pipelines with stages, steps, triggers, and approvals",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "omnigraph/pipeline/v1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "Pipeline"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$",
+          "maxLength": 63
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "description": {
+          "type": "string"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["stages"],
+      "properties": {
+        "triggers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["webhook", "schedule", "manual", "event"]
+              },
+              "config": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "variables": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["string", "number", "boolean", "secret"]
+              },
+              "default": {},
+              "required": {
+                "type": "boolean",
+                "default": false
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/stage"
+          }
+        },
+        "notifications": {
+          "type": "object",
+          "properties": {
+            "onSuccess": {
+              "$ref": "#/definitions/notificationConfig"
+            },
+            "onFailure": {
+              "$ref": "#/definitions/notificationConfig"
+            },
+            "onApproval": {
+              "$ref": "#/definitions/notificationConfig"
+            }
+          }
+        },
+        "timeout": {
+          "type": "string",
+          "pattern": "^\\d+[smh]$"
+        },
+        "retryPolicy": {
+          "$ref": "#/definitions/retryPolicy"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "stage": {
+      "type": "object",
+      "required": ["name", "steps"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "description": {
+          "type": "string"
+        },
+        "dependsOn": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "type": "string",
+          "enum": ["standard", "approval", "parallel"],
+          "default": "standard"
+        },
+        "condition": {
+          "type": "string",
+          "description": "Expression to evaluate (e.g., variables.environment == 'production')"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/step"
+          }
+        },
+        "timeout": {
+          "type": "string",
+          "pattern": "^\\d+[smh]$"
+        },
+        "retryPolicy": {
+          "$ref": "#/definitions/retryPolicy"
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "description": {
+          "type": "string"
+        },
+        "run": {
+          "type": "string",
+          "description": "Command to execute"
+        },
+        "uses": {
+          "type": "string",
+          "description": "Reference to reusable action (e.g., actions/checkout@v4)"
+        },
+        "with": {
+          "type": "object",
+          "description": "Input parameters for the action"
+        },
+        "condition": {
+          "type": "string"
+        },
+        "timeout": {
+          "type": "string",
+          "pattern": "^\\d+[smh]$"
+        },
+        "retryPolicy": {
+          "$ref": "#/definitions/retryPolicy"
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "workingDirectory": {
+          "type": "string"
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "continueOnError": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "approvalConfig": {
+      "type": "object",
+      "properties": {
+        "approvers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["user", "team", "role"]
+              },
+              "id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "requiredApprovals": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "timeout": {
+          "type": "string",
+          "pattern": "^\\d+[smh]$",
+          "default": "24h"
+        }
+      }
+    },
+    "retryPolicy": {
+      "type": "object",
+      "properties": {
+        "maxAttempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 3
+        },
+        "backoff": {
+          "type": "string",
+          "enum": ["fixed", "exponential"],
+          "default": "exponential"
+        },
+        "initialDelay": {
+          "type": "string",
+          "pattern": "^\\d+[smh]$",
+          "default": "1s"
+        },
+        "maxDelay": {
+          "type": "string",
+          "pattern": "^\\d+[smh]$",
+          "default": "5m"
+        }
+      }
+    },
+    "notificationConfig": {
+      "type": "object",
+      "properties": {
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["slack", "teams", "email", "webhook", "pagerduty"]
+              },
+              "config": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kennetholsenatm-gif/omnigraph/schemas/run.v1.schema.json",
+  "title": "OmniGraphPipelineRun",
+  "description": "Ordered execution timeline for multi-step pipelines (omnigraph/run/v1). CI emits; web UI renders Semaphore/AWX-style timeline. See docs/run-v1.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": { "type": "string", "const": "omnigraph/run/v1" },
+    "kind": { "type": "string", "const": "PipelineRun" },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "runId": { "type": "string", "minLength": 1 },
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "completedAt": { "type": "string", "format": "date-time" },
+        "repository": { "type": "string", "description": "Clone URL or slug, e.g. git@github.com:org/repo.git" },
+        "ref": { "type": "string", "description": "Branch or tag name" },
+        "sha": { "type": "string", "minLength": 7, "maxLength": 64 },
+        "actor": { "type": "string", "description": "CI actor or username" },
+        "event": { "type": "string", "description": "e.g. pull_request, push, manual" },
+        "pullRequest": { "type": "string", "description": "PR number or URL when applicable" },
+        "environment": { "type": "string" },
+        "labels": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "required": ["runId", "generatedAt"]
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "overallStatus": {
+          "type": "string",
+          "enum": ["pending", "running", "succeeded", "failed", "cancelled", "unknown"]
+        },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/step" }
+        },
+        "artifactsRoot": {
+          "type": "string",
+          "description": "Base URI or path for relative artifact refs (CI upload root)"
+        }
+      },
+      "required": ["steps", "overallStatus"]
+    }
+  },
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "$defs": {
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string" },
+        "plugin": {
+          "type": "string",
+          "description": "Logical executor: validate, coerce, opentofu, ansible, pulumi, packer, container, script",
+          "enum": [
+            "validate",
+            "coerce",
+            "opentofu",
+            "terraform",
+            "ansible",
+            "pulumi",
+            "packer",
+            "container",
+            "script",
+            "custom"
+          ]
+        },
+        "phase": {
+          "type": "string",
+          "description": "High-level lifecycle bucket for UI grouping",
+          "enum": ["preflight", "plan", "apply", "post_apply", "notify", "other"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "running", "succeeded", "failed", "skipped", "cancelled"]
+        },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "completedAt": { "type": "string", "format": "date-time" },
+        "exitCode": { "type": "integer" },
+        "summary": { "type": "string" },
+        "detail": { "type": "string", "description": "Short stderr tail or error message; full logs via logRef" },
+        "logRef": { "type": "string", "description": "URI or artifact path to full stdout/stderr" },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Opaque inputs (paths, env keys only, not secret values)"
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string" },
+              "mediaType": { "type": "string" },
+              "ref": { "type": "string", "description": "Relative to artifactsRoot or absolute URI" }
+            },
+            "required": ["name", "ref"]
+          }
+        }
+      },
+      "required": ["id", "plugin", "phase", "status"]
+    }
+  }
+}

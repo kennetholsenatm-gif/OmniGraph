@@ -1,0 +1,227 @@
+{
+  "apiVersion": "omnigraph/pipeline/v1",
+  "kind": "Pipeline",
+  "metadata": {
+    "name": "deploy-infrastructure",
+    "version": "1.0.0",
+    "description": "Deploy infrastructure with OpenTofu and configure with Ansible",
+    "labels": {
+      "team": "platform",
+      "environment": "production"
+    }
+  },
+  "spec": {
+    "triggers": [
+      {
+        "type": "webhook",
+        "config": {
+          "source": "github",
+          "events": ["push", "pull_request"]
+        }
+      },
+      {
+        "type": "schedule",
+        "config": {
+          "cron": "0 2 * * *"
+        }
+      }
+    ],
+    "variables": {
+      "environment": {
+        "type": "string",
+        "default": "staging",
+        "required": true,
+        "description": "Target environment"
+      },
+      "region": {
+        "type": "string",
+        "default": "us-west-2",
+        "required": false,
+        "description": "AWS region"
+      },
+      "auto_approve": {
+        "type": "boolean",
+        "default": false,
+        "required": false,
+        "description": "Auto-approve apply stage"
+      }
+    },
+    "stages": [
+      {
+        "name": "validate",
+        "description": "Validate configuration and schemas",
+        "steps": [
+          {
+            "name": "schema-check",
+            "description": "Validate OmniGraph schema",
+            "run": "omnigraph validate .omnigraph.schema"
+          },
+          {
+            "name": "terraform-fmt",
+            "description": "Check Terraform formatting",
+            "run": "tofu fmt -check -recursive"
+          },
+          {
+            "name": "security-scan",
+            "description": "Run security scanning",
+            "run": "omnigraph security scan --output security.json"
+          }
+        ],
+        "timeout": "5m"
+      },
+      {
+        "name": "plan",
+        "description": "Generate infrastructure plan",
+        "dependsOn": ["validate"],
+        "steps": [
+          {
+            "name": "tofu-plan",
+            "description": "Generate OpenTofu plan",
+            "run": "omnigraph orchestrate --skip-ansible --plan-file tfplan",
+            "artifacts": [
+              {
+                "path": "tfplan",
+                "name": "terraform-plan"
+              },
+              {
+                "path": "graph.json",
+                "name": "dependency-graph"
+              }
+            ]
+          },
+          {
+            "name": "cost-estimate",
+            "description": "Estimate infrastructure costs",
+            "run": "infracost breakdown --path . --format json > cost.json",
+            "continueOnError": true
+          }
+        ],
+        "timeout": "10m"
+      },
+      {
+        "name": "approve",
+        "description": "Manual approval for production deployment",
+        "type": "approval",
+        "dependsOn": ["plan"],
+        "condition": "variables.environment == 'production'",
+        "steps": [
+          {
+            "name": "notify-approvers",
+            "description": "Notify approval team",
+            "run": "omnigraph notify --channel slack --message 'Deployment awaiting approval'"
+          }
+        ],
+        "timeout": "24h"
+      },
+      {
+        "name": "apply",
+        "description": "Apply infrastructure changes",
+        "dependsOn": ["approve"],
+        "steps": [
+          {
+            "name": "tofu-apply",
+            "description": "Apply OpenTofu plan",
+            "run": "omnigraph orchestrate --auto-approve",
+            "environment": {
+              "TF_VAR_environment": "${variables.environment}",
+              "TF_VAR_region": "${variables.region}"
+            }
+          },
+          {
+            "name": "verify-deployment",
+            "description": "Verify deployment success",
+            "run": "omnigraph state diff --expected graph.json"
+          }
+        ],
+        "timeout": "30m",
+        "artifacts": [
+          {
+            "path": "terraform.tfstate",
+            "name": "terraform-state"
+          }
+        ]
+      },
+      {
+        "name": "configure",
+        "description": "Configure instances with Ansible",
+        "dependsOn": ["apply"],
+        "steps": [
+          {
+            "name": "ansible-playbook",
+            "description": "Run Ansible configuration",
+            "run": "omnigraph orchestrate --skip-tofu"
+          },
+          {
+            "name": "health-check",
+            "description": "Verify service health",
+            "run": "curl -f http://localhost:8080/health || exit 1"
+          }
+        ],
+        "timeout": "15m"
+      },
+      {
+        "name": "notify",
+        "description": "Send deployment notifications",
+        "dependsOn": ["configure"],
+        "steps": [
+          {
+            "name": "success-notification",
+            "description": "Notify successful deployment",
+            "run": "omnigraph notify --channel slack --message 'Deployment completed successfully'"
+          },
+          {
+            "name": "update-cmdb",
+            "description": "Update CMDB with new resources",
+            "run": "omnigraph netbox sync --action upsert"
+          }
+        ]
+      }
+    ],
+    "notifications": {
+      "onSuccess": {
+        "channels": [
+          {
+            "type": "slack",
+            "config": {
+              "webhook": "${SLACK_WEBHOOK_URL}",
+              "channel": "#deployments"
+            }
+          },
+          {
+            "type": "email",
+            "config": {
+              "to": "team@example.com",
+              "subject": "Deployment Successful"
+            }
+          }
+        ],
+        "message": "Pipeline ${pipeline.name} completed successfully"
+      },
+      "onFailure": {
+        "channels": [
+          {
+            "type": "slack",
+            "config": {
+              "webhook": "${SLACK_WEBHOOK_URL}",
+              "channel": "#alerts"
+            }
+          },
+          {
+            "type": "pagerduty",
+            "config": {
+              "serviceKey": "${PAGERDUTY_SERVICE_KEY}"
+            }
+          }
+        ],
+        "message": "Pipeline ${pipeline.name} failed: ${error}"
+      }
+    },
+    "timeout": "1h",
+    "retryPolicy": {
+      "maxAttempts": 3,
+      "backoff": "exponential",
+      "initialDelay": "5s",
+      "maxDelay": "5m"
+    }
+  }
+}

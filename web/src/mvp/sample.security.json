@@ -1,0 +1,46 @@
+{
+  "apiVersion": "omnigraph/security/v1",
+  "kind": "SecurityScan",
+  "metadata": {
+    "generatedAt": "2026-03-22T12:00:00Z",
+    "target": "localhost",
+    "transport": "local",
+    "profile": "quick",
+    "disclaimer": "Authorized security validation only. Misuse may be unlawful."
+  },
+  "spec": {
+    "summary": {
+      "modulesRun": 2,
+      "vulnerable": 0,
+      "notVulnerable": 2,
+      "errors": 0,
+      "notApplicable": 0
+    },
+    "results": [
+      {
+        "moduleId": "T1082_system_info",
+        "techniqueId": "T1082",
+        "techniqueName": "System Information Discovery",
+        "tactic": "discovery",
+        "severity": "info",
+        "status": "not_vulnerable",
+        "summary": "Kernel identity collected for baseline (expected on scanned host)",
+        "evidence": "Linux example 6.0.0",
+        "remediation": "Restrict unnecessary exposure of kernel/build details where policy requires.",
+        "complianceTags": ["baseline"]
+      },
+      {
+        "moduleId": "sysctl_aslr",
+        "techniqueId": "T1068",
+        "techniqueName": "Exploitation for Privilege Escalation",
+        "tactic": "privilege_escalation",
+        "severity": "medium",
+        "status": "not_vulnerable",
+        "summary": "ASLR enabled (randomize_va_space=2)",
+        "evidence": "2",
+        "remediation": "Keep kernel.randomize_va_space=2 via sysctl.d.",
+        "complianceTags": ["cis", "stig"]
+      }
+    ]
+  }
+}

@@ -14,6 +14,13 @@ make wasm-hcldiag
 
 **CI** builds the wasm artifact in the `go` job and passes it to the `web` job via GitHub Actions artifacts.
 
+The same module also exports:
+
+- **`omnigraphHclStructureLint`**: a tiny **tflint-style heuristic** (warn when `resource` blocks exist without a `terraform {}` block).
+- **`omnigraphTfPatternLint`**: plaintext **secret-pattern** findings implemented in [`wasm/tfpattern`](./tfpattern) (quoted `password` / `api_key`-style literals, `AKIA…` ids). This is a **checkov-style subset** spike; rules are unit-tested in that module.
+
+The UI shares one Wasm binary and `wasm_exec.js` runtime—`tfpattern` is a separate Go package linked into `hcldiag` to avoid loading two Go Wasm programs in the same page.
+
 ## Roadmap artifacts
 
 | Artifact | Source ecosystem | Purpose |

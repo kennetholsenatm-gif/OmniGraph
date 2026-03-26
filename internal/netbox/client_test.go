@@ -38,6 +38,26 @@ func TestClient_PostWebhook(t *testing.T) {
 	}
 }
 
+func TestClient_PostJSON_Header(t *testing.T) {
+	var gotKey string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotKey = r.Header.Get("X-Omnigraph-Idempotency-Key")
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+	c := &Client{HTTPClient: srv.Client()}
+	body := []byte(`{"apiVersion":"omnigraph/netbox-sync/v1","action":"create","ip":"10.0.0.1"}`)
+	err := c.PostJSON(context.Background(), srv.URL, body, map[string]string{
+		"X-Omnigraph-Idempotency-Key": "k-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotKey != "k-1" {
+		t.Fatalf("header %q", gotKey)
+	}
+}
+
 func TestClient_PostWebhook_ErrorStatus(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "nope", http.StatusBadRequest)

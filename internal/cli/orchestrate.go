@@ -37,7 +37,8 @@ Secrets must be passed via environment variables only (ADR 003); use your shell 
 
 	cmd.Flags().StringVar(&o.Workdir, "workdir", "", "OpenTofu/Terraform root (required)")
 	cmd.Flags().StringVar(&o.SchemaPath, "schema", ".omnigraph.schema", "path to .omnigraph.schema (relative to --workdir if not absolute)")
-	cmd.Flags().StringVar(&o.Playbook, "playbook", "", "Ansible playbook path relative to --workdir (required unless --skip-ansible)")
+	cmd.Flags().StringVar(&o.AnsibleRoot, "ansible-root", "", "Ansible checkout root; when set, --playbook is relative to this directory (or absolute under it). Optional.")
+	cmd.Flags().StringVar(&o.Playbook, "playbook", "", "Ansible playbook path: relative to --workdir, or to --ansible-root when set, or absolute under that root (required unless --skip-ansible)")
 	cmd.Flags().StringVar(&o.TFBinary, "tf-binary", "tofu", "terraform or tofu binary name (exec) or first container argv token")
 	cmd.Flags().StringVar(&o.PlanFile, "plan-file", "tfplan", "plan file name relative to --workdir")
 	cmd.Flags().StringVar(&o.StateFile, "state-file", "terraform.tfstate", "state file relative to --workdir")
@@ -45,8 +46,11 @@ Secrets must be passed via environment variables only (ADR 003); use your shell 
 	cmd.Flags().StringVar(&containerRuntime, "container-runtime", "", "docker or podman (default: first found on PATH)")
 	cmd.Flags().StringVar(&o.TofuImage, "tofu-image", "", "override OpenTofu/Terraform image (container runner)")
 	cmd.Flags().StringVar(&o.AnsibleImage, "ansible-image", "", "override Ansible image (container runner)")
+	cmd.Flags().StringVar(&o.PulumiImage, "pulumi-image", "", "override Pulumi image when iac-engine=pulumi is implemented (default "+orchestrate.DefaultPulumiImage+")")
 	cmd.Flags().BoolVar(&o.AutoApprove, "auto-approve", false, "skip interactive apply confirmation (required when stdin is not a TTY)")
 	cmd.Flags().StringVar(&o.GraphOut, "graph-out", "", "write final omnigraph/graph/v1 JSON to this path")
+	cmd.Flags().StringVar(&o.TelemetryFile, "telemetry-file", "", "merge omnigraph/telemetry/v1 JSON into --graph-out (path relative to --workdir if not absolute)")
+	cmd.Flags().StringVar(&o.IACEngine, "iac-engine", "", "tofu (default) or pulumi (stub — returns not implemented)")
 	cmd.Flags().BoolVar(&o.SkipAnsible, "skip-ansible", false, "skip ansible-playbook steps (e.g. tofu-only workspaces)")
 	_ = cmd.MarkFlagRequired("workdir")
 

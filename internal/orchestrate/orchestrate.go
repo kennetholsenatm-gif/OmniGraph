@@ -24,13 +24,16 @@ import (
 const (
 	DefaultTofuImage    = "ghcr.io/opentofu/opentofu:1.8"
 	DefaultAnsibleImage = "cytopia/ansible:latest"
+	DefaultPulumiImage  = "pulumi/pulumi:latest"
 )
 
 // Options configures the magic-handoff pipeline (plan → check → approve → apply → Ansible).
 type Options struct {
 	Workdir   string
 	SchemaPath string // default .omnigraph.schema; joined with Workdir if not absolute
-	Playbook  string // relative to Workdir (required unless SkipAnsible)
+	Playbook  string // relative to Workdir, or to AnsibleRoot if set, or absolute under that root (required unless SkipAnsible)
+	// AnsibleRoot is an optional second checkout; when set, Playbook is resolved under this directory and container runner mounts it at /ansible.
+	AnsibleRoot string
 	TFBinary  string // tofu or terraform (exec PATH; container argv[0])
 	PlanFile  string // relative to Workdir, default tfplan
 	StateFile string // relative to Workdir, default terraform.tfstate
@@ -39,18 +42,37 @@ type Options struct {
 	ContainerRuntime string // docker or podman; empty = runner.DetectContainerRuntime()
 	TofuImage        string
 	AnsibleImage     string
+	// PulumiImage is used when --iac-engine=pulumi is wired to container steps (default: DefaultPulumiImage).
+	PulumiImage string
 
 	AutoApprove bool
 	GraphOut    string
+	// TelemetryFile merges omnigraph/telemetry/v1 nodes/edges into graph output when GraphOut is set.
+	TelemetryFile string
 
 	// SkipAnsible skips ansible-playbook steps (tests / tofu-only workspaces).
 	SkipAnsible bool
+
+	// IACEngine selects the infrastructure CLI family (only tofu is implemented).
+	IACEngine string // tofu (default) or pulumi (stub)
 }
 
 // Run executes validate → coerce → tofu plan → show json → inventory + ansible check → approve → apply → ansible apply.
 func Run(ctx context.Context, r runner.Runner, o Options, log func(phase, detail string)) error {
 	if log == nil {
 		log = func(_, _ string) {}
+	}
+	engine := strings.ToLower(strings.TrimSpace(o.IACEngine))
+	if engine == "" {
+		engine = "tofu"
+	}
+	switch engine {
+	case "tofu":
+		// OpenTofu/Terraform argv path below.
+	case "pulumi":
+		return fmt.Errorf("orchestrate: --iac-engine=pulumi is not implemented yet; use tofu, or run Pulumi via ContainerRunner (see docs/execution-matrix.md); default image when wired: %s", o.pulumiImage())
+	default:
+		return fmt.Errorf("orchestrate: unknown --iac-engine=%q (supported: tofu)", engine)
 	}
 	if o.Workdir == "" {
 		return fmt.Errorf("orchestrate: Workdir is required")
@@ -62,6 +84,14 @@ func Run(ctx context.Context, r runner.Runner, o Options, log func(phase, detail
 	if o.Playbook == "" && !o.SkipAnsible {
 		return fmt.Errorf("orchestrate: Playbook is required (or set SkipAnsible)")
 	}
+	ansibleRootArg := strings.TrimSpace(o.AnsibleRoot)
+	var ansibleAbs string
+	if ansibleRootArg != "" {
+		ansibleAbs, err = filepath.Abs(ansibleRootArg)
+		if err != nil {
+			return fmt.Errorf("orchestrate: ansible-root: %w", err)
+		}
+	}
 	schemaPath := o.SchemaPath
 	if schemaPath == "" {
 		schemaPath = ".omnigraph.schema"
@@ -69,10 +99,25 @@ func Run(ctx context.Context, r runner.Runner, o Options, log func(phase, detail
 	if !filepath.IsAbs(schemaPath) {
 		schemaPath = filepath.Join(workAbs, schemaPath)
 	}
-	playRel := o.Playbook
-	playHost := playRel
-	if !filepath.IsAbs(playRel) {
-		playHost = filepath.Join(workAbs, playRel)
+	playRel := strings.TrimSpace(o.Playbook)
+	var playHost string
+	if !o.SkipAnsible {
+		if ansibleAbs != "" {
+			if filepath.IsAbs(playRel) {
+				playHost = filepath.Clean(playRel)
+				relAP, err := filepath.Rel(ansibleAbs, playHost)
+				if err != nil || strings.HasPrefix(relAP, "..") {
+					return fmt.Errorf("orchestrate: playbook %q must be under --ansible-root %q", playRel, ansibleRootArg)
+				}
+			} else {
+				playHost = filepath.Join(ansibleAbs, filepath.FromSlash(playRel))
+			}
+		} else {
+			playHost = playRel
+			if !filepath.IsAbs(playHost) {
+				playHost = filepath.Join(workAbs, playRel)
+			}
+		}
 	}
 	planRel := o.PlanFile
 	if planRel == "" {
@@ -115,7 +160,7 @@ func Run(ctx context.Context, r runner.Runner, o Options, log func(phase, detail
 
 	// --- tofu plan ---
 	planArgv := []string{tfBin, "plan", "-out", hostOrContainerPath(runnerKind, planRel)}
-	sPlan := o.step("tofu-plan", planArgv, env, workAbs)
+	sPlan := o.step("tofu-plan", planArgv, env, workAbs, "")
 	log("plan", strings.Join(planArgv, " "))
 	res, err := r.Run(ctx, sPlan)
 	if err != nil {
@@ -127,7 +172,7 @@ func Run(ctx context.Context, r runner.Runner, o Options, log func(phase, detail
 
 	// --- tofu show -json ---
 	showArgv := []string{tfBin, "show", "-json", hostOrContainerPath(runnerKind, planRel)}
-	sShow := o.step("tofu-show", showArgv, env, workAbs)
+	sShow := o.step("tofu-show", showArgv, env, workAbs, "")
 	log("plan-json", strings.Join(showArgv, " "))
 	res, err = r.Run(ctx, sShow)
 	if err != nil {
@@ -159,10 +204,10 @@ func Run(ctx context.Context, r runner.Runner, o Options, log func(phase, detail
 		av := []string{"ansible-playbook", "--check", "-i", invArg, playArg}
 		if runnerKind == "container" {
 			invArg = pathpkg.Join("/workspace", filepath.Base(invCheck))
-			playArg = pathpkg.Join("/workspace", filepath.ToSlash(playRel))
+			playArg = containerAnsiblePlaybookPath(workAbs, ansibleAbs, playHost, playRel, runnerKind)
 			av = []string{"ansible-playbook", "--check", "-i", invArg, playArg}
 		}
-		sAns := o.step("ansible-check", av, env, workAbs)
+		sAns := o.step("ansible-check", av, env, workAbs, ansibleAbs)
 		log("ansible-check", strings.Join(av, " "))
 		res, err = r.Run(ctx, sAns)
 		if err != nil {
@@ -181,7 +226,7 @@ func Run(ctx context.Context, r runner.Runner, o Options, log func(phase, detail
 	if runnerKind == "container" {
 		applyArgv = []string{tfBin, "apply", "-auto-approve", pathpkg.Join("/workspace", filepath.ToSlash(planRel))}
 	}
-	sApply := o.step("tofu-apply", applyArgv, env, workAbs)
+	sApply := o.step("tofu-apply", applyArgv, env, workAbs, "")
 	log("apply", strings.Join(applyArgv, " "))
 	res, err = r.Run(ctx, sApply)
 	if err != nil {
@@ -208,10 +253,10 @@ func Run(ctx context.Context, r runner.Runner, o Options, log func(phase, detail
 		av := []string{"ansible-playbook", "-i", invArg, playArg}
 		if runnerKind == "container" {
 			invArg = pathpkg.Join("/workspace", filepath.Base(invApply))
-			playArg = pathpkg.Join("/workspace", filepath.ToSlash(playRel))
+			playArg = containerAnsiblePlaybookPath(workAbs, ansibleAbs, playHost, playRel, runnerKind)
 			av = []string{"ansible-playbook", "-i", invArg, playArg}
 		}
-		sAns := o.step("ansible-apply", av, env, workAbs)
+		sAns := o.step("ansible-apply", av, env, workAbs, ansibleAbs)
 		log("ansible-apply", strings.Join(av, " "))
 		res, err = r.Run(ctx, sAns)
 		if err != nil {
@@ -223,9 +268,14 @@ func Run(ctx context.Context, r runner.Runner, o Options, log func(phase, detail
 	}
 
 	if o.GraphOut != "" {
+		telemetryPath := o.TelemetryFile
+		if telemetryPath != "" && !filepath.IsAbs(telemetryPath) {
+			telemetryPath = filepath.Join(workAbs, telemetryPath)
+		}
 		gopts := graph.EmitOptions{
 			PlanJSONPath:   planJSONHost,
 			TerraformState: st,
+			TelemetryPath:  telemetryPath,
 		}
 		gdoc, err := graph.Emit(doc, art, gopts)
 		if err != nil {
@@ -251,6 +301,28 @@ func Run(ctx context.Context, r runner.Runner, o Options, log func(phase, detail
 	}
 
 	return nil
+}
+
+// containerAnsiblePlaybookPath returns the playbook path to pass inside the Ansible container.
+func containerAnsiblePlaybookPath(workAbs, ansibleAbs, playHost, playRel, runnerKind string) string {
+	if runnerKind != "container" {
+		return playHost
+	}
+	if ansibleAbs != "" {
+		rel, err := filepath.Rel(ansibleAbs, playHost)
+		if err != nil {
+			return pathpkg.Join("/ansible", filepath.ToSlash(playRel))
+		}
+		return pathpkg.Join("/ansible", filepath.ToSlash(rel))
+	}
+	if filepath.IsAbs(playRel) {
+		rel, err := filepath.Rel(workAbs, playHost)
+		if err != nil || strings.HasPrefix(rel, "..") {
+			return pathpkg.Join("/workspace", filepath.ToSlash(playRel))
+		}
+		return pathpkg.Join("/workspace", filepath.ToSlash(rel))
+	}
+	return pathpkg.Join("/workspace", filepath.ToSlash(playRel))
 }
 
 func hostOrContainerPath(runnerKind, rel string) string {
@@ -297,7 +369,7 @@ func confirmApply(auto bool) error {
 	return fmt.Errorf("orchestrate: apply cancelled")
 }
 
-func (o *Options) step(name string, argv []string, env map[string]string, workAbs string) runner.Step {
+func (o *Options) step(name string, argv []string, env map[string]string, workAbs, ansibleHostAbs string) runner.Step {
 	kind := strings.ToLower(strings.TrimSpace(o.Runner))
 	if kind == "" {
 		kind = "exec"
@@ -314,13 +386,17 @@ func (o *Options) step(name string, argv []string, env map[string]string, workAb
 	if rt == "" {
 		rt = "docker"
 	}
-	img := o.tofuImage(name)
+	img := o.tofuImage()
 	if strings.HasPrefix(name, "ansible") {
 		img = o.ansibleImage()
 	}
 	s.ContainerImage = img
 	s.ContainerWorkdir = "/workspace"
-	s.Mounts = []runner.VolumeMount{{HostPath: workAbs, ContainerPath: "/workspace", ReadOnly: false}}
+	mounts := []runner.VolumeMount{{HostPath: workAbs, ContainerPath: "/workspace", ReadOnly: false}}
+	if ansibleHostAbs != "" && strings.HasPrefix(name, "ansible") {
+		mounts = append(mounts, runner.VolumeMount{HostPath: ansibleHostAbs, ContainerPath: "/ansible", ReadOnly: false})
+	}
+	s.Mounts = mounts
 	return s
 }
 
@@ -336,4 +412,11 @@ func (o *Options) ansibleImage() string {
 		return o.AnsibleImage
 	}
 	return DefaultAnsibleImage
+}
+
+func (o *Options) pulumiImage() string {
+	if o.PulumiImage != "" {
+		return o.PulumiImage
+	}
+	return DefaultPulumiImage
 }

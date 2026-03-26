@@ -1,7 +1,6 @@
 package graph
 
 import (
-	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -10,6 +9,7 @@ import (
 	"github.com/kennetholsenatm-gif/omnigraph/internal/coerce"
 	"github.com/kennetholsenatm-gif/omnigraph/internal/project"
 	"github.com/kennetholsenatm-gif/omnigraph/internal/schema"
+	"github.com/kennetholsenatm-gif/omnigraph/internal/security"
 	"github.com/kennetholsenatm-gif/omnigraph/internal/state"
 	"github.com/kennetholsenatm-gif/omnigraph/schemas"
 	"github.com/santhosh-tekuri/jsonschema/v6"
@@ -40,9 +40,11 @@ func TestEmit_ConformsToGraphSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 	planPath := filepath.Join(root, "internal", "plan", "testdata", "minimal-plan.json")
+	telemetryPath := filepath.Join(root, "testdata", "sample.telemetry.json")
 	gdoc, err := Emit(doc, art, EmitOptions{
 		PlanJSONPath:   planPath,
 		TerraformState: st,
+		TelemetryPath:  telemetryPath,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -51,9 +53,13 @@ func TestEmit_ConformsToGraphSchema(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	var graphSchema map[string]any
+	if err := json.Unmarshal(schemas.GraphV1SchemaJSON, &graphSchema); err != nil {
+		t.Fatal(err)
+	}
 	c := jsonschema.NewCompiler()
 	const graphID = "https://github.com/kennetholsenatm-gif/omnigraph/schemas/graph.v1.schema.json"
-	if err := c.AddResource(graphID, bytes.NewReader(schemas.GraphV1SchemaJSON)); err != nil {
+	if err := c.AddResource(graphID, graphSchema); err != nil {
 		t.Fatal(err)
 	}
 	sch, err := c.Compile(graphID)
@@ -66,5 +72,35 @@ func TestEmit_ConformsToGraphSchema(t *testing.T) {
 	}
 	if err := sch.Validate(instance); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestMergeSecurity(t *testing.T) {
+	g := &Document{
+		APIVersion: apiVersion,
+		Kind:       kind,
+		Metadata:   Metadata{GeneratedAt: "now"},
+		Spec: GraphSpec{
+			Nodes: []Node{
+				{ID: "h1", Kind: "host", Label: "app", State: "live", Attributes: map[string]any{"ansible_host": "10.0.0.5"}},
+			},
+		},
+	}
+	sec, err := security.LoadDocument(filepath.Join("..", "..", "testdata", "sample.security.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sec.Metadata.AnsibleHost = "10.0.0.5"
+	MergeSecurity(g, sec)
+	attr := g.Spec.Nodes[0].Attributes
+	if attr == nil {
+		t.Fatal("no attributes")
+	}
+	sp, ok := attr["securityPosture"].(map[string]any)
+	if !ok {
+		t.Fatalf("securityPosture missing: %#v", attr["securityPosture"])
+	}
+	if _, ok := sp["generatedAt"]; !ok {
+		t.Fatalf("payload: %+v", sp)
 	}
 }

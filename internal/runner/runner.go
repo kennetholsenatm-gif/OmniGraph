@@ -26,6 +26,9 @@ type Step struct {
 	ContainerWorkdir string // path inside container, default /workspace
 	Mounts           []VolumeMount
 	ReadOnlyRootFS   bool
+
+	// RedactExtra lists additional substrings to redact from stdout/stderr (values not present in Env).
+	RedactExtra []string
 }
 
 // Result captures process output and exit status.

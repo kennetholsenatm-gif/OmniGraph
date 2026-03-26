@@ -18,12 +18,20 @@
         "label": "aws_instance.web",
         "state": "planned",
         "attributes": { "ansible_host": "10.0.5.99" }
+      },
+      {
+        "id": "tel-nb-demo",
+        "kind": "telemetry",
+        "label": "NetBox: edge-router",
+        "state": "gray",
+        "attributes": { "source": "netbox", "ip": "10.0.0.1" }
       }
     ],
     "edges": [
       { "from": "project", "to": "tf", "kind": "provisions" },
       { "from": "tf", "to": "ansible", "kind": "configures" },
-      { "from": "tf", "to": "planned-aws_instance_web", "kind": "creates" }
+      { "from": "tf", "to": "planned-aws_instance_web", "kind": "creates" },
+      { "from": "tel-nb-demo", "to": "tf", "kind": "context" }
     ],
     "phases": [
       { "name": "validate", "status": "ok" },

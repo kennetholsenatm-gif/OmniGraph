@@ -1,0 +1,18 @@
+{
+  "apiVersion": "omnigraph/telemetry/v1",
+  "nodes": [
+    {
+      "id": "tel-nb-core",
+      "kind": "telemetry",
+      "label": "NetBox: core-switch",
+      "state": "gray",
+      "attributes": {
+        "source": "netbox",
+        "ip": "10.0.0.1"
+      }
+    }
+  ],
+  "edges": [
+    { "from": "tel-nb-core", "to": "tf", "kind": "context" }
+  ]
+}

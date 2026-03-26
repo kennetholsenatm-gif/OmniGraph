@@ -38,6 +38,11 @@ func FromStateFile(path string) (string, error) {
 	return BuildINI(state.ExtractHosts(st)), nil
 }
 
+// SanitizeHostKey normalizes a logical host name for Ansible INI keys (same rules as BuildINI).
+func SanitizeHostKey(name string) string {
+	return sanitizeName(name)
+}
+
 func sanitizeName(name string) string {
 	// Ansible host names should be simple identifiers; mangle addresses.
 	s := strings.Map(func(r rune) rune {

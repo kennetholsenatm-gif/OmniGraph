@@ -1,0 +1,362 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kennetholsenatm-gif/omnigraph/schemas/compute-instance.v1.schema.json",
+  "title": "ComputeInstance",
+  "description": "Declarative definition for Incus compute instances (containers or virtual machines)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "omnigraph.io/v1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "ComputeInstance"
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    },
+    "spec": {
+      "$ref": "#/$defs/spec"
+    },
+    "status": {
+      "$ref": "#/$defs/status"
+    }
+  },
+  "$defs": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$",
+          "maxLength": 63
+        },
+        "namespace": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$",
+          "maxLength": 63
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "type", "source"],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["incus", "lxd", "incusos"]
+        },
+        "type": {
+          "type": "string",
+          "enum": ["container", "virtual-machine"]
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Instance configuration options (limits, security, etc.)"
+        },
+        "devices": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/device"
+          }
+        },
+        "profiles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "state": {
+          "type": "string",
+          "enum": ["running", "stopped", "frozen"],
+          "default": "running"
+        },
+        "ephemeral": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "server": {
+          "type": "string",
+          "format": "uri",
+          "description": "Remote image server URL"
+        },
+        "protocol": {
+          "type": "string",
+          "enum": ["simplestreams", "lxd"],
+          "default": "simplestreams"
+        },
+        "alias": {
+          "type": "string",
+          "description": "Image alias (e.g., ubuntu/22.04, alpine/edge)"
+        },
+        "fingerprint": {
+          "type": "string",
+          "description": "Image fingerprint"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["image", "migration", "copy"],
+          "default": "image"
+        }
+      }
+    },
+    "device": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["nic", "disk", "proxy", "unix-char", "unix-block", "gpu", "usb", "pci"]
+        },
+        "name": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "string"
+        },
+        "nictype": {
+          "type": "string",
+          "enum": ["bridged", "macvlan", "sriov", "physical", "ovn"]
+        },
+        "path": {
+          "type": "string"
+        },
+        "pool": {
+          "type": "string"
+        },
+        "size": {
+          "type": "string",
+          "pattern": "^[0-9]+[KMGTP]i?$"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "observedGeneration": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state": {
+          "type": "string",
+          "enum": ["running", "stopped", "frozen", "error", "unknown"]
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/condition"
+          }
+        },
+        "resources": {
+          "$ref": "#/$defs/resourceUsage"
+        },
+        "reconciliation": {
+          "$ref": "#/$defs/reconciliationStatus"
+        },
+        "provider": {
+          "$ref": "#/$defs/providerStatus"
+        },
+        "instance": {
+          "$ref": "#/$defs/instanceDetails"
+        }
+      }
+    },
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "status", "lastTransitionTime"],
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["True", "False", "Unknown"]
+        },
+        "lastTransitionTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "resourceUsage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cpu": {
+          "$ref": "#/$defs/resourceMetric"
+        },
+        "memory": {
+          "$ref": "#/$defs/resourceMetric"
+        },
+        "storage": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/resourceMetric"
+          }
+        }
+      }
+    },
+    "resourceMetric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["used", "limit"],
+      "properties": {
+        "used": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "string"
+        }
+      }
+    },
+    "reconciliationStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lastAttempt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastSuccess": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastFailure": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "consecutiveSuccesses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "consecutiveFailures": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lastError": {
+          "type": "string"
+        }
+      }
+    },
+    "providerStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "addresses": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "architecture": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "instanceDetails": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "ipv4": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "ipv4"
+          }
+        },
+        "ipv6": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "ipv6"
+          }
+        },
+        "architecture": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "location": {
+          "type": "string"
+        },
+        "project": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

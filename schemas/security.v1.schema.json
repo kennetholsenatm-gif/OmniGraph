@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kennetholsenatm-gif/omnigraph/schemas/security.v1.schema.json",
+  "title": "OmniGraphSecurityScan",
+  "description": "Versioned security posture scan artifact (omnigraph/security/v1). Merge summaries into omnigraph/graph/v1 host node attributes under securityPosture.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "omnigraph/security/v1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "SecurityScan"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "generatedAt": { "type": "string" },
+        "target": { "type": "string", "description": "Host label or display name for the scan" },
+        "ansibleHost": { "type": "string", "description": "When set, graph merge matches graph host attributes.ansible_host to this value" },
+        "transport": { "type": "string", "description": "e.g. local, ssh" },
+        "profile": { "type": "string" },
+        "disclaimer": { "type": "string" }
+      },
+      "required": ["generatedAt"]
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "modulesRun": { "type": "integer", "minimum": 0 },
+            "vulnerable": { "type": "integer", "minimum": 0 },
+            "notVulnerable": { "type": "integer", "minimum": 0 },
+            "errors": { "type": "integer", "minimum": 0 },
+            "notApplicable": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["modulesRun", "vulnerable", "notVulnerable", "errors", "notApplicable"]
+        },
+        "results": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/moduleResult" }
+        }
+      },
+      "required": ["summary", "results"]
+    }
+  },
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "$defs": {
+    "moduleResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "moduleId": { "type": "string" },
+        "techniqueId": { "type": "string" },
+        "techniqueName": { "type": "string" },
+        "tactic": { "type": "string" },
+        "severity": {
+          "type": "string",
+          "enum": ["info", "low", "medium", "high", "critical"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["vulnerable", "not_vulnerable", "error", "not_applicable", "unknown"]
+        },
+        "summary": { "type": "string" },
+        "evidence": { "type": "string" },
+        "remediation": { "type": "string" },
+        "complianceTags": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["moduleId", "techniqueId", "techniqueName", "tactic", "severity", "status", "summary"]
+    }
+  }
+}

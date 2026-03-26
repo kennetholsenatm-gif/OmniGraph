@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kennetholsenatm-gif/omnigraph/schemas/lock.v1.schema.json",
+  "title": "OmniGraphStateLock",
+  "description": "Lease document for unified IaC state locking (omnigraph/lock/v1). See docs/adr/004-unified-state-locking.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": { "type": "string", "const": "omnigraph/lock/v1" },
+    "kind": { "type": "string", "const": "StateLock" },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "stackKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Globally unique key for the stack or state file"
+        },
+        "engine": {
+          "type": "string",
+          "enum": ["opentofu", "terraform", "pulumi", "packer", "other"]
+        }
+      },
+      "required": ["stackKey", "engine"]
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "holder": { "type": "string", "minLength": 1 },
+        "leaseUntil": { "type": "string", "format": "date-time" },
+        "acquiredAt": { "type": "string", "format": "date-time" },
+        "reason": { "type": "string" },
+        "extensions": { "type": "object", "additionalProperties": true }
+      },
+      "required": ["holder", "leaseUntil", "acquiredAt"]
+    }
+  },
+  "required": ["apiVersion", "kind", "metadata", "spec"]
+}

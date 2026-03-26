@@ -28,16 +28,19 @@ function loadWasmExecScript(): Promise<void> {
 
 let initPromise: Promise<void> | null = null
 
-async function waitForHclFn(timeoutMs: number): Promise<void> {
+async function waitForWasmExports(timeoutMs: number): Promise<void> {
   const t0 = Date.now()
   while (Date.now() - t0 < timeoutMs) {
-    const fn = (globalThis as unknown as { omnigraphHclValidate?: unknown }).omnigraphHclValidate
-    if (typeof fn === 'function') {
+    const w = globalThis as unknown as {
+      omnigraphHclValidate?: unknown
+      omnigraphTfPatternLint?: unknown
+    }
+    if (typeof w.omnigraphHclValidate === 'function' && typeof w.omnigraphTfPatternLint === 'function') {
       return
     }
     await new Promise((r) => setTimeout(r, 20))
   }
-  throw new Error('timeout waiting for omnigraphHclValidate (wasm main did not register)')
+  throw new Error('timeout waiting for Wasm exports (hcldiag main did not register)')
 }
 
 /** Loads wasm_exec.js and hcldiag.wasm; registers omnigraphHclValidate on globalThis. */
@@ -53,7 +56,7 @@ export function initHclWasm(): Promise<void> {
       const go = new Go()
       const res = await WebAssembly.instantiateStreaming(fetch('/wasm/hcldiag.wasm'), go.importObject)
       void go.run(res.instance)
-      await waitForHclFn(15000)
+      await waitForWasmExports(15000)
     })()
   }
   return initPromise
@@ -74,6 +77,27 @@ export function formatHclDiagnostics(ds: HclDiagnostic[]): string {
   return ds
     .map((d) => {
       const loc = d.line ? `line ${d.line}:${d.column ?? 0}` : 'input'
+      return `[${d.severity}] ${loc}: ${d.summary}${d.detail ? ` — ${d.detail}` : ''}`
+    })
+    .join('\n')
+}
+
+/** Policy-style pattern scan (same Wasm binary as HCL parse; checkov-style subset). */
+export function lintTfPatterns(src: string): HclDiagnostic[] {
+  const fn = (globalThis as unknown as { omnigraphTfPatternLint?: (s: string) => string }).omnigraphTfPatternLint
+  if (typeof fn !== 'function') {
+    throw new Error('omnigraphTfPatternLint not registered; call initHclWasm() first')
+  }
+  return JSON.parse(fn(src)) as HclDiagnostic[]
+}
+
+export function formatPatternDiagnostics(ds: HclDiagnostic[]): string {
+  if (ds.length === 0) {
+    return 'No plaintext secret patterns detected (subset rules).'
+  }
+  return ds
+    .map((d) => {
+      const loc = d.line ? `line ${d.line}` : 'input'
       return `[${d.severity}] ${loc}: ${d.summary}${d.detail ? ` — ${d.detail}` : ''}`
     })
     .join('\n')

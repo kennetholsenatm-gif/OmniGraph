@@ -39,11 +39,17 @@ func (ExecRunner) Run(ctx context.Context, s Step) (*Result, error) {
 	}
 	if err == nil {
 		res.ExitCode = 0
+		secrets := secretValuesForStep(s)
+		res.Stdout = Redact(res.Stdout, secrets, nil)
+		res.Stderr = Redact(res.Stderr, secrets, nil)
 		return res, nil
 	}
 	var ee *exec.ExitError
 	if errors.As(err, &ee) {
 		res.ExitCode = ee.ExitCode()
+		secrets := secretValuesForStep(s)
+		res.Stdout = Redact(res.Stdout, secrets, nil)
+		res.Stderr = Redact(res.Stderr, secrets, nil)
 		return res, nil
 	}
 	return nil, fmt.Errorf("runner: %w", err)

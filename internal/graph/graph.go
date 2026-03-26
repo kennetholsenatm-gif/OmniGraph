@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/kennetholsenatm-gif/omnigraph/internal/coerce"
-	"github.com/kennetholsenatm-gif/omnigraph/internal/inventory"
 	"github.com/kennetholsenatm-gif/omnigraph/internal/plan"
 	"github.com/kennetholsenatm-gif/omnigraph/internal/project"
 	"github.com/kennetholsenatm-gif/omnigraph/internal/state"
+	"github.com/kennetholsenatm-gif/omnigraph/internal/telemetry"
 )
 
 const apiVersion = "omnigraph/graph/v1"
@@ -74,6 +74,8 @@ type RunSummary struct {
 type EmitOptions struct {
 	PlanJSONPath   string
 	TerraformState *state.TerraformState
+	// TelemetryPath loads omnigraph/telemetry/v1 JSON and merges nodes/edges (see internal/telemetry).
+	TelemetryPath string
 }
 
 // Emit builds a Graph v1 document from a validated project document and coercion artifacts.
@@ -148,7 +150,46 @@ func Emit(doc *project.Document, art *coerce.Artifacts, opts EmitOptions) (*Docu
 			g.Spec.Edges = append(g.Spec.Edges, Edge{From: "tf", To: id, Kind: "managed"})
 		}
 	}
+	if opts.TelemetryPath != "" {
+		bun, err := telemetry.LoadBundle(opts.TelemetryPath)
+		if err != nil {
+			return nil, err
+		}
+		mergeTelemetry(g, bun)
+	}
 	return g, nil
+}
+
+func mergeTelemetry(d *Document, b *telemetry.Bundle) {
+	if d == nil || b == nil {
+		return
+	}
+	seen := make(map[string]struct{}, len(d.Spec.Nodes))
+	for _, n := range d.Spec.Nodes {
+		seen[n.ID] = struct{}{}
+	}
+	for _, n := range b.Nodes {
+		if n.ID == "" {
+			continue
+		}
+		if _, ok := seen[n.ID]; ok {
+			continue
+		}
+		seen[n.ID] = struct{}{}
+		d.Spec.Nodes = append(d.Spec.Nodes, Node{
+			ID:         n.ID,
+			Kind:       n.Kind,
+			Label:      n.Label,
+			State:      n.State,
+			Attributes: n.Attributes,
+		})
+	}
+	for _, e := range b.Edges {
+		if e.From == "" || e.To == "" {
+			continue
+		}
+		d.Spec.Edges = append(d.Spec.Edges, Edge{From: e.From, To: e.To, Kind: e.Kind})
+	}
 }
 
 func sortedStringKeys(m map[string]string) []string {

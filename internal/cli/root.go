@@ -34,6 +34,14 @@ func newRoot() *cobra.Command {
 		newGraphCmd(),
 		newRunCmd(),
 		newNetBoxCmd(),
+		newRepoCmd(),
+		newServeCmd(),
+		newSecurityCmd(),
+		newIRCmd(),
+		newApplyCmd(),
+		newGetCmd(),
+		newDescribeCmd(),
+		newDiffCmd(),
 	)
 	return root
 }

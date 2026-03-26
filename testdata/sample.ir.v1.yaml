@@ -1,0 +1,26 @@
+# Sample omnigraph/ir/v1 — validate with: omnigraph ir validate --file testdata/sample.ir.v1.yaml
+apiVersion: omnigraph/ir/v1
+kind: InfrastructureIntent
+metadata:
+  name: sample-edge
+  labels:
+    environment: staging
+spec:
+  targets:
+    - id: app-a
+      ansibleHost: "10.0.0.10"
+      labels:
+        role: app
+  components:
+    - id: vpc-main
+      componentType: omnigraph.network.vpc
+      config:
+        cidr: "10.0.0.0/16"
+  relations:
+    - from: app-a
+      to: vpc-main
+      relationType: member_of
+  emitHints:
+    backends:
+      - ansible-inventory-ini
+      - opentofu-hcl

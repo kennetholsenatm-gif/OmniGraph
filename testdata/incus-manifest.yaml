@@ -1,0 +1,177 @@
+apiVersion: omnigraph.io/v1
+kind: InfrastructureManifest
+metadata:
+  name: production-infra
+  namespace: platform
+  labels:
+    env: production
+    team: platform
+spec:
+  resources:
+    # Storage pool for production workloads
+    - apiVersion: omnigraph.io/v1
+      kind: StoragePool
+      metadata:
+        name: production-storage
+        labels:
+          tier: fast
+      spec:
+        provider: incus
+        driver: zfs
+        config:
+          source: tank/incus
+          zfs.pool_name: tank
+        description: High-performance ZFS storage for production
+
+    # Network for web services
+    - apiVersion: omnigraph.io/v1
+      kind: Network
+      metadata:
+        name: web-network
+        labels:
+          role: web
+      spec:
+        provider: incus
+        type: bridge
+        config:
+          bridge.mode: fan
+          fan.underlay_subnet: 10.0.0.0/24
+          ipv4.address: 10.0.0.1/24
+          ipv4.dhcp: "true"
+          ipv4.nat: "true"
+          ipv6.address: none
+        description: Network for web services
+
+    # Profile for web servers
+    - apiVersion: omnigraph.io/v1
+      kind: Profile
+      metadata:
+        name: web-server
+        labels:
+          role: web
+      spec:
+        provider: incus
+        config:
+          limits.cpu: "2"
+          limits.memory: 4GiB
+          security.nesting: "true"
+          user.user-data: |
+            #cloud-config
+            packages:
+              - nginx
+              - certbot
+            runcmd:
+              - systemctl enable nginx
+              - systemctl start nginx
+        devices:
+          eth0:
+            type: nic
+            name: eth0
+            nictype: bridged
+            parent: lxdbr0
+          root:
+            type: disk
+            path: /
+            pool: production-storage
+            size: 20GiB
+        description: Web server profile with Nginx
+
+    # Web server instances
+    - apiVersion: omnigraph.io/v1
+      kind: ComputeInstance
+      metadata:
+        name: web-1
+        labels:
+          app: nginx
+          role: web
+          instance: "1"
+      spec:
+        provider: incus
+        type: container
+        source:
+          server: https://images.linuxcontainers.org
+          protocol: simplestreams
+          alias: ubuntu/22.04
+        config:
+          limits.cpu: "4"
+          limits.memory: 8GiB
+          security.nesting: "true"
+        profiles:
+          - web-server
+        state: running
+
+    - apiVersion: omnigraph.io/v1
+      kind: ComputeInstance
+      metadata:
+        name: web-2
+        labels:
+          app: nginx
+          role: web
+          instance: "2"
+      spec:
+        provider: incus
+        type: container
+        source:
+          server: https://images.linuxcontainers.org
+          protocol: simplestreams
+          alias: ubuntu/22.04
+        config:
+          limits.cpu: "4"
+          limits.memory: 8GiB
+          security.nesting: "true"
+        profiles:
+          - web-server
+        state: running
+
+    # Database server
+    - apiVersion: omnigraph.io/v1
+      kind: ComputeInstance
+      metadata:
+        name: db-1
+        labels:
+          app: postgres
+          role: database
+      spec:
+        provider: incus
+        type: container
+        source:
+          server: https://images.linuxcontainers.org
+          protocol: simplestreams
+          alias: ubuntu/22.04
+        config:
+          limits.cpu: "8"
+          limits.memory: 16GiB
+          security.nesting: "true"
+          user.user-data: |
+            #cloud-config
+            packages:
+              - postgresql
+              - postgresql-contrib
+            runcmd:
+              - systemctl enable postgresql
+              - systemctl start postgresql
+        devices:
+          eth0:
+            type: nic
+            name: eth0
+            nictype: bridged
+            parent: lxdbr0
+          root:
+            type: disk
+            path: /
+            pool: production-storage
+            size: 100GiB
+          data:
+            type: disk
+            path: /var/lib/postgresql
+            pool: production-storage
+            size: 200GiB
+        state: running
+
+  # Reconciliation policy
+  reconciliation:
+    interval: 5m
+    onDrift: auto
+    retryPolicy:
+      maxAttempts: 3
+      backoff: exponential

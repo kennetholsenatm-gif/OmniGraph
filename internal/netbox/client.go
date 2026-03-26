@@ -29,20 +29,21 @@ func (c *Client) httpClient() *http.Client {
 	return &http.Client{Timeout: 30 * time.Second}
 }
 
-// PostWebhook sends SyncPayload as JSON to url (feature-flagged integrations).
-func (c *Client) PostWebhook(ctx context.Context, url string, p SyncPayload) error {
+// PostJSON sends an arbitrary JSON body to url. Optional headers are merged (e.g. idempotency keys).
+func (c *Client) PostJSON(ctx context.Context, url string, body []byte, headers map[string]string) error {
 	if url == "" {
 		return fmt.Errorf("netbox: empty url")
 	}
-	b, err := json.Marshal(p)
-	if err != nil {
-		return err
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	for k, v := range headers {
+		if k != "" && v != "" {
+			req.Header.Set(k, v)
+		}
+	}
 	resp, err := c.httpClient().Do(req)
 	if err != nil {
 		return err
@@ -53,4 +54,13 @@ func (c *Client) PostWebhook(ctx context.Context, url string, p SyncPayload) err
 		return fmt.Errorf("netbox: webhook %s: %s", resp.Status, string(body))
 	}
 	return nil
+}
+
+// PostWebhook sends legacy SyncPayload as JSON (no apiVersion field).
+func (c *Client) PostWebhook(ctx context.Context, url string, p SyncPayload) error {
+	b, err := json.Marshal(p)
+	if err != nil {
+		return err
+	}
+	return c.PostJSON(ctx, url, b, nil)
 }

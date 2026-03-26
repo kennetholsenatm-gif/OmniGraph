@@ -7,12 +7,13 @@ import (
 	"github.com/kennetholsenatm-gif/omnigraph/internal/graph"
 	"github.com/kennetholsenatm-gif/omnigraph/internal/project"
 	"github.com/kennetholsenatm-gif/omnigraph/internal/schema"
+	"github.com/kennetholsenatm-gif/omnigraph/internal/security"
 	"github.com/kennetholsenatm-gif/omnigraph/internal/state"
 	"github.com/spf13/cobra"
 )
 
 func newGraphCmd() *cobra.Command {
-	var path, planJSON, tfState string
+	var path, planJSON, tfState, telemetryFile, securityFile string
 	emit := &cobra.Command{
 		Use:   "emit [path]",
 		Short: "Emit omnigraph/graph/v1 JSON for UI and CI artifacts",
@@ -40,7 +41,7 @@ func newGraphCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			opts := graph.EmitOptions{PlanJSONPath: planJSON}
+			opts := graph.EmitOptions{PlanJSONPath: planJSON, TelemetryPath: telemetryFile}
 			if tfState != "" {
 				st, err := state.Load(tfState)
 				if err != nil {
@@ -51,6 +52,13 @@ func newGraphCmd() *cobra.Command {
 			gdoc, err := graph.Emit(doc, art, opts)
 			if err != nil {
 				return err
+			}
+			if securityFile != "" {
+				secdoc, err := security.LoadDocument(securityFile)
+				if err != nil {
+					return err
+				}
+				graph.MergeSecurity(gdoc, secdoc)
 			}
 			b, err := graph.EncodeIndent(gdoc)
 			if err != nil {
@@ -67,6 +75,8 @@ func newGraphCmd() *cobra.Command {
 	emit.Flags().StringVarP(&path, "file", "f", "", "path to .omnigraph.schema (default .omnigraph.schema)")
 	emit.Flags().StringVar(&planJSON, "plan-json", "", "path to `terraform show -json` plan output")
 	emit.Flags().StringVar(&tfState, "tfstate", "", "path to Terraform/OpenTofu JSON state after apply")
+	emit.Flags().StringVar(&telemetryFile, "telemetry-file", "", "path to omnigraph/telemetry/v1 JSON to merge into the graph")
+	emit.Flags().StringVar(&securityFile, "security-file", "", "path to omnigraph/security/v1 JSON to merge securityPosture into host nodes")
 	root := &cobra.Command{Use: "graph", Short: "Build graph documents for visualization"}
 	root.AddCommand(emit)
 	return root
