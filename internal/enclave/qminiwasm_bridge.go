@@ -116,8 +116,8 @@ func (b *QminiWasmBridge) ApplyGraph(ctx context.Context, manifest GraphManifest
 		return nil, fmt.Errorf("bridge not connected")
 	}
 
-	// Build payload for QminiWasm-core
-	payload := b.buildApplyPayload(manifest)
+	// Build payload for QminiWasm-core (will be used in production)
+	_ = b.buildApplyPayload(manifest)
 
 	// In production, this would send via gRPC
 	// For now, return a mock result
