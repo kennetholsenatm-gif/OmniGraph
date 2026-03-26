@@ -33,7 +33,7 @@ jobs:
       - name: Run Trivy filesystem scan
         uses: aquasecurity/trivy-action@0.35.0
         with:
-          scan-type: fs
+          scan-type: "fs"
           scan-ref: "."
           format: sarif
           output: trivy-fs.sarif

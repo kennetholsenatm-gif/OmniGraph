@@ -25,14 +25,14 @@ func NewProvider(config Config) (*Provider, error) {
 
 // Config contains Incus provider configuration
 type Config struct {
-	Remote            string
-	SocketPath        string
-	TLSClientCert     string
-	TLSClientKey      string
-	TLSServerCert     string
+	Remote             string
+	SocketPath         string
+	TLSClientCert      string
+	TLSClientKey       string
+	TLSServerCert      string
 	InsecureSkipVerify bool
-	Proxy             string
-	Project           string
+	Proxy              string
+	Project            string
 }
 
 // GetActualState returns the actual state of a resource
@@ -68,7 +68,7 @@ func (p *Provider) Watch(ctx context.Context, resource resources.Resource) (<-ch
 		// In production, this would watch Incus event stream
 		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-ctx.Done():

@@ -15,15 +15,15 @@ type MetricsCollector struct {
 	mu sync.RWMutex
 
 	// Pipeline metrics
-	pipelinesTotal      int64
-	pipelinesRunning    int64
-	pipelinesSuccess    int64
-	pipelinesFailed     int64
-	pipelinesCancelled  int64
+	pipelinesTotal     int64
+	pipelinesRunning   int64
+	pipelinesSuccess   int64
+	pipelinesFailed    int64
+	pipelinesCancelled int64
 
 	// Execution metrics
-	executionsTotal     int64
-	executionsDuration  time.Duration
+	executionsTotal    int64
+	executionsDuration time.Duration
 
 	// API metrics
 	apiRequestsTotal    int64
@@ -31,10 +31,10 @@ type MetricsCollector struct {
 	apiErrorsTotal      int64
 
 	// Resource metrics
-	goroutinesCount     int
-	memoryAllocated     uint64
-	memoryTotalAlloc    uint64
-	memorySys           uint64
+	goroutinesCount  int
+	memoryAllocated  uint64
+	memoryTotalAlloc uint64
+	memorySys        uint64
 
 	// State metrics
 	stateFilesProcessed int64
@@ -42,20 +42,20 @@ type MetricsCollector struct {
 	stateLocksActive    int64
 
 	// Security metrics
-	securityScansTotal  int64
-	securityFindings    int64
-	secretRedactions    int64
+	securityScansTotal int64
+	securityFindings   int64
+	secretRedactions   int64
 
 	// Integration metrics
-	netboxSyncsTotal    int64
-	vaultFetchesTotal   int64
-	notificationsSent   int64
+	netboxSyncsTotal  int64
+	vaultFetchesTotal int64
+	notificationsSent int64
 
 	// Policy metrics
-	policyEvaluationsTotal  int64
-	policyViolationsTotal   int64
-	policyPassedTotal       int64
-	policyWarningsTotal     int64
+	policyEvaluationsTotal int64
+	policyViolationsTotal  int64
+	policyPassedTotal      int64
+	policyWarningsTotal    int64
 
 	// Start time for uptime calculation
 	startTime time.Time

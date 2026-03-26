@@ -54,11 +54,11 @@ func EncodeIndent(d *Document) ([]byte, error) {
 
 // HostPostureSummary is merged into graph host attributes (see graph.MergeSecurity).
 type HostPostureSummary struct {
-	GeneratedAt   string `json:"generatedAt"`
-	Vulnerable    int    `json:"vulnerable"`
-	NotVulnerable int    `json:"notVulnerable"`
-	Errors        int    `json:"errors"`
-	HighOrCritical int   `json:"highOrCritical,omitempty"`
+	GeneratedAt    string `json:"generatedAt"`
+	Vulnerable     int    `json:"vulnerable"`
+	NotVulnerable  int    `json:"notVulnerable"`
+	Errors         int    `json:"errors"`
+	HighOrCritical int    `json:"highOrCritical,omitempty"`
 }
 
 // SummarizeForGraph extracts a compact summary for graph node attributes.

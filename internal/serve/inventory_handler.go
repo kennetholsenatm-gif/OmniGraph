@@ -16,10 +16,10 @@ const inventoryAPIVersion = "omnigraph/inventory-api/v1"
 
 // workspaceInventoryResponse is the default JSON envelope for GET /api/v1/inventory.
 type workspaceInventoryResponse struct {
-	APIVersion string    `json:"apiVersion"`
-	Kind       string    `json:"kind"`
-	Metadata   invMeta   `json:"metadata"`
-	Spec       invSpec   `json:"spec"`
+	APIVersion string  `json:"apiVersion"`
+	Kind       string  `json:"kind"`
+	Metadata   invMeta `json:"metadata"`
+	Spec       invSpec `json:"spec"`
 }
 
 type invMeta struct {

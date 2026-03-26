@@ -104,7 +104,7 @@ Examples:
 								}
 							}
 						} else {
-							fmt.Fprintf(cmd.OutOrStdout(), "Policy check passed (%s): %d policies evaluated\n", 
+							fmt.Fprintf(cmd.OutOrStdout(), "Policy check passed (%s): %d policies evaluated\n",
 								ps.Metadata.Name, report.Passed)
 						}
 					}

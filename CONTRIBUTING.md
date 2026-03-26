@@ -176,6 +176,10 @@ go build -o bin/omnigraph ./cmd/omnigraph
 - [ ] Commit messages are clear and descriptive
 - [ ] No secrets or sensitive data committed
 
+## Repository maintenance (maintainers)
+
+- **Branch protection:** Configure rulesets for `main` so merges require PR review and passing CI. See [docs/branch-protection.md](docs/branch-protection.md) and optional automation in [`scripts/apply-main-ruleset.ps1`](scripts/apply-main-ruleset.ps1) / [`scripts/apply-main-ruleset.sh`](scripts/apply-main-ruleset.sh).
+
 ## Security
 
 - **Never commit credentials** or `.env` files with secrets

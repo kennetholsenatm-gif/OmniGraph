@@ -128,6 +128,7 @@ spec:
 - [Policy-as-Code](docs/IMPROVEMENTS.md) - OPA/Rego integration
 - [Wiki](wiki/Home.md) - User guides and tutorials
 - [Architecture Decision Records](docs/adr/) - Design rationale
+- [Branch protection](docs/branch-protection.md) - Rulesets and required checks for `main`
 
 ## Contributing
 

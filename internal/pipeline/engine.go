@@ -17,10 +17,10 @@ type Engine struct {
 
 // Definition represents a parsed pipeline definition
 type Definition struct {
-	APIVersion string            `json:"apiVersion"`
-	Kind       string            `json:"kind"`
-	Metadata   Metadata          `json:"metadata"`
-	Spec       PipelineSpec      `json:"spec"`
+	APIVersion string       `json:"apiVersion"`
+	Kind       string       `json:"kind"`
+	Metadata   Metadata     `json:"metadata"`
+	Spec       PipelineSpec `json:"spec"`
 }
 
 // Metadata contains pipeline metadata
@@ -34,12 +34,12 @@ type Metadata struct {
 
 // PipelineSpec defines the pipeline specification
 type PipelineSpec struct {
-	Triggers      []Trigger         `json:"triggers,omitempty"`
+	Triggers      []Trigger           `json:"triggers,omitempty"`
 	Variables     map[string]Variable `json:"variables,omitempty"`
-	Stages        []Stage           `json:"stages"`
-	Notifications *Notifications    `json:"notifications,omitempty"`
-	Timeout       string            `json:"timeout,omitempty"`
-	RetryPolicy   *RetryPolicy      `json:"retryPolicy,omitempty"`
+	Stages        []Stage             `json:"stages"`
+	Notifications *Notifications      `json:"notifications,omitempty"`
+	Timeout       string              `json:"timeout,omitempty"`
+	RetryPolicy   *RetryPolicy        `json:"retryPolicy,omitempty"`
 }
 
 // Trigger defines a pipeline trigger
@@ -58,32 +58,32 @@ type Variable struct {
 
 // Stage represents a pipeline stage
 type Stage struct {
-	Name         string            `json:"name"`
-	Description  string            `json:"description,omitempty"`
-	DependsOn    []string          `json:"dependsOn,omitempty"`
-	Type         string            `json:"type,omitempty"`
-	Condition    string            `json:"condition,omitempty"`
-	Steps        []Step            `json:"steps"`
-	Timeout      string            `json:"timeout,omitempty"`
-	RetryPolicy  *RetryPolicy      `json:"retryPolicy,omitempty"`
-	Artifacts    []string          `json:"artifacts,omitempty"`
-	Environment  map[string]string `json:"environment,omitempty"`
+	Name        string            `json:"name"`
+	Description string            `json:"description,omitempty"`
+	DependsOn   []string          `json:"dependsOn,omitempty"`
+	Type        string            `json:"type,omitempty"`
+	Condition   string            `json:"condition,omitempty"`
+	Steps       []Step            `json:"steps"`
+	Timeout     string            `json:"timeout,omitempty"`
+	RetryPolicy *RetryPolicy      `json:"retryPolicy,omitempty"`
+	Artifacts   []string          `json:"artifacts,omitempty"`
+	Environment map[string]string `json:"environment,omitempty"`
 }
 
 // Step represents a pipeline step
 type Step struct {
-	Name            string            `json:"name"`
-	Description     string            `json:"description,omitempty"`
-	Run             string            `json:"run,omitempty"`
-	Uses            string            `json:"uses,omitempty"`
-	With            map[string]interface{} `json:"with,omitempty"`
-	Condition       string            `json:"condition,omitempty"`
-	Timeout         string            `json:"timeout,omitempty"`
-	RetryPolicy     *RetryPolicy      `json:"retryPolicy,omitempty"`
-	Environment     map[string]string `json:"environment,omitempty"`
-	WorkingDirectory string           `json:"workingDirectory,omitempty"`
-	Artifacts       []Artifact        `json:"artifacts,omitempty"`
-	ContinueOnError bool              `json:"continueOnError,omitempty"`
+	Name             string                 `json:"name"`
+	Description      string                 `json:"description,omitempty"`
+	Run              string                 `json:"run,omitempty"`
+	Uses             string                 `json:"uses,omitempty"`
+	With             map[string]interface{} `json:"with,omitempty"`
+	Condition        string                 `json:"condition,omitempty"`
+	Timeout          string                 `json:"timeout,omitempty"`
+	RetryPolicy      *RetryPolicy           `json:"retryPolicy,omitempty"`
+	Environment      map[string]string      `json:"environment,omitempty"`
+	WorkingDirectory string                 `json:"workingDirectory,omitempty"`
+	Artifacts        []Artifact             `json:"artifacts,omitempty"`
+	ContinueOnError  bool                   `json:"continueOnError,omitempty"`
 }
 
 // Artifact represents a step artifact
@@ -113,23 +113,23 @@ type Channel struct {
 
 // RetryPolicy defines retry behavior
 type RetryPolicy struct {
-	MaxAttempts int    `json:"maxAttempts,omitempty"`
-	Backoff     string `json:"backoff,omitempty"`
+	MaxAttempts  int    `json:"maxAttempts,omitempty"`
+	Backoff      string `json:"backoff,omitempty"`
 	InitialDelay string `json:"initialDelay,omitempty"`
-	MaxDelay    string `json:"maxDelay,omitempty"`
+	MaxDelay     string `json:"maxDelay,omitempty"`
 }
 
 // Execution represents a running pipeline execution
 type Execution struct {
-	ID          string                 `json:"id"`
-	Pipeline    string                 `json:"pipeline"`
-	Version     string                 `json:"version"`
-	Status      ExecutionStatus        `json:"status"`
-	StartedAt   time.Time              `json:"startedAt"`
-	CompletedAt *time.Time             `json:"completedAt,omitempty"`
-	Variables   map[string]interface{} `json:"variables,omitempty"`
+	ID          string                     `json:"id"`
+	Pipeline    string                     `json:"pipeline"`
+	Version     string                     `json:"version"`
+	Status      ExecutionStatus            `json:"status"`
+	StartedAt   time.Time                  `json:"startedAt"`
+	CompletedAt *time.Time                 `json:"completedAt,omitempty"`
+	Variables   map[string]interface{}     `json:"variables,omitempty"`
 	Stages      map[string]*StageExecution `json:"stages"`
-	Error       string                 `json:"error,omitempty"`
+	Error       string                     `json:"error,omitempty"`
 }
 
 // ExecutionStatus represents the execution status
@@ -146,12 +146,12 @@ const (
 
 // StageExecution represents a stage execution
 type StageExecution struct {
-	Name        string                 `json:"name"`
-	Status      ExecutionStatus        `json:"status"`
-	StartedAt   *time.Time             `json:"startedAt,omitempty"`
-	CompletedAt *time.Time             `json:"completedAt,omitempty"`
+	Name        string                    `json:"name"`
+	Status      ExecutionStatus           `json:"status"`
+	StartedAt   *time.Time                `json:"startedAt,omitempty"`
+	CompletedAt *time.Time                `json:"completedAt,omitempty"`
 	Steps       map[string]*StepExecution `json:"steps"`
-	Error       string                 `json:"error,omitempty"`
+	Error       string                    `json:"error,omitempty"`
 }
 
 // StepExecution represents a step execution

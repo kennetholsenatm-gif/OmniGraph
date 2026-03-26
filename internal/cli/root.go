@@ -27,6 +27,7 @@ func newRoot() *cobra.Command {
 	root.SetVersionTemplate("{{.Version}}\n")
 	root.AddCommand(
 		newValidateCmd(),
+		newPolicyCmd(),
 		newCoerceCmd(),
 		newOrchestrateCmd(),
 		newStateCmd(),

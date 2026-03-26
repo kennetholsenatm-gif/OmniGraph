@@ -27,10 +27,10 @@ func NewTemplateManager() *TemplateManager {
 	tm := &TemplateManager{
 		templates: make(map[string]*PolicyTemplate),
 	}
-	
+
 	// Register built-in templates
 	tm.registerBuiltinTemplates()
-	
+
 	return tm
 }
 
@@ -240,7 +240,7 @@ func (tm *TemplateManager) GenerateToFile(name string, variables map[string]stri
 func (tm *TemplateManager) Search(keyword string) []*PolicyTemplate {
 	var results []*PolicyTemplate
 	keyword = strings.ToLower(keyword)
-	
+
 	for _, tmpl := range tm.templates {
 		if strings.Contains(strings.ToLower(tmpl.Name), keyword) ||
 			strings.Contains(strings.ToLower(tmpl.Description), keyword) ||
@@ -248,35 +248,35 @@ func (tm *TemplateManager) Search(keyword string) []*PolicyTemplate {
 			results = append(results, tmpl)
 		}
 	}
-	
+
 	return results
 }
 
 // GetByCategory returns templates by category
 func (tm *TemplateManager) GetByCategory(category string) []*PolicyTemplate {
 	var results []*PolicyTemplate
-	
+
 	for _, tmpl := range tm.templates {
 		if tmpl.Category == category {
 			results = append(results, tmpl)
 		}
 	}
-	
+
 	return results
 }
 
 // GetCategories returns all unique categories
 func (tm *TemplateManager) GetCategories() []string {
 	categories := make(map[string]bool)
-	
+
 	for _, tmpl := range tm.templates {
 		categories[tmpl.Category] = true
 	}
-	
+
 	result := make([]string, 0, len(categories))
 	for cat := range categories {
 		result = append(result, cat)
 	}
-	
+
 	return result
 }

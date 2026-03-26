@@ -12,15 +12,15 @@ import (
 
 // Controller implements a Kubernetes-style reconciliation loop
 type Controller struct {
-	mu           sync.RWMutex
-	providers    map[string]Provider
-	resources    map[string]*ResourceEntry
-	watcher      StateWatcher
-	reconciler   Reconciler
-	statusMgr    StatusManager
-	eventBus     EventBus
-	interval     time.Duration
-	stopCh       chan struct{}
+	mu         sync.RWMutex
+	providers  map[string]Provider
+	resources  map[string]*ResourceEntry
+	watcher    StateWatcher
+	reconciler Reconciler
+	statusMgr  StatusManager
+	eventBus   EventBus
+	interval   time.Duration
+	stopCh     chan struct{}
 }
 
 // ResourceEntry tracks a managed resource
@@ -35,16 +35,16 @@ type ResourceEntry struct {
 type Provider interface {
 	// GetActualState returns the actual state from the provider
 	GetActualState(ctx context.Context, resource resources.Resource) (resources.Resource, error)
-	
+
 	// Apply applies the desired state to the provider
 	Apply(ctx context.Context, desired resources.Resource) error
-	
+
 	// Delete deletes the resource from the provider
 	Delete(ctx context.Context, resource resources.Resource) error
-	
+
 	// Exists checks if the resource exists
 	Exists(ctx context.Context, resource resources.Resource) (bool, error)
-	
+
 	// Watch watches for changes
 	Watch(ctx context.Context, resource resources.Resource) (<-chan resources.ResourceEvent, error)
 }
@@ -53,7 +53,7 @@ type Provider interface {
 type StateWatcher interface {
 	// Watch watches a resource for changes
 	Watch(ctx context.Context, resource resources.Resource) (<-chan StateChange, error)
-	
+
 	// Stop stops watching
 	Stop(resourceKey string)
 }
@@ -62,7 +62,7 @@ type StateWatcher interface {
 type Reconciler interface {
 	// Reconcile performs reconciliation
 	Reconcile(ctx context.Context, desired, actual resources.Resource) (ReconcileResult, error)
-	
+
 	// Diff computes the difference between desired and actual
 	Diff(desired, actual resources.Resource) (DiffResult, error)
 }
@@ -71,10 +71,10 @@ type Reconciler interface {
 type StatusManager interface {
 	// UpdateStatus updates the resource status
 	UpdateStatus(ctx context.Context, resourceKey string, status resources.ResourceStatus) error
-	
+
 	// GetStatus gets the resource status
 	GetStatus(ctx context.Context, resourceKey string) (*resources.ResourceStatus, error)
-	
+
 	// SetCondition sets a condition on the resource
 	SetCondition(ctx context.Context, resourceKey string, condition resources.Condition) error
 }
@@ -83,10 +83,10 @@ type StatusManager interface {
 type EventBus interface {
 	// Publish publishes an event
 	Publish(event Event)
-	
+
 	// Subscribe subscribes to events
 	Subscribe(eventType string, handler EventHandler) Subscription
-	
+
 	// Unsubscribe unsubscribes
 	Unsubscribe(sub Subscription)
 }
@@ -102,10 +102,10 @@ type ResourceEvent struct {
 type EventType string
 
 const (
-	EventTypeCreated  EventType = "Created"
-	EventTypeUpdated  EventType = "Updated"
-	EventTypeDeleted  EventType = "Deleted"
-	EventTypeError    EventType = "Error"
+	EventTypeCreated EventType = "Created"
+	EventTypeUpdated EventType = "Updated"
+	EventTypeDeleted EventType = "Deleted"
+	EventTypeError   EventType = "Error"
 )
 
 // StateChange represents a state change
@@ -125,10 +125,10 @@ type ReconcileResult struct {
 
 // DiffResult represents the difference between desired and actual state
 type DiffResult struct {
-	NeedsCreate  bool
-	NeedsUpdate  bool
-	NeedsDelete  bool
-	Changes      []Change
+	NeedsCreate bool
+	NeedsUpdate bool
+	NeedsDelete bool
+	Changes     []Change
 }
 
 // Change represents a single change
@@ -183,13 +183,13 @@ func (c *Controller) GetProvider(name string) Provider {
 func (c *Controller) AddResource(ctx context.Context, resource resources.Resource) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	key := resourceKey(resource)
 	c.resources[key] = &ResourceEntry{
 		Desired:  &resource,
 		LastSync: time.Now(),
 	}
-	
+
 	return nil
 }
 
@@ -197,10 +197,10 @@ func (c *Controller) AddResource(ctx context.Context, resource resources.Resourc
 func (c *Controller) RemoveResource(ctx context.Context, resource resources.Resource) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	key := resourceKey(resource)
 	delete(c.resources, key)
-	
+
 	return nil
 }
 
@@ -208,7 +208,7 @@ func (c *Controller) RemoveResource(ctx context.Context, resource resources.Reso
 func (c *Controller) Run(ctx context.Context) error {
 	ticker := time.NewTicker(c.interval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -237,13 +237,13 @@ func (c *Controller) reconcileAll(ctx context.Context) error {
 		resources = append(resources, entry)
 	}
 	c.mu.RUnlock()
-	
+
 	for _, entry := range resources {
 		if err := c.reconcileResource(ctx, entry); err != nil {
 			fmt.Printf("Failed to reconcile %s: %v\n", entry.Desired.Metadata.Name, err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -256,12 +256,12 @@ func (c *Controller) reconcileResource(ctx context.Context, entry *ResourceEntry
 	if err := json.Unmarshal(entry.Desired.Spec, &spec); err != nil {
 		return fmt.Errorf("failed to unmarshal spec: %w", err)
 	}
-	
+
 	provider, ok := c.providers[spec.Provider]
 	if !ok {
 		return fmt.Errorf("provider %s not found", spec.Provider)
 	}
-	
+
 	// Get actual state
 	actual, err := provider.GetActualState(ctx, *entry.Desired)
 	if err != nil {
@@ -273,15 +273,15 @@ func (c *Controller) reconcileResource(ctx context.Context, entry *ResourceEntry
 		entry.LastSync = time.Now()
 		return nil
 	}
-	
+
 	entry.Actual = actual
-	
+
 	// Compute diff
 	diff, err := c.computeDiff(*entry.Desired, actual)
 	if err != nil {
 		return fmt.Errorf("failed to compute diff: %w", err)
 	}
-	
+
 	// Apply changes if needed
 	if diff.NeedsUpdate {
 		if err := provider.Apply(ctx, *entry.Desired); err != nil {
@@ -290,14 +290,14 @@ func (c *Controller) reconcileResource(ctx context.Context, entry *ResourceEntry
 		entry.Reconciled = true
 		entry.LastSync = time.Now()
 	}
-	
+
 	return nil
 }
 
 // computeDiff computes the difference between desired and actual state
 func (c *Controller) computeDiff(desired, actual resources.Resource) (DiffResult, error) {
 	result := DiffResult{}
-	
+
 	// Compare specs
 	if !specsEqual(desired.Spec, actual.Spec) {
 		result.NeedsUpdate = true
@@ -307,7 +307,7 @@ func (c *Controller) computeDiff(desired, actual resources.Resource) (DiffResult
 			NewValue: desired.Spec,
 		})
 	}
-	
+
 	return result, nil
 }
 

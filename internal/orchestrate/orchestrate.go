@@ -29,14 +29,14 @@ const (
 
 // Options configures the magic-handoff pipeline (plan → check → approve → apply → Ansible).
 type Options struct {
-	Workdir   string
+	Workdir    string
 	SchemaPath string // default .omnigraph.schema; joined with Workdir if not absolute
-	Playbook  string // relative to Workdir, or to AnsibleRoot if set, or absolute under that root (required unless SkipAnsible)
+	Playbook   string // relative to Workdir, or to AnsibleRoot if set, or absolute under that root (required unless SkipAnsible)
 	// AnsibleRoot is an optional second checkout; when set, Playbook is resolved under this directory and container runner mounts it at /ansible.
 	AnsibleRoot string
-	TFBinary  string // tofu or terraform (exec PATH; container argv[0])
-	PlanFile  string // relative to Workdir, default tfplan
-	StateFile string // relative to Workdir, default terraform.tfstate
+	TFBinary    string // tofu or terraform (exec PATH; container argv[0])
+	PlanFile    string // relative to Workdir, default tfplan
+	StateFile   string // relative to Workdir, default terraform.tfstate
 
 	Runner           string // exec (default) or container
 	ContainerRuntime string // docker or podman; empty = runner.DetectContainerRuntime()
@@ -386,6 +386,7 @@ func (o *Options) step(name string, argv []string, env map[string]string, workAb
 	if rt == "" {
 		rt = "docker"
 	}
+	_ = rt
 	img := o.tofuImage()
 	if strings.HasPrefix(name, "ansible") {
 		img = o.ansibleImage()
