@@ -2,6 +2,8 @@
 
 Canonical source: `docs/core-concepts/`.
 
+- Overview: [docs/overview.md](../docs/overview.md)
+- Journeys: [docs/journeys.md](../docs/journeys.md)
 - Architecture: `docs/core-concepts/architecture.md`
 - IR model: `docs/core-concepts/omnigraph-ir.md`
 - Enclave as Code: `docs/core-concepts/enclave-as-code.md`

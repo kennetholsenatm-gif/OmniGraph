@@ -25,3 +25,10 @@ Normative schema: `schemas/ir.v1.schema.json`.
 IR describes *intent*, not a specific deployment product stack. Any provider details
 outside the IR contract belong in environment-specific configuration or reference
 architecture examples.
+
+## Related docs
+
+- [Overview](../overview.md)
+- [Journeys](../journeys.md)
+- [IR contracts reference](../schemas/ir-contracts.md)
+- [Security posture](../security/posture.md)

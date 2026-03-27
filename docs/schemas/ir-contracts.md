@@ -14,3 +14,10 @@ This page summarizes key OmniGraph schema contracts used across CLI and UI flows
 - Keep `apiVersion` stable for non-breaking changes
 - Introduce new version for breaking changes
 - Preserve backward compatibility where feasible for automation consumers
+
+## Related docs
+
+- [Overview](../overview.md)
+- [Journeys](../journeys.md)
+- [OmniGraph IR](../core-concepts/omnigraph-ir.md)
+- [Security posture](../security/posture.md)
