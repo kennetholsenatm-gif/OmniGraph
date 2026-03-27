@@ -9,10 +9,10 @@ This folder serves two audiences:
 
 - [Using the web workspace](../docs/using-the-web.md)
 - [Product philosophy](../docs/product-philosophy.md)
-- **[README](../README.md)** — dashboard story and quick CLI samples
+- **[README](../README.md)** — **web-only** landing (graph workspace quickstart)
 - **[Documentation index](../docs/README.md)** — full reading order
 - **[Overview](../docs/overview.md)** — who / what / where
-- [CLI and CI](../docs/cli-and-ci.md) — terminal / CI recipes against `testdata/`
+- [CLI and CI](../docs/cli-and-ci.md) — optional automation (off the main README on purpose)
 - [Security posture](../docs/security/posture.md)
 
 ## Topic stubs

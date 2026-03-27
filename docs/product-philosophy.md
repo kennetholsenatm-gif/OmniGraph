@@ -16,4 +16,4 @@ It is **not** how we want strangers to categorize the project. OmniGraph is **no
 
 ## Copy and docs
 
-When you write README text, help strings, or onboarding: **lead with the graph and UI**; place CLI and pipeline detail second unless the audience is explicitly automation-only. See [README.md](../README.md), [using-the-web.md](using-the-web.md), and [cli-and-ci.md](cli-and-ci.md).
+When you write README text, help strings, or onboarding: **lead with the graph and UI**; place CLI and pipeline detail second unless the audience is explicitly automation-only. The **root [README.md](../README.md)** should hook on the product with a **web-only quickstart**—no `omnigraph` command blocks or validation walkthroughs there; those belong in [cli-and-ci.md](cli-and-ci.md) and contributor docs.
