@@ -1,0 +1,57 @@
+name: Wiki sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "wiki/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wiki-sync
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v6
+
+      - name: Mirror wiki/ to GitHub Wiki
+        env:
+          WIKI_PUSH_TOKEN: ${{ secrets.WIKI_PUSH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${WIKI_PUSH_TOKEN:-}" ]; then
+            echo "::notice title=Wiki sync skipped::No WIKI_PUSH_TOKEN secret. Add a PAT with repo scope; see wiki/SYNC.md"
+            exit 0
+          fi
+
+          REPO_URL="https://x-access-token:${WIKI_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git"
+          WIKI_TMP="$(mktemp -d)"
+          if ! git clone --depth=1 "$REPO_URL" "$WIKI_TMP" 2>/dev/null; then
+            echo "::warning::Wiki clone failed. Enable Wikis on the repo and create the default Home page once, then re-run."
+            exit 1
+          fi
+
+          cd "$WIKI_TMP"
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          cp -a "${GITHUB_WORKSPACE}/wiki"/. .
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki already matches wiki/ on main; nothing to push."
+            exit 0
+          fi
+
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git commit -m "docs(wiki): sync from ${GITHUB_REPOSITORY}@${GITHUB_SHA:0:7}"
+          git push
