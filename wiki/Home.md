@@ -7,9 +7,17 @@ This folder serves two audiences:
 
 **Visualization-first:** start with the web workspace and philosophy, then automation.
 
+OmniGraph is a web-first workspace that makes infrastructure intent visible as a graph, then connects that model to OpenTofu/Terraform + Ansible workflows. The goal is to replace fragmented CI/CD and terminal context with one place to see topology, desired state, handoffs, and posture.
+
+What to understand first:
+
+- **What makes OmniGraph different** - graph-first model + shared web workspace instead of scattered logs and scripts.
+- **How Ansible becomes more declarative** - desired state and graph context drive convergence decisions.
+- **How CI/CD pain is reduced** - fewer brittle handoffs, less pipeline opacity, faster triage with unified context.
+
 - [Using the web workspace](../docs/using-the-web.md)
 - [Product philosophy](../docs/product-philosophy.md)
-- **[README](../README.md)** — **web-only** landing (graph workspace quickstart)
+- **[README](../README.md)** — web-first landing, differentiation, declarative Ansible model, and quickstart
 - **[Documentation index](../docs/README.md)** — full reading order
 - **[Overview](../docs/overview.md)** — who / what / where
 - [CLI and CI](../docs/cli-and-ci.md) — optional automation (off the main README on purpose)

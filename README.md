@@ -1,10 +1,10 @@
 # OmniGraph
 
-**Stop flying blind. See your infrastructure.**
+**Infrastructure as a visible, declarative graph - not scattered pipeline glue.**
 
-If your platform relies on OpenTofu, Terraform, and Ansible, you juggle HCL, playbooks, and CI glue while the **picture** of what you actually deployed lives in people’s heads and log scrollback.
+If your stack mixes OpenTofu/Terraform and Ansible, the real deployment story is usually split across HCL, playbooks, CI YAML, and job logs. Teams spend time reconstructing intent, handoffs, and drift from terminal output instead of seeing one trustworthy view.
 
-**OmniGraph** is a **web workspace for infrastructure as a graph**: one browser window where you **pan/zoom intent and topology**, wire in pipeline and inventory context, and keep posture beside the diagram—not a wall of terminals or “yet another pipeline CLI.” Your cloud tools stay yours; OmniGraph is where you **see** the story.
+**OmniGraph** is a **web-first workspace for infrastructure as a graph**. It keeps your existing tools, but puts intent, topology, pipeline context, inventory, and security posture in one browser canvas so teams can reason about changes before and after they run.
 
 ```mermaid
 flowchart TB
@@ -26,7 +26,34 @@ flowchart TB
   U --> stack
 ```
 
-## What you get in the app
+## What makes OmniGraph special
+
+- **Graph-first truth model** - Infra relationships are first-class nodes and edges, not implicit script order.
+- **Web workspace, not CLI sprawl** - Visualizer, schema, pipeline context, inventory, and posture live together.
+- **Declarative handoff to Ansible** - Desired state and graph context drive execution decisions.
+- **Pipeline observability by default** - Plan/apply/handoff context is visible in the same place as topology.
+- **Toolchain-compatible** - Keep OpenTofu/Terraform/Ansible; OmniGraph adds coordination and clarity.
+
+## How OmniGraph makes Ansible declarative
+
+OmniGraph shifts Ansible usage from "run these imperative steps in this order" toward "converge this graph-backed desired state":
+
+- **State + intent are explicit**: graph/schema/inventory context define what should exist and how it relates.
+- **Diffable desired outcomes**: plan and state artifacts are mapped back onto graph entities, so changes are reviewed as intent deltas, not only task logs.
+- **Guided handoff**: CI plan/apply output and inventory context are attached to the same model Ansible acts on, reducing ad-hoc variable passing and brittle glue scripts.
+- **Consistent reconciliation loop**: operators evaluate whether actual state matches declared graph intent, then run convergence actions with shared context.
+
+Result: Ansible remains your execution engine, but the control plane becomes declarative and inspectable.
+
+## How OmniGraph fixes common CI/CD frustrations
+
+- **Pipeline opacity -> shared visibility**: job stages, infra changes, and handoffs are visible in one workspace.
+- **Brittle IaC-to-Ansible glue -> model-based handoff**: fewer one-off scripts and fewer hidden assumptions between stages.
+- **Environment drift surprises -> earlier detection**: state/plan/inventory context is compared against desired graph intent.
+- **Slow incident triage -> faster root cause**: topology, change context, and posture are co-located instead of split across tools.
+- **Context switching fatigue -> single workspace**: less hopping between CI UI, terminals, state files, and docs.
+
+## What you get in the web app
 
 Open **`web/`** and you land in a **workspace** with a sidebar of tools around the same canvas mindset:
 
