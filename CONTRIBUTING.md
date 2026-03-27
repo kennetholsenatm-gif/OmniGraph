@@ -186,10 +186,10 @@ go build -o bin/omnigraph ./cmd/omnigraph
 
 Start with these resources:
 
-- [Architecture Overview](docs/architecture.md)
+- [Architecture Overview](docs/core-concepts/architecture.md)
 - [Architecture Decision Records](docs/core-concepts/adr/)
-- [Execution Matrix](docs/execution-matrix.md)
-- [Integrations](docs/integrations.md)
+- [Execution Matrix](docs/core-concepts/execution-matrix.md)
+- [Integrations](docs/core-concepts/integrations.md)
 
 ## Getting Help
 

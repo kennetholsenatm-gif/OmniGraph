@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/kennetholsenatm-gif/OmniGraph/schemas/enclave.v1.schema.json",
+  "$id": "https://github.com/kennetholsenatm-gif/omnigraph/schemas/enclave.v1.schema.json",
   "title": "omnigraph/enclave/v1 WasmEnclave",
   "description": "Enclave as Code - Declarative QminiWasm sandbox configuration",
   "type": "object",

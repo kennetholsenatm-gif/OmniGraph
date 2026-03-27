@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package omnigraph.enclave;
 
-option go_package = "github.com/kennetholsenatm-gif/OmniGraph/proto/enclave";
+option go_package = "github.com/kennetholsenatm-gif/omnigraph/proto/enclave";
 
 // EnclaveManifest defines the desired state of a Wasm enclave
 message EnclaveManifest {
