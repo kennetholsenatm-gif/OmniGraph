@@ -1,0 +1,10 @@
+---
+galaxy_info:
+  role_name: cisco_isr_platform
+  author: devsecops-pipeline
+  description: Harden IOS-XE ISR — SSH user+key, banner, logging, L3+dot1Q, VRRP, optional OSPF/BGP/IGMP, NAT/static.
+  license: MIT
+  min_ansible_version: "2.14"
+dependencies: []
+collections:
+  - cisco.ios

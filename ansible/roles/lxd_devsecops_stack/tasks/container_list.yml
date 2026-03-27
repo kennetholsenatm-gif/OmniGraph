@@ -1,0 +1,28 @@
+---
+- name: Build filtered container list
+  ansible.builtin.set_fact:
+    _containers: >-
+      {{
+        lxd_devsecops_containers
+        if (lxd_apply_names | default([]) | length) == 0
+        else lxd_devsecops_containers | selectattr('name', 'in', lxd_apply_names) | list
+      }}
+
+# When lxd_apply_names is empty, drop optional LXC rows unless lxd_optional_stack_enable[key] is true.
+# When lxd_apply_names is set, explicit names win (operators can provision a stack without toggling globals).
+- name: Apply optional stack enable flags (full list mode)
+  ansible.builtin.set_fact:
+    _containers: >-
+      {% if (lxd_apply_names | default([]) | length) > 0 -%}
+      {{ _containers }}
+      {%- else -%}
+      {% set ns = namespace(out=[]) %}
+      {% for item in _containers %}
+      {% if item.lxd_optional_stack is not defined %}
+      {% set _ = ns.out.append(item) %}
+      {% elif lxd_optional_stack_enable[item.lxd_optional_stack] | default(false) | bool %}
+      {% set _ = ns.out.append(item) %}
+      {% endif %}
+      {% endfor %}
+      {{ ns.out }}
+      {%- endif %}

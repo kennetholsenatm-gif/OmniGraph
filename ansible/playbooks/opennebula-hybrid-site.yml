@@ -1,0 +1,28 @@
+---
+# OpenNebula hybrid orchestration: DevSecOps LXCs (Incus/LXD) + optional Gitea chart via Helm on K3s.
+#
+# Network device automation (ISR / Catalyst) is not chained here — different inventories and credentials.
+# Run those first when needed, e.g.:
+#   ansible-playbook -i inventory/network.example.yml playbooks/network-isr.yml
+#
+# LXD play:
+#   ansible-playbook -i inventory/opennebula-hybrid.yml playbooks/opennebula-hybrid-site.yml -K
+#
+# Inventory: copy inventory/opennebula-hybrid.example.yml → opennebula-hybrid.yml (gitignored).
+#
+# Tags:
+#   --tags lxd     — only LXD/compose provisioning (first play)
+#   --tags k3s_helm — only Helm Gitea (second play; needs hosts in opennebula_k3s_helm)
+
+- name: DevSecOps LXC stacks (OpenNebula hypervisor guest)
+  ansible.builtin.import_playbook: deploy-devsecops-lxc.yml
+  tags: [lxd, opennebula_lxc]
+
+- name: Optional Helm — Gitea on K3s (kubernetes.core)
+  hosts: opennebula_k3s_helm
+  gather_facts: false
+  become: true
+  tags: [k3s_helm, opennebula_helm_gitea]
+  roles:
+    - role: opennebula_k3s_gitea
+      when: opennebula_helm_gitea_enabled | default(false) | bool

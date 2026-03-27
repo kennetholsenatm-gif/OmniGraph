@@ -1,0 +1,29 @@
+---
+# Example inventory for playbooks/populate-semaphore.yml
+# Copy to a private path or pass vars with -e / @vault.yml — do NOT commit tokens.
+all:
+  hosts:
+    localhost:
+      ansible_connection: local
+  vars:
+    # Semaphore API (host URL — same as browser; see SEMAPHORE_INCUS_TROUBLESHOOTING.md)
+    semaphore_url: "http://localhost:3001"
+    # Required: create in UI or via API (docs/SEMAPHORE_POPULATE.md)
+    semaphore_api_token: "REPLACE_ME"
+    # Project and Git
+    semaphore_project_name: "devsecops-pipeline"
+    semaphore_repository_name: "devsecops-pipeline"
+    semaphore_git_url: "https://git.example.com/org/devsecops-pipeline.git"
+    semaphore_git_branch: "main"
+    # Phase A template
+    semaphore_template_name: "Smoke (localhost)"
+    semaphore_playbook_path: "ansible/playbooks/semaphore-smoke.yml"
+    # Static YAML inventory (localhost only) — safe default for smoke
+    semaphore_inventory_name: "Local smoke"
+    # Semaphore "static" = INI-style inventory (see docs/SEMAPHORE_POPULATE.md)
+    semaphore_inventory_type: "static"
+    semaphore_inventory_body: |
+      [all]
+      localhost ansible_connection=local
+    # Optional: PEM contents for private Git over SSH (also set semaphore_git_url to ssh URL)
+    # semaphore_git_ssh_private_key: "{{ lookup('file', '/secure/path/git-deploy.pem') }}"

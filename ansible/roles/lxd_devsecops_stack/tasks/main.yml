@@ -1,0 +1,31 @@
+---
+# Provision LXD/Incus instances and sync DevSecOps trees. Task files: see tasks/*.yml
+- ansible.builtin.import_tasks: pipeline_assert.yml
+
+- name: Decide if docker-nesting profile is required on instances
+  ansible.builtin.set_fact:
+    lxd_prepare_docker_nesting_profile: >-
+      {{ lxd_install_docker_in_instance | default(true) | bool
+         or (lxc_needs_nesting_profile | default(false) | bool) }}
+  run_once: true
+
+- ansible.builtin.import_tasks: resolve_cli_and_image.yml
+- ansible.builtin.import_tasks: daemon_start.yml
+
+- name: Configure docker-nesting profile (hypervisor)
+  ansible.builtin.include_tasks: profile_docker_nesting.yml
+  when: lxd_prepare_docker_nesting_profile | bool
+
+- ansible.builtin.import_tasks: pylxd_socket.yml
+- ansible.builtin.import_tasks: storage_pool.yml
+- ansible.builtin.import_tasks: idmap.yml
+- ansible.builtin.import_tasks: container_list.yml
+
+- name: Merge DevSecOps env for optional LXC compose --env-file injection
+  ansible.builtin.include_role:
+    name: devsecops_env
+  when: lxd_inject_ansible_env | default(false) | bool
+
+- ansible.builtin.import_tasks: managed_bridge.yml
+- ansible.builtin.import_tasks: launch_instances.yml
+- ansible.builtin.import_tasks: instance_bootstrap.yml

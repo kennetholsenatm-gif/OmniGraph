@@ -1,0 +1,41 @@
+---
+# Thin Helm wrapper for Gitea on an existing K3s cluster (see deployments/opennebula-gitea).
+# Requires: ansible-galaxy collection install kubernetes.core (see collections/requirements.yml).
+
+- name: Check kubeconfig readable
+  ansible.builtin.stat:
+    path: "{{ opennebula_kubeconfig_path }}"
+  register: _kubeconfig_stat
+
+- name: Fail when kubeconfig missing
+  ansible.builtin.fail:
+    msg: >-
+      Kubeconfig not found at {{ opennebula_kubeconfig_path }} on {{ inventory_hostname }}.
+      Install K3s or set opennebula_kubeconfig_path.
+  when: not _kubeconfig_stat.stat.exists | default(false)
+
+- name: Warn when values file is still the repo example (must be copied and hardened)
+  ansible.builtin.debug:
+    msg: >-
+      Using example values file {{ opennebula_gitea_values_file }} — copy to a non-example path
+      and set secrets before production (deployments/opennebula-gitea/README.md).
+  when: "'example' in opennebula_gitea_values_file"
+
+- name: Add Gitea Helm repo locally (on K3s host)
+  kubernetes.core.helm_repository:
+    name: "{{ opennebula_gitea_chart_repo_name }}"
+    repo_url: "{{ opennebula_gitea_chart_repo_url }}"
+    kubeconfig: "{{ opennebula_kubeconfig_path }}"
+
+- name: Helm upgrade/install Gitea release
+  kubernetes.core.helm:
+    name: "{{ opennebula_gitea_helm_release_name }}"
+    chart_ref: "{{ opennebula_gitea_chart_repo_name }}/{{ opennebula_gitea_chart_name }}"
+    release_namespace: "{{ opennebula_gitea_k8s_namespace }}"
+    create_namespace: true
+    values_files:
+      - "{{ opennebula_gitea_values_file }}"
+    wait: "{{ opennebula_helm_wait }}"
+    wait_timeout: "{{ opennebula_helm_timeout }}"
+    kubeconfig: "{{ opennebula_kubeconfig_path }}"
+  register: _gitea_helm

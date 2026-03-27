@@ -1,0 +1,28 @@
+# Example Bitnami PostgreSQL values for Gitea (standalone chart).
+# Install: helm install gitea-postgresql oci://registry-1.docker.io/bitnamicharts/postgresql -n gitea-db --create-namespace -f postgresql-values.yaml
+
+global:
+  storageClass: ceph-rbd
+
+architecture: standalone
+
+auth:
+  username: gitea
+  database: gitea
+  # postgresPassword / password: supply via --set or existingSecret
+
+primary:
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: ceph-rbd
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+
+metrics:
+  enabled: true

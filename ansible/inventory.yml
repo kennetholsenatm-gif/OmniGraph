@@ -1,0 +1,18 @@
+# Example inventory for DevSecOps pipeline. Replace with your host IPs.
+all:
+  children:
+    ai_mesh_nodes:
+      hosts:
+        devsecops-host:
+          ansible_host: 192.168.1.100
+          # Optional: 100.64.x.x if host has secondary interface
+    msg_backbone_nodes:
+      hosts:
+        devsecops-host:
+    iam_nodes:
+      hosts:
+        devsecops-host:
+
+  vars:
+    ansible_user: ansible
+    ansible_become: true

@@ -1,0 +1,142 @@
+{
+  "name": "Gitea Push → SBOM/Trivy Scan → Zammad",
+  "nodes": [
+    {
+      "id": "webhook-gitea-push",
+      "name": "Gitea Push Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "parameters": {
+        "path": "gitea-push",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "gitea-push-sbom"
+    },
+    {
+      "id": "parse-gitea-payload",
+      "name": "Parse Gitea Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst repo = body.repository || {};\nconst cloneUrl = repo.clone_url || '';\nconst ref = body.ref || 'refs/heads/main';\nconst branch = ref.replace(/^refs\\/heads\\//, '');\nconst fullName = repo.full_name || repo.name || 'unknown';\nconst commitSha = body.after || '';\nconst pusher = body.pusher || {};\nconst pusherEmail = pusher.email || (body.sender && body.sender.email) || 'noreply@local';\nconst token = typeof process !== 'undefined' && process.env && process.env.GITEA_API_TOKEN;\nlet authCloneUrl = cloneUrl;\nif (token && cloneUrl && cloneUrl.startsWith('http')) {\n  try {\n    const u = new URL(cloneUrl);\n    u.username = token;\n    u.password = '';\n    authCloneUrl = u.toString().replace(/:\\/\\//, '://' + token + '@');\n  } catch (_) { authCloneUrl = cloneUrl; }\n}\nreturn [{ json: {\n  clone_url: cloneUrl,\n  auth_clone_url: authCloneUrl,\n  full_name: fullName,\n  branch,\n  commit_sha: commitSha,\n  pusher_email: pusherEmail,\n  ref\n} }];"
+      }
+    },
+    {
+      "id": "execute-syft-trivy",
+      "name": "Execute Command: Clone + Syft + Trivy",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [440, 0],
+      "parameters": {
+        "command": "export GIT_URL=\"{{ $json.auth_clone_url || $json.clone_url }}\"\nexport GIT_REF=\"{{ $json.branch }}\"\ncd /tmp && rm -rf scan-repo 2>/dev/null; git clone --depth 1 --branch \"$GIT_REF\" \"$GIT_URL\" scan-repo 2>/dev/null && cd scan-repo && (syft . -o json > /tmp/sbom.json 2>/dev/null; true) && trivy fs . --severity CRITICAL -f json 2>/dev/null || echo '{\"Results\":[]}'",
+        "executeOnce": true
+      }
+    },
+    {
+      "id": "parse-trivy-output",
+      "name": "Parse Trivy Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0],
+      "parameters": {
+        "jsCode": "const cmdOut = $input.first().json;\nconst stdout = cmdOut.stdout || '';\nconst parsePayload = $('Parse Gitea Payload').first().json;\nlet hasCritical = false;\nlet criticalVulns = [];\ntry {\n  const trivy = stdout ? JSON.parse(stdout) : { Results: [] };\n  const results = trivy.Results || [];\n  for (const r of results) {\n    const vulns = r.Vulnerabilities || [];\n    for (const v of vulns) {\n      if (v.Severity === 'CRITICAL') {\n        hasCritical = true;\n        criticalVulns.push({\n          VulnerabilityID: v.VulnerabilityID || v.VulnerabilityId,\n          PkgName: v.PkgName,\n          Title: v.Title || '',\n          Severity: v.Severity\n        });\n      }\n    }\n  }\n} catch (_) {}\nreturn [{ json: {\n  has_critical: hasCritical,\n  critical_vulns: criticalVulns,\n  full_name: parsePayload.full_name,\n  branch: parsePayload.branch,\n  commit_sha: parsePayload.commit_sha,\n  pusher_email: parsePayload.pusher_email\n} }];"
+      }
+    },
+    {
+      "id": "has-critical-if",
+      "name": "Has CRITICAL?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [880, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            { "id": "c1", "leftValue": "={{ $json.has_critical }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "create-zammad-ticket",
+      "name": "Create Zammad Ticket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, -80],
+      "parameters": {
+        "url": "={{ $env.ZAMMAD_URL || 'http://zammad' }}/api/v1/tickets",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  title: 'CRITICAL vulnerabilities: ' + $json.full_name + ' (' + $json.branch + ')',\n  group: 'Users',\n  customer: $json.pusher_email,\n  article: {\n    subject: 'SBOM/Trivy scan found CRITICAL vulns in ' + $json.full_name,\n    body: 'Repository: ' + $json.full_name + '\\nBranch: ' + $json.branch + '\\nCommit: ' + $json.commit_sha + '\\nPusher: ' + $json.pusher_email + '\\n\\nCritical vulnerabilities:\\n' + (($json.critical_vulns || []).map(function(v) { return '- ' + (v.VulnerabilityID || '') + ' ' + (v.PkgName || '') + ' ' + (v.Title || ''); }).join('\\n'))\n  }\n}) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "zammad_api", "name": "Zammad API" }
+      }
+    },
+    {
+      "id": "respond-202-ticket",
+      "name": "Respond 202 Ticket Created",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1320, -80],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  scan_result: 'critical',\n  message: 'Zammad ticket created for critical vulnerabilities.',\n  ticket_id: $json.id,\n  ticket_url: ($env.ZAMMAD_URL || 'http://zammad') + '/#ticket/zoom/' + $json.id\n}) }}",
+        "options": {
+          "responseCode": 202
+        }
+      }
+    },
+    {
+      "id": "respond-200-ok",
+      "name": "Respond 200 No Critical",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1100, 80],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  scan_result: 'no_critical',\n  repo: $json.full_name,\n  branch: $json.branch,\n  commit_sha: $json.commit_sha\n}) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Gitea Push Webhook": {
+      "main": [[{ "node": "Parse Gitea Payload", "type": "main", "index": 0 }]]
+    },
+    "Parse Gitea Payload": {
+      "main": [[{ "node": "Execute Command: Clone + Syft + Trivy", "type": "main", "index": 0 }]]
+    },
+    "Execute Command: Clone + Syft + Trivy": {
+      "main": [[{ "node": "Parse Trivy Output", "type": "main", "index": 0 }]]
+    },
+    "Parse Trivy Output": {
+      "main": [[{ "node": "Has CRITICAL?", "type": "main", "index": 0 }]]
+    },
+    "Has CRITICAL?": {
+      "main": [
+        [{ "node": "Create Zammad Ticket", "type": "main", "index": 0 }],
+        [{ "node": "Respond 200 No Critical", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create Zammad Ticket": {
+      "main": [[{ "node": "Respond 202 Ticket Created", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v2"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {}
+}

@@ -1,0 +1,23 @@
+---
+- name: Compute instance profiles (default + optional docker-nesting)
+  ansible.builtin.set_fact:
+    _lxd_instance_profiles: "{{ ['default'] + ([lxd_docker_profile] if lxd_prepare_docker_nesting_profile | bool else []) }}"
+  run_once: true
+
+- name: Launch or start LXD instances (AlmaLinux image + configured profiles)
+  become: "{{ lxd_become | bool }}"
+  community.general.lxd_container:
+    name: "{{ item.name }}"
+    url: "{{ _lxd_pylxd_url | default(omit) }}"
+    state: started
+    source:
+      type: image
+      mode: pull
+      protocol: simplestreams
+      server: "{{ lxd_image_simplestreams_server }}"
+      alias: "{{ _lxd_effective_image_alias }}"
+    profiles: "{{ _lxd_instance_profiles }}"
+  environment: "{{ lxd_hypervisor_env }}"
+  loop: "{{ _containers }}"
+  loop_control:
+    label: "{{ item.name }}"

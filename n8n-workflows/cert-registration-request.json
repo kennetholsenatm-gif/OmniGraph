@@ -1,0 +1,79 @@
+{
+  "name": "Certificate Registration Request",
+  "nodes": [
+    {
+      "id": "webhook-cert-reg",
+      "name": "Cert Registration Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "parameters": {
+        "path": "cert-registration-request",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "cert-registration-request"
+    },
+    {
+      "id": "validate-and-default",
+      "name": "Validate and Set Defaults",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst cn = body.cert_subject_cn || (body.cert_subject_dn && body.cert_subject_dn.replace(/^.*CN=([^,]+).*$/i, '$1').trim()) || '';\nconst uid = body.uid || cn.replace(/[^a-zA-Z0-9._-]/g, '_') || 'pending';\nif (!body.cert_fingerprint && !body.cert_subject_cn && !cn) {\n  throw new Error('Missing cert_fingerprint or cert_subject_cn');\n}\nconst level = ['admin','operator','developer','viewer','auditor'].includes(body.requested_privilege_level) ? body.requested_privilege_level : 'viewer';\nreturn [{ json: {\n  cert_fingerprint: body.cert_fingerprint || '',\n  cert_subject_dn: body.cert_subject_dn || '',\n  cert_subject_cn: body.cert_subject_cn || cn,\n  uid,\n  requested_privilege_level: level,\n  email: body.email || `${uid}@local`,\n  cn: body.cn || cn,\n  created_at: new Date().toISOString(),\n  registration_state: 'pending'\n} }];"
+      }
+    },
+    {
+      "id": "create-zammad-ticket",
+      "name": "Create Zammad Ticket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "parameters": {
+        "url": "={{ $env.ZAMMAD_URL || 'http://zammad' }}/api/v1/tickets",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  title: 'Approve certificate registration: ' + ($json.cert_subject_cn || $json.uid),\n  group: 'Users',\n  customer: $json.email,\n  article: {\n    subject: 'Cert registration: ' + $json.uid,\n    body: 'Certificate-based self-registration. No privileges until this ticket is approved.\\n\\n' +\n      'uid: ' + $json.uid + '\\n' +\n      'requested_privilege_level: ' + $json.requested_privilege_level + '\\n' +\n      'cert_subject_cn: ' + $json.cert_subject_cn + '\\n' +\n      'cert_fingerprint: ' + ($json.cert_fingerprint || 'n/a') + '\\n' +\n      'email: ' + $json.email + '\\n' +\n      'created_at: ' + $json.created_at + '\\n\\n' +\n      'Payload (for approval workflow): ' + JSON.stringify($json)\n  }\n}) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "zammad_api", "name": "Zammad API" }
+      }
+    },
+    {
+      "id": "respond-202",
+      "name": "Respond 202 Pending",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [660, 0],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  status: 'pending',\n  message: 'No privileges granted until a human approves the ticket.',\n  ticket_id: $json.id,\n  ticket_url: ($env.ZAMMAD_URL || 'http://zammad') + '/#ticket/zoom/' + $json.id\n}) }}",
+        "options": {
+          "responseCode": 202
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cert Registration Webhook": {
+      "main": [[{ "node": "Validate and Set Defaults", "type": "main", "index": 0 }]]
+    },
+    "Validate and Set Defaults": {
+      "main": [[{ "node": "Create Zammad Ticket", "type": "main", "index": 0 }]]
+    },
+    "Create Zammad Ticket": {
+      "main": [[{ "node": "Respond 202 Pending", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v2"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {}
+}

@@ -1,0 +1,24 @@
+---
+# IGP choice vs VyOS / FRR / “Zebra”: use OSPFv2 (single-area 0 to start) or statics only.
+# Google Home / Nest Wi‑Fi is not an IGP peer — treat as downstream LAN (static + NAT policy).
+# BGP: use for DC WAN edge or future EVPN control-plane — not the same as DMVPN (mGRE/IPsec hub‑spoke).
+#
+- name: OSPFv2 (lines supplied in group_vars — full IOS syntax per line)
+  cisco.ios.ios_config:
+    parents:
+      - "router ospf {{ cisco_isr_ospf.process_id | default(1) }}"
+    lines: "{{ cisco_isr_ospf.lines | default([]) }}"
+    save_when: never
+  when:
+    - cisco_isr_ospf.enabled | default(false) | bool
+    - (cisco_isr_ospf.lines | default([]) | length) > 0
+
+- name: BGP (lines supplied in group_vars — ASN in first lines if desired)
+  cisco.ios.ios_config:
+    parents:
+      - "router bgp {{ cisco_isr_bgp.as | default(65001) }}"
+    lines: "{{ cisco_isr_bgp.lines | default([]) }}"
+    save_when: never
+  when:
+    - cisco_isr_bgp.enabled | default(false) | bool
+    - (cisco_isr_bgp.lines | default([]) | length) > 0

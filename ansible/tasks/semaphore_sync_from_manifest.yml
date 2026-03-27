@@ -1,0 +1,206 @@
+---
+# Included by playbooks/sync-semaphore-from-manifest.yml
+# Expects: sm (dict from include_vars name=sm), semaphore_api_token, semaphore_url, _git_url, _git_branch, optional semaphore_git_ssh_private_key
+- name: Require API token
+  ansible.builtin.assert:
+    that:
+      - semaphore_api_token is defined
+      - (semaphore_api_token | string | length) > 0
+    fail_msg: "Set semaphore_api_token (e.g. -e or inventory vars)."
+
+- name: Require resolved Git URL
+  ansible.builtin.assert:
+    that:
+      - _git_url is defined
+      - (_git_url | string | length) > 0
+    fail_msg: "Set repository.git_url in the manifest or pass -e semaphore_git_url=..."
+
+- name: Normalize base URL
+  ansible.builtin.set_fact:
+    _sem_base: "{{ semaphore_url | regex_replace('/$', '') }}"
+
+- name: List projects
+  ansible.builtin.uri:
+    url: "{{ _sem_base }}/api/projects"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ semaphore_api_token }}"
+      Accept: "application/json"
+    status_code: [200]
+  register: _projects_resp
+
+- name: Match project by name
+  ansible.builtin.set_fact:
+    _proj_list: "{{ _projects_resp.json | default([]) | selectattr('name', 'equalto', sm.project.name) | list }}"
+
+- name: Resolve existing project
+  ansible.builtin.set_fact:
+    _proj: "{{ _proj_list[0] if (_proj_list | length) > 0 else none }}"
+
+- name: Create project
+  ansible.builtin.uri:
+    url: "{{ _sem_base }}/api/projects"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ semaphore_api_token }}"
+      Accept: "application/json"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ sm.project.name }}"
+      type: "{{ sm.project.type | default('') }}"
+    status_code: [201]
+  register: _create_proj
+  when: _proj is none
+
+- name: Set project id
+  ansible.builtin.set_fact:
+    _project_id: "{{ (_proj.id if _proj is not none else _create_proj.json.id) | int }}"
+
+- name: List keys
+  ansible.builtin.uri:
+    url: "{{ _sem_base }}/api/project/{{ _project_id }}/keys"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ semaphore_api_token }}"
+      Accept: "application/json"
+    status_code: [200]
+  register: _keys_resp
+
+- name: Find None key
+  ansible.builtin.set_fact:
+    _none_key: "{{ _keys_resp.json | default([]) | selectattr('name', 'equalto', 'None') | list | first | default(none) }}"
+
+- name: Fail if None key missing
+  ansible.builtin.fail:
+    msg: "Expected access key named 'None'."
+  when: _none_key is none
+
+- name: Optional Git SSH deploy key
+  ansible.builtin.uri:
+    url: "{{ _sem_base }}/api/project/{{ _project_id }}/keys"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ semaphore_api_token }}"
+      Accept: "application/json"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ sm.repository.git_ssh_key_name | default('Git deploy (manifest sync)') }}"
+      type: ssh
+      project_id: "{{ _project_id }}"
+      ssh:
+        login: "git"
+        passphrase: ""
+        private_key: "{{ semaphore_git_ssh_private_key }}"
+    status_code: [201]
+  register: _git_key
+  when: semaphore_git_ssh_private_key is defined and (semaphore_git_ssh_private_key | length) > 0
+
+- name: Set repository SSH key id
+  ansible.builtin.set_fact:
+    _repo_ssh_key_id: "{{ _git_key.json.id | int if (_git_key is defined and _git_key.json is defined) else (_none_key.id | int) }}"
+
+- name: List repositories
+  ansible.builtin.uri:
+    url: "{{ _sem_base }}/api/project/{{ _project_id }}/repositories"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ semaphore_api_token }}"
+      Accept: "application/json"
+    status_code: [200]
+  register: _repos_resp
+
+- name: Match repository by name
+  ansible.builtin.set_fact:
+    _repo_list: "{{ _repos_resp.json | default([]) | selectattr('name', 'equalto', sm.repository.name) | list }}"
+
+- name: Find repository
+  ansible.builtin.set_fact:
+    _repo: "{{ _repo_list[0] if (_repo_list | length) > 0 else none }}"
+
+- name: Create repository
+  ansible.builtin.uri:
+    url: "{{ _sem_base }}/api/project/{{ _project_id }}/repositories"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ semaphore_api_token }}"
+      Accept: "application/json"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ sm.repository.name }}"
+      project_id: "{{ _project_id }}"
+      git_url: "{{ _git_url }}"
+      git_branch: "{{ _git_branch }}"
+      ssh_key_id: "{{ _repo_ssh_key_id }}"
+    status_code: [201]
+  register: _create_repo
+  when: _repo is none
+
+- name: Set repository id
+  ansible.builtin.set_fact:
+    _repository_id: "{{ (_repo.id if _repo is not none else _create_repo.json.id) | int }}"
+
+- name: List environments
+  ansible.builtin.uri:
+    url: "{{ _sem_base }}/api/project/{{ _project_id }}/environment"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ semaphore_api_token }}"
+      Accept: "application/json"
+    status_code: [200]
+  register: _envs_resp
+
+- name: Match Empty environment
+  ansible.builtin.set_fact:
+    _env_list: "{{ _envs_resp.json | default([]) | selectattr('name', 'equalto', 'Empty') | list }}"
+
+- name: Set Empty environment id
+  ansible.builtin.set_fact:
+    _empty_env_id: "{{ _env_list[0].id if (_env_list | length) > 0 else none }}"
+
+- name: List inventories (initial)
+  ansible.builtin.uri:
+    url: "{{ _sem_base }}/api/project/{{ _project_id }}/inventory"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ semaphore_api_token }}"
+      Accept: "application/json"
+    status_code: [200]
+  register: _inv_resp
+
+- name: Initialize inventory id map
+  ansible.builtin.set_fact:
+    _inventory_ids: {}
+
+- name: Ensure inventories from manifest
+  ansible.builtin.include_tasks: semaphore_sync_one_inventory.yml
+  loop: "{{ sm.inventories | default([]) }}"
+  loop_control:
+    loop_var: inv_item
+    label: "{{ inv_item.name }}"
+
+- name: List templates (initial)
+  ansible.builtin.uri:
+    url: "{{ _sem_base }}/api/project/{{ _project_id }}/templates"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ semaphore_api_token }}"
+      Accept: "application/json"
+    status_code: [200]
+  register: _tpl_resp
+
+- name: Ensure Ansible templates from manifest
+  ansible.builtin.include_tasks: semaphore_sync_one_template.yml
+  loop: "{{ sm.ansible_templates | default([]) }}"
+  loop_control:
+    loop_var: tpl_item
+    label: "{{ tpl_item.name }}"
+
+- name: Summary
+  ansible.builtin.debug:
+    msg:
+      - "project_id={{ _project_id }} repository_id={{ _repository_id }}"
+      - "inventory_ids={{ _inventory_ids }}"
+      - "Manifest sync complete. Re-run this playbook after editing ansible/files/semaphore-manifest.yml"

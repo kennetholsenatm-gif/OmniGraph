@@ -1,0 +1,15 @@
+---
+freeradius_service_name: radiusd
+freeradius_packages:
+  - freeradius
+  - freeradius-utils
+
+# List of dicts: name, ipaddr (or cidr), secret. Use Ansible Vault for secrets.
+freeradius_clients: []
+
+# When true, install freeradius-ldap and drop a stub ldap module config (requires freeradius_ldap_* vars).
+freeradius_ldap_enabled: false
+freeradius_ldap_server: ldap://ipa.example.test:389
+freeradius_ldap_identity: uid=radius-binder,cn=users,cn=accounts,dc=example,dc=test
+freeradius_ldap_password: "{{ omit }}"
+freeradius_ldap_base_dn: cn=users,cn=accounts,dc=example,dc=test

@@ -1,0 +1,46 @@
+---
+# Fresh Incus (e.g. COPR) may have no "default" storage pool or no root disk on profile "default" → instance create fails with "No root device could be found".
+- name: Check default storage pool exists
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv: ["{{ _lxc_bin }}", storage, info, "{{ lxd_storage_pool_name }}"]
+  environment: "{{ lxd_hypervisor_env }}"
+  register: _lxd_pool_default
+  changed_when: false
+  failed_when: false
+  run_once: true
+  when: lxd_ensure_default_storage | default(true) | bool
+
+- name: Create default dir storage pool when missing
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv: ["{{ _lxc_bin }}", storage, create, "{{ lxd_storage_pool_name }}", dir]
+  environment: "{{ lxd_hypervisor_env }}"
+  when:
+    - lxd_ensure_default_storage | default(true) | bool
+    - _lxd_pool_default is defined
+    - _lxd_pool_default.rc != 0
+  run_once: true
+
+# `profile device show default root` is unreliable on some Incus builds (rc != 0 even when root exists) → spurious add → "already exists".
+- name: Ensure default profile has root disk device
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv:
+      - "{{ _lxc_bin }}"
+      - profile
+      - device
+      - add
+      - default
+      - root
+      - disk
+      - path=/
+      - "pool={{ lxd_storage_pool_name }}"
+  environment: "{{ lxd_hypervisor_env }}"
+  register: _lxd_default_root
+  failed_when:
+    - _lxd_default_root.rc != 0
+    - ('already exists' not in (_lxd_default_root.stderr | default('')))
+  changed_when: _lxd_default_root.rc == 0
+  when: lxd_ensure_default_storage | default(true) | bool
+  run_once: true

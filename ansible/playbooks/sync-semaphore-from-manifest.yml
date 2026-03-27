@@ -1,0 +1,82 @@
+---
+# GitOps-style Semaphore: desired state lives in ansible/files/semaphore-manifest.yml.
+# If that file is missing, the playbook bootstraps it from semaphore-manifest.example.yml (no manual cp required).
+# Run locally or in CI after merges — no manual Semaphore UI edits required for projects/repos/inventories/templates listed in the manifest.
+#
+#   cd ansible && export ANSIBLE_CONFIG="$(pwd)/ansible.cfg"
+#   ansible-playbook -i localhost, -c local playbooks/sync-semaphore-from-manifest.yml \
+#     -e semaphore_api_token="$TOKEN" -e semaphore_git_url="https://your.forge/you/devsecops-pipeline.git"
+#
+- name: Sync Semaphore from manifest
+  hosts: localhost
+  gather_facts: false
+  vars:
+    semaphore_url: "http://localhost:3001"
+    semaphore_manifest_file: "{{ playbook_dir | dirname }}/files/semaphore-manifest.yml"
+    semaphore_manifest_example: "{{ playbook_dir | dirname }}/files/semaphore-manifest.example.yml"
+  tasks:
+    - name: Stat local manifest
+      ansible.builtin.stat:
+        path: "{{ semaphore_manifest_file }}"
+      register: _mf_local
+
+    - name: Stat example manifest
+      ansible.builtin.stat:
+        path: "{{ semaphore_manifest_example }}"
+      register: _mf_example
+
+    - name: Bootstrap local manifest from example (no shell cp needed)
+      ansible.builtin.copy:
+        src: "{{ semaphore_manifest_example }}"
+        dest: "{{ semaphore_manifest_file }}"
+        mode: "0644"
+        force: false
+      when:
+        - not _mf_local.stat.exists
+        - _mf_example.stat.exists
+
+    - name: Stat local manifest (refresh after optional bootstrap)
+      ansible.builtin.stat:
+        path: "{{ semaphore_manifest_file }}"
+      register: _mf_ok
+
+    - name: Fail if manifest is not available
+      ansible.builtin.fail:
+        msg: >-
+          Missing {{ semaphore_manifest_file }}.
+          Ensure ansible/files/semaphore-manifest.example.yml exists in this repo,
+          or create the manifest manually (PowerShell: Copy-Item -LiteralPath ansible\files\semaphore-manifest.example.yml -Destination ansible\files\semaphore-manifest.yml).
+      when: not _mf_ok.stat.exists
+
+    - name: Read manifest file
+      ansible.builtin.slurp:
+        path: "{{ semaphore_manifest_file }}"
+      register: _semaphore_manifest_slurp
+
+    - name: Parse manifest YAML
+      ansible.builtin.set_fact:
+        sm: "{{ _semaphore_manifest_slurp.content | b64decode | trim | from_yaml }}"
+
+    - name: Require manifest version 1
+      ansible.builtin.assert:
+        that:
+          - sm.version is defined
+          - (sm.version | int) == 1
+        fail_msg: "Unsupported manifest version (expected version: 1)."
+
+    - name: Require project and repository in manifest
+      ansible.builtin.assert:
+        that:
+          - sm.project is defined
+          - sm.project.name is defined
+          - sm.repository is defined
+          - sm.repository.name is defined
+        fail_msg: "Manifest must define sm.project.name and sm.repository.name"
+
+    - name: Resolve Git URL and branch (CLI overrides manifest)
+      ansible.builtin.set_fact:
+        _git_url: "{{ semaphore_git_url | default(sm.repository.git_url | default(''), true) | trim }}"
+        _git_branch: "{{ semaphore_git_branch | default(sm.repository.git_branch | default('main'), true) | trim }}"
+
+    - name: Apply manifest to Semaphore API
+      ansible.builtin.include_tasks: ../tasks/semaphore_sync_from_manifest.yml

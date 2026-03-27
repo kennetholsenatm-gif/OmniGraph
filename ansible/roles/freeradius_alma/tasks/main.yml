@@ -1,0 +1,31 @@
+---
+- name: Install FreeRADIUS packages
+  ansible.builtin.dnf:
+    name: "{{ freeradius_packages + (['freeradius-ldap'] if freeradius_ldap_enabled | bool else []) }}"
+    state: present
+
+- name: Deploy NAS clients snippet
+  ansible.builtin.template:
+    src: clients.devsecops.conf.j2
+    dest: /etc/raddb/clients.d/devsecops.conf
+    owner: root
+    group: radiusd
+    mode: "0640"
+  when: freeradius_clients | length > 0
+  notify: Restart radiusd
+
+- name: Deploy LDAP module stub (optional)
+  ansible.builtin.template:
+    src: mods-available.ldap.devsecops.j2
+    dest: /etc/raddb/mods-available/ldap.devsecops
+    owner: root
+    group: radiusd
+    mode: "0640"
+  when: freeradius_ldap_enabled | bool
+  notify: Restart radiusd
+
+- name: Enable and start FreeRADIUS
+  ansible.builtin.service:
+    name: "{{ freeradius_service_name }}"
+    state: started
+    enabled: true

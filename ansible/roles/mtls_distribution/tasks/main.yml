@@ -1,0 +1,15 @@
+---
+- name: Ensure mesh secrets directory exists
+  ansible.builtin.file:
+    path: "{{ mtls_certs_dest }}"
+    state: directory
+    mode: '0700'
+    owner: root
+
+- name: Distribute Root CA and node certificates
+  ansible.builtin.copy:
+    src: "{{ mtls_certs_src }}/{{ item }}"
+    dest: "{{ mtls_certs_dest }}/{{ item }}"
+    mode: '0400'
+  loop: "{{ mtls_cert_files }}"
+  when: mtls_cert_files | length > 0

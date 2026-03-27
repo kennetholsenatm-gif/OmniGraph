@@ -1,0 +1,111 @@
+{
+  "name": "Documentation Generator",
+  "nodes": [
+    {
+      "id": "8cfed12e-e529-4f4c-acd1-dc96f672f39a",
+      "name": "Pull Request Merged Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "parameters": {
+        "path": "pull-request-merged",
+        "httpMethod": "POST",
+        "options": {}
+      },
+      "webhookId": "doc-gen-merged"
+    },
+    {
+      "id": "c2391f22-1d4f-4652-ba4e-a0b76f36f183",
+      "name": "Extract Architecture Information",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [240, 0],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json }}",
+        "options": {
+          "systemMessage": "You are a technical documentation specialist. Extract comprehensive architecture information from the merged pull request. Identify components, event topologies, security posture, cryptographic parameters, and configuration requirements. Structure the output for RAG-optimized documentation."
+        }
+      }
+    },
+    {
+      "id": "10e12276-d638-4f83-93c7-dfc1f1d45eea",
+      "name": "Generate Glossary",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [480, 0],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json }}",
+        "options": {
+          "systemMessage": "You are a technical terminology expert. Create a comprehensive glossary for the DevSecOps pipeline. Define key terms like Orchestrator Agent, PQC Seed, Mesh VPN, CMMC L2, etc. Include anchors for RAG retrieval and ensure semantic consistency."
+        }
+      }
+    },
+    {
+      "id": "c60b4ef5-f094-464f-8cb1-a8420ade9596",
+      "name": "Create Structured Documentation",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [720, 0],
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "multiplex",
+        "options": {}
+      }
+    },
+    {
+      "id": "363d38aa-601b-46d4-9bb6-5504116c6ff7",
+      "name": "Generate Markdown Output",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [960, 0],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json }}",
+        "options": {
+          "systemMessage": "You are a technical writer. Convert the structured documentation into RAG-optimized Markdown. Use clear hierarchical boundaries, structured data tables, and sections: Architecture Briefing, System Glossary, Component Overview, Event Topologies, Security Posture, Required Environment Schema."
+        }
+      }
+    },
+    {
+      "id": "62ac0fa8-4303-403a-96fc-7350cd87e8e7",
+      "name": "Commit to Wiki",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 0],
+      "parameters": {
+        "url": "={{ ($env.GITEA_URL || 'http://gitea:3000') + '/api/v1/repos/' + ($env.GITEA_WIKI_OWNER || 'kbolsen') + '/' + ($env.GITEA_WIKI_REPO || 'devsecops-pipeline') + '/wiki/new' }}",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ title: 'Architecture', message: 'Doc update from pipeline', content_base64: Buffer.from(String($json.output || $json.text || ''), 'utf8').toString('base64') }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "gitea_api", "name": "Gitea API" }
+      }
+    }
+  ],
+  "connections": {
+    "Pull Request Merged Trigger": {
+      "main": [[{ "node": "Extract Architecture Information", "type": "main", "index": 0 }]]
+    },
+    "Extract Architecture Information": {
+      "main": [[{ "node": "Generate Glossary", "type": "main", "index": 0 }]]
+    },
+    "Generate Glossary": {
+      "main": [[{ "node": "Create Structured Documentation", "type": "main", "index": 0 }]]
+    },
+    "Create Structured Documentation": {
+      "main": [[{ "node": "Generate Markdown Output", "type": "main", "index": 0 }]]
+    },
+    "Generate Markdown Output": {
+      "main": [[{ "node": "Commit to Wiki", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v2"
+  },
+  "staticData": null,
+  "pinData": {}
+}

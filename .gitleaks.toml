@@ -1,0 +1,10 @@
+# Gitleaks — secret scanning (pre-commit + CI). Tune allowlists for false positives.
+title = "devsecops-pipeline"
+
+[allowlist]
+description = "Docs and examples often contain token-shaped strings"
+paths = [
+  '''.*\.md$''',
+  '''.*\.example\.ya?ml$''',
+  '''docs/snippets/''',
+]

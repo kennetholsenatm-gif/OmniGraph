@@ -1,0 +1,5 @@
+---
+# Full campus / lab network pass: ISR then access layer.
+# ansible-playbook -i inventory/network.example.yml playbooks/network-site.yml
+- ansible.builtin.import_playbook: network-isr.yml
+- ansible.builtin.import_playbook: network-c3560cx.yml

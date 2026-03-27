@@ -1,0 +1,33 @@
+# A2A topic routing for Solace Agent Mesh (devsecops-sam)
+# Use with existing broker (devsecops-solace) and SAM (devsecops-sam).
+# Mount this directory into the SAM container or merge into SAM config per Solace docs.
+#
+# Topic mapping (conceptual; actual routing depends on SAM gateway/orchestrator config):
+#   data-ingestion     -> LlamaIndex agents
+#   code-execution     -> AutoGen agents
+#   workflow-automation -> Activepieces / n8n
+
+topic_routes:
+  data-ingestion:
+    description: "RAG, indexing, data load; route to LlamaIndex agents"
+    subscribe: "a2a/data-ingestion/#"
+    backend: "llamaindex"
+    endpoint_placeholder: "http://llamaindex-agent:8000"
+
+  code-execution:
+    description: "Code run, sandbox; route to AutoGen agents"
+    subscribe: "a2a/code-execution/#"
+    backend: "autogen"
+    endpoint_placeholder: "http://autogen-agent:8080"
+
+  workflow-automation:
+    description: "Workflows, actions; route to n8n / Activepieces"
+    subscribe: "a2a/workflow-automation/#"
+    backend: "n8n"
+    endpoint_placeholder: "http://n8n:5678"
+
+# Standard A2A protocol topics (Solace Agent Mesh convention)
+a2a_topics:
+  - "a2a/data-ingestion/v1"
+  - "a2a/code-execution/v1"
+  - "a2a/workflow-automation/v1"

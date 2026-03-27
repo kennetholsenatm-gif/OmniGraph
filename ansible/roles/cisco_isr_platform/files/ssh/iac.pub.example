@@ -1,0 +1,10 @@
+# Replace this file with iac.pub containing ONE line only (no comments):
+# ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx iac@automation
+# or
+# ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx iac@automation
+#
+# Then set either:
+#   cisco_isr_admin_ssh_pubkey_file: "ssh/iac.pub"
+# or paste the same line into group_vars as cisco_isr_admin_ssh_pubkey.
+#
+# This .example stays in git; copy to iac.pub (gitignored — see role README) or use Vault only.

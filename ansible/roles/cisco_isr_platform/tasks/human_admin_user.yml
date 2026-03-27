@@ -1,0 +1,24 @@
+---
+# Human operator account: SSH public key only (nopassword). Not used as ansible_user — use iac for Ansible.
+- name: Resolve human admin SSH pubkey (inline)
+  ansible.builtin.set_fact:
+    _cisco_isr_human_ssh_pubkey_effective: "{{ cisco_isr_human_admin_ssh_pubkey | default('') | trim }}"
+
+- name: Load human admin SSH pubkey from role files/ when inline empty
+  ansible.builtin.set_fact:
+    _cisco_isr_human_ssh_pubkey_effective: "{{ lookup('ansible.builtin.file', role_path ~ '/files/' ~ (cisco_isr_human_admin_ssh_pubkey_file | trim)) | trim }}"
+  when:
+    - (_cisco_isr_human_ssh_pubkey_effective | length) == 0
+    - (cisco_isr_human_admin_ssh_pubkey_file | default('') | trim | length) > 0
+  ignore_errors: true
+
+- name: Human admin user — privilege 15, key-only (nopassword)
+  cisco.ios.ios_user:
+    name: "{{ cisco_isr_human_admin_username }}"
+    privilege: "{{ cisco_isr_human_admin_privilege }}"
+    nopassword: true
+    sshkey: "{{ _cisco_isr_human_ssh_pubkey_effective }}"
+    state: present
+  when:
+    - cisco_isr_human_admin_enabled | default(true) | bool
+    - (_cisco_isr_human_ssh_pubkey_effective | default('') | length) > 0

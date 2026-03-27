@@ -1,0 +1,79 @@
+---
+- name: Optional loopback
+  cisco.ios.ios_config:
+    parents:
+      - "interface {{ cisco_isr_loopback_interface }}"
+    lines:
+      - "description {{ cisco_isr_loopback_config.description | default('LOOPBACK') }}"
+      - "ip address {{ cisco_isr_loopback_config.ipv4 }} {{ cisco_isr_loopback_config.mask }}"
+      - no shutdown
+    save_when: never
+  when:
+    - cisco_isr_loopback_config.enabled | default(false) | bool
+    - cisco_isr_loopback_config.ipv4 is defined
+    - cisco_isr_loopback_config.mask is defined
+
+- name: WAN interface — DHCP (typical CPE path)
+  cisco.ios.ios_config:
+    parents:
+      - "interface {{ cisco_isr_wan_interface }}"
+    lines:
+      - "description {{ cisco_isr_wan_description }}"
+      - ip address dhcp
+      - no shutdown
+    save_when: never
+  when: cisco_isr_wan_ipv4_dhcp | bool
+
+- name: WAN interface — static IPv4
+  cisco.ios.ios_config:
+    parents:
+      - "interface {{ cisco_isr_wan_interface }}"
+    lines:
+      - "description {{ cisco_isr_wan_description }}"
+      - "ip address {{ cisco_isr_wan_ipv4_address }} {{ cisco_isr_wan_ipv4_mask }}"
+      - no shutdown
+    save_when: never
+  when:
+    - not (cisco_isr_wan_ipv4_dhcp | bool)
+    - cisco_isr_wan_ipv4_address | default('') | length > 0
+
+- name: Inside interface — L2 trunk (only if your IOS-XE build supports switchport on this Gi)
+  cisco.ios.ios_config:
+    parents:
+      - "interface {{ cisco_isr_inside_interface }}"
+    lines:
+      - "description {{ cisco_isr_inside_description }}"
+      - no ip address
+      - switchport
+      - switchport mode trunk
+      - "switchport trunk native vlan {{ cisco_isr_inside_native_vlan_id }}"
+      - "switchport trunk allowed vlan {{ cisco_isr_inside_trunk_allowed_vlans }}"
+      - no shutdown
+    save_when: never
+  when: cisco_isr_inside_switchport_trunk | bool
+
+- name: Inside interface — routed parent (subifs use dot1Q; Catalyst trunk should use native VLAN != 1, e.g. 3999)
+  cisco.ios.ios_config:
+    parents:
+      - "interface {{ cisco_isr_inside_interface }}"
+    lines:
+      - "description {{ cisco_isr_inside_description }}"
+      - no ip address
+      - no shutdown
+    save_when: never
+  when: not (cisco_isr_inside_switchport_trunk | bool)
+
+- name: Configure inside 802.1Q subinterfaces
+  cisco.ios.ios_config:
+    parents:
+      - "interface {{ cisco_isr_inside_interface }}.{{ item.vlan }}"
+    lines:
+      - "{{ ('encapsulation dot1Q ' ~ (item.vlan | string) ~ ' native') if (item.native | default(false) | bool) else ('encapsulation dot1Q ' ~ (item.vlan | string)) }}"
+      - "description {{ item.description | default('ANSIBLE') }}"
+      - "ip address {{ item.ipv4 }} {{ item.mask }}"
+      - no shutdown
+    save_when: never
+  loop: "{{ cisco_isr_inside_subinterfaces }}"
+  when: not (cisco_isr_inside_switchport_trunk | bool)
+  loop_control:
+    label: "{{ cisco_isr_inside_interface }}.{{ item.vlan }}"

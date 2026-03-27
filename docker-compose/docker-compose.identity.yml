@@ -1,0 +1,38 @@
+# Identity: FreeIPA (LDAP/Kerberos) on the IAM control-plane bridge.
+# First run: init required (ipa-server-install). See README and docs/IDENTITIES_AND_PRIVILEGES.md.
+# Networks: iam_net (external, 100.64.20.0/24). Create with OpenTofu or scripts/create-networks.{ps1,sh}.
+
+services:
+  freeipa:
+    image: freeipa/freeipa-server:rocky-9
+    container_name: devsecops-freeipa
+    hostname: ipa
+    networks:
+      - iam_net
+    ports:
+      - "80:80"
+      - "443:443"
+      - "389:389"
+      - "636:636"
+      - "88:88"
+      - "464:464"
+    volumes:
+      - freeipa_data:/data
+    environment:
+      # First-time init: set FREEIPA_INIT to "true" and provide DOMAIN, REALM, DS_PASSWORD, ADMIN_PASSWORD.
+      FREEIPA_INIT: "${FREEIPA_INIT:-false}"
+      IPA_SERVER_HOSTNAME: "ipa.${FREEIPA_DOMAIN:-devsecops.local}"
+      DOMAIN: "${FREEIPA_DOMAIN:-devsecops.local}"
+      REALM: "${FREEIPA_REALM:-DEVSECOPS.LOCAL}"
+      DS_PASSWORD: "${FREEIPA_DS_PASSWORD:-}"
+      ADMIN_PASSWORD: "${FREEIPA_ADMIN_PASSWORD:-}"
+    # Privileged required for FreeIPA; restrict to identity segment only.
+    privileged: true
+    restart: unless-stopped
+
+networks:
+  iam_net:
+    external: true
+
+volumes:
+  freeipa_data:

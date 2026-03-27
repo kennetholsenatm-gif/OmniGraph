@@ -1,0 +1,25 @@
+---
+# Native Semaphore (no Docker) installed inside AlmaLinux LXC via systemd + Postgres.
+# Pin to a known release; override if you need a different version.
+semaphore_version: "2.17.27"
+semaphore_listen_port: 3000
+# Public URL for Semaphore (SEMAPHORE_WEB_ROOT). MUST match the host:port you open in the browser.
+# The HTML <base href> is derived from this; relative script URLs resolve against it. If you use
+# http://localhost:3001 but this is http://127.0.0.1:3001 (or the reverse), bundles may load from a
+# host that refuses connections → blank white page. Many Incus/WSL setups only accept localhost (::1).
+semaphore_web_host: "http://localhost:3001"
+semaphore_admin_user: admin
+semaphore_admin_name: "Local Admin"
+semaphore_admin_email: admin@local.dev
+semaphore_admin_password: admin_local_dev
+semaphore_db_name: semaphore
+semaphore_db_user: semaphore
+semaphore_db_password: semaphore_local_dev
+# Dev defaults — change if you expose beyond localhost.
+semaphore_access_key_encryption: local_dev_access_key_change_me
+semaphore_cookie_hash: local_dev_cookie_hash_change_me
+semaphore_cookie_encryption: local_dev_cookie_enc_change_me
+# Incus proxy: host port -> container semaphore_listen_port
+semaphore_incus_host_port: 3001
+# Optional: bind-mount a host repo path into the LXC at /workspace (WSL: /mnt/c/GiTeaRepos/devsecops-pipeline)
+semaphore_host_repo_path: ""
