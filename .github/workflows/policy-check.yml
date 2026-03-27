@@ -44,7 +44,7 @@ jobs:
 
       - name: Build OmniGraph
         run: |
-          go build -o omnigraph ./cmd/omnigraph
+          mkdir -p bin && go build -o bin/omnigraph ./cmd/omnigraph
 
       - name: Validate policy files
         run: |
@@ -54,7 +54,7 @@ jobs:
             ! -path "./.git/*" ! -path "./.github/*" ! -path "./node_modules/*" | while read -r file; do
             if grep -q "omnigraph/policy/v1" "$file" 2>/dev/null; then
               echo "  Checking $file..."
-              ./omnigraph policy validate "$file" || exit 1
+              ./bin/omnigraph policy validate "$file" || exit 1
             fi
           done
           echo "All policy files validated successfully"
@@ -65,11 +65,11 @@ jobs:
           find . -name "*.omnigraph.schema" | while read file; do
             echo "  Checking $file..."
             if [ -d "policies" ]; then
-              ./omnigraph validate "$file" --policy-dir policies --enforce || exit 1
+              ./bin/omnigraph validate "$file" --policy-dir policies --enforce || exit 1
             elif [ -d "testdata/policies" ]; then
-              ./omnigraph validate "$file" --policy-dir testdata/policies --enforce || exit 1
+              ./bin/omnigraph validate "$file" --policy-dir testdata/policies --enforce || exit 1
             else
-              ./omnigraph validate "$file" || exit 1
+              ./bin/omnigraph validate "$file" || exit 1
             fi
           done
           echo "All schema files validated successfully"
@@ -79,7 +79,7 @@ jobs:
         run: |
           if [ -d "policies" ]; then
             echo "Generating policy compliance report..."
-            ./omnigraph policy report --policy-dir policies --format json --output policy-report.json || true
+            ./bin/omnigraph policy report --policy-dir policies --format json --output policy-report.json || true
 
             if [ -f "policy-report.json" ]; then
               echo "Policy report generated: policy-report.json"

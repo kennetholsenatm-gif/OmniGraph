@@ -68,14 +68,14 @@ jobs:
         run: cd wasm/tfpattern && go test ./...
 
       - name: Build
-        run: go build -o omnigraph ./cmd/omnigraph
+        run: mkdir -p bin && go build -o bin/omnigraph ./cmd/omnigraph
 
       - name: Validate sample schema
-        run: ./omnigraph validate testdata/sample.omnigraph.schema
+        run: ./bin/omnigraph validate testdata/sample.omnigraph.schema
 
       - name: Emit graph JSON (smoke)
         run: |
-          ./omnigraph graph emit testdata/sample.omnigraph.schema \
+          ./bin/omnigraph graph emit testdata/sample.omnigraph.schema \
             --plan-json internal/plan/testdata/minimal-plan.json \
             --tfstate internal/state/testdata/minimal.state.json \
             | head -c 400
