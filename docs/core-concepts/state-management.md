@@ -16,5 +16,6 @@ schema-first configuration, and secret handling.
 ## Related docs
 
 - [Overview](../overview.md)
+- [Using the web workspace](../using-the-web.md)
 - [Security posture](../security/posture.md)
 - [Architecture](architecture.md)

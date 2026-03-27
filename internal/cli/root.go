@@ -18,8 +18,12 @@ func Execute() {
 
 func newRoot() *cobra.Command {
 	root := &cobra.Command{
-		Use:           "omnigraph",
-		Short:         "OmniGraph control plane — orchestrates provisioning, configuration, and handoff",
+		Use:   "omnigraph",
+		Short: "OmniGraph — graph workspace, validation, and automation (CLI feeds the web UI and CI)",
+		Long: `OmniGraph is a graph-forward infrastructure workspace: the React UI is where most people
+explore omnigraph/graph/v1 and related context. This binary validates schema, runs policy,
+orchestrates OpenTofu/Terraform and Ansible when needed, scans posture, serves HTTP APIs,
+and emits the JSON artifacts the dashboard consumes—plus headless CI use cases.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Version:       version.String(),

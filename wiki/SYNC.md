@@ -1,7 +1,23 @@
 # Publishing `wiki/` to GitHub Wiki
 
 GitHub Wikis are stored in a **second** repository: `https://github.com/kennetholsenatm-gif/OmniGraph.wiki.git`  
-The [`wiki/` folder on `main`](https://github.com/kennetholsenatm-gif/OmniGraph/tree/main/wiki) is the copy we keep next to the code. Nothing syncs automatically; you push updates when you want the Wiki tab to change.
+The [`wiki/` folder on `main`](https://github.com/kennetholsenatm-gif/OmniGraph/tree/main/wiki) is the source copy next to the code. **CI can push it for you** (see below); you can still sync by hand anytime.
+
+## Automated sync (CI)
+
+On every push to `main` that changes files under **`wiki/`**, the **[Wiki sync workflow](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/.github/workflows/wiki-sync.yml)** mirrors this folder into the GitHub Wiki.
+
+**One-time setup for maintainers**
+
+1. Ensure **Wikis** are enabled (step 1 below) and the Wiki has at least an initial **Home** page so the `.wiki` git repo exists.
+2. Create a **fine-grained or classic PAT** with **`Contents` read and write** on this repository (the PAT must be allowed to push the Wiki git remote).
+3. In the repo on GitHub: **Settings → Secrets and variables → Actions → New repository secret**  
+   - Name: `WIKI_PUSH_TOKEN`  
+   - Value: the PAT
+
+If the secret is missing, the workflow **skips** the push with a notice (CI stays green). Forks without the secret behave the same way.
+
+You can also run the workflow manually: **Actions → Wiki sync → Run workflow**.
 
 ## 1. Turn Wikis on
 
@@ -40,7 +56,7 @@ git commit -m "docs: sync wiki from main"
 git push
 ```
 
-Repeat whenever you change `wiki/` on `main` and want the Wiki tab updated.
+Repeat whenever you change `wiki/` on `main` and want the Wiki tab updated without waiting for CI (or if CI is not configured).
 
 ## 4. Links and `_Sidebar.md`
 

@@ -1,5 +1,7 @@
 # Execution Matrix
 
+Runners and orchestration steps exist to **execute** OpenTofu/Terraform, Ansible, and related tools safely—and to **produce and refresh** plan output, state, inventory, and **`omnigraph/graph/v1`** (and related) artifacts that the **web workspace** and CI consumers display. This page is about *how* that execution is wired, not a substitute for the graph-first story in [using-the-web.md](../using-the-web.md).
+
 OmniGraph orchestrates external tools through pluggable runners.
 
 ## Runner Types
@@ -64,5 +66,6 @@ tool availability, reproducibility requirements). No single runner is required.
 ## Related Docs
 
 - [Overview](../overview.md)
-- [Journeys](../journeys.md) (command examples)
+- [Using the web workspace](../using-the-web.md)
+- [CLI and CI](../cli-and-ci.md) (command examples)
 - [Architecture](architecture.md)

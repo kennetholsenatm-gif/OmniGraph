@@ -1,3 +1,5 @@
 # Bash on WSL/Linux requires LF; CRLF breaks `set -o pipefail` and similar.
+# Go: CI runs gofmt on Ubuntu; CRLF in working copies causes noisy diffs and flaky checks.
+*.go text eol=lf
 *.sh text eol=lf
 *.py text eol=lf

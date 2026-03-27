@@ -1,6 +1,6 @@
 # Integrations
 
-OmniGraph supports optional integration with secret stores, CMDB systems, telemetry
+Telemetry, inventory, identity, and secrets integrations **enrich what operators see** in graph and workspace contexts (and what automation can emit), not only “backend plumbing.” OmniGraph supports optional integration with secret stores, CMDB systems, telemetry
 sources, and identity providers.
 
 ## Integration Categories

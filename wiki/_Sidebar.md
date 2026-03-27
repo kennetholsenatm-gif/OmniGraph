@@ -4,7 +4,7 @@
 
 - [Documentation hub](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/README.md)
 - [Overview](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/overview.md)
-- [Journeys](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/journeys.md)
+- [CLI and CI](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/cli-and-ci.md)
 - [Security posture](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/security/posture.md)
 
 **Wiki pages**

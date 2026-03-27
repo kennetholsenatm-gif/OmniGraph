@@ -18,6 +18,7 @@ This page summarizes key OmniGraph schema contracts used across CLI and UI flows
 ## Related docs
 
 - [Overview](../overview.md)
-- [Journeys](../journeys.md)
+- [Using the web workspace](../using-the-web.md)
+- [CLI and CI](../cli-and-ci.md)
 - [OmniGraph IR](../core-concepts/omnigraph-ir.md)
 - [Security posture](../security/posture.md)

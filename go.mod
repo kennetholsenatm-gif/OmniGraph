@@ -1,6 +1,6 @@
 module github.com/kennetholsenatm-gif/omnigraph
 
-go 1.25.0
+go 1.25.8
 
 require (
 	github.com/coreos/go-oidc/v3 v3.14.1
