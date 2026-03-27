@@ -1,0 +1,4 @@
+# Human admin SSH public key (one line in kbolsen.pub, no comments).
+# The role defaults to files/ssh/kbolsen.pub (tracked). Override with:
+#   cisco_isr_human_admin_ssh_pubkey: "ssh-ed25519 AAAA... kbolsen"
+# or point cisco_isr_human_admin_ssh_pubkey_file at another file under files/.

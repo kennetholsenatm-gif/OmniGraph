@@ -1,0 +1,34 @@
+# Apply Semaphore manifest via Ansible (declarative GitOps). Uses repo secrets — no tokens in git.
+# Requires a runner that can reach SEMAPHORE_URL (same host as Semaphore, VPN, or routable IP).
+# See docs/CI_CD.md.
+name: Semaphore sync
+
+on:
+  workflow_dispatch:
+  # Uncomment after secrets and runner networking are verified:
+  # push:
+  #   branches: [main]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Ansible and sync Semaphore
+        env:
+          SEMAPHORE_API_TOKEN: ${{ secrets.SEMAPHORE_API_TOKEN }}
+          SEMAPHORE_URL: ${{ secrets.SEMAPHORE_URL }}
+          SEMAPHORE_GIT_URL: ${{ secrets.SEMAPHORE_GIT_URL }}
+          SEMAPHORE_GIT_BRANCH: ${{ secrets.SEMAPHORE_GIT_BRANCH }}
+        run: |
+          set -e
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-pip python3-venv
+          python3 -m venv /tmp/semaphore-venv
+          # shellcheck disable=SC1091
+          . /tmp/semaphore-venv/bin/activate
+          pip install --upgrade pip
+          pip install "ansible-core>=2.15,<2.18"
+          ansible-galaxy collection install -r ansible/collections/requirements.yml
+          bash scripts/ci/semaphore-sync.sh

@@ -1,0 +1,20 @@
+---
+- name: SSH server — restrict to v2 and sane timeouts
+  cisco.ios.ios_config:
+    lines:
+      - ip ssh version 2
+      - ip ssh time-out 60
+    save_when: never
+
+# IOS-XE may prompt on replace; first-run in lab often has no key. Re-run safe with ignore.
+- name: Generate RSA modulus for SSH (non-interactive general-keys)
+  cisco.ios.ios_command:
+    commands:
+      - "crypto key generate rsa general-keys modulus {{ cisco_isr_ssh_rsa_modulus }}"
+  register: _cisco_isr_rsa_gen
+  when: cisco_isr_generate_ssh_rsa_key | bool
+  failed_when: false
+  changed_when: >-
+    _cisco_isr_rsa_gen is not failed and
+    ( 'already exists' not in (_cisco_isr_rsa_gen.stdout | default([]) | join())
+      and 'Please define' not in (_cisco_isr_rsa_gen.stdout | default([]) | join()) )

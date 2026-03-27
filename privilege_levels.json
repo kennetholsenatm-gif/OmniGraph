@@ -1,0 +1,26 @@
+{
+  "admin": {
+    "keycloak_role": "realm-admin",
+    "ldap_ou": "admins"
+  },
+  "operator": {
+    "keycloak_role": "operator",
+    "ldap_ou": "operators"
+  },
+  "developer": {
+    "keycloak_role": "developer",
+    "ldap_ou": "developers"
+  },
+  "viewer": {
+    "keycloak_role": "view-only",
+    "ldap_ou": "viewers"
+  },
+  "auditor": {
+    "keycloak_role": "auditor",
+    "ldap_ou": "auditors"
+  },
+  "service_agent": {
+    "keycloak_role": "service-account",
+    "ldap_ou": "service-accounts"
+  }
+}

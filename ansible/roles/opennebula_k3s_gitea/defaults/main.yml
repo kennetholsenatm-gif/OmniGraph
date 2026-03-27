@@ -1,0 +1,13 @@
+---
+opennebula_helm_gitea_enabled: false
+opennebula_gitea_helm_release_name: gitea
+opennebula_gitea_chart_repo_name: gitea-charts
+opennebula_gitea_chart_repo_url: https://gitea-charts.gitea.io
+opennebula_gitea_chart_name: gitea
+opennebula_gitea_k8s_namespace: gitea-prod
+# On K3s control nodes this path is typical; override per host.
+opennebula_kubeconfig_path: /etc/rancher/k3s/k3s.yaml
+# Repo example — copy to a writable path and fill secrets before enabling Helm in prod.
+opennebula_gitea_values_file: "{{ playbook_dir | dirname | dirname }}/deployments/opennebula-gitea/helm/gitea-values.example.yaml"
+opennebula_helm_wait: true
+opennebula_helm_timeout: 600s

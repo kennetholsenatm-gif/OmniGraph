@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "description": "Canonical compose file sets for merged docker compose runs and documentation. Keep in sync with ansible/roles/devsecops_containers and lxd_devsecops_stack (devSingleLxc + optionalStacks); run scripts/verify-stack-manifest.ps1 and scripts/verify-lxd-manifest-parity.ps1 after edits.",
+  "sdnTelemetry": {
+    "switchName": "IncludeSdnTelemetry",
+    "environmentVariable": "DEVSECOPS_INCLUDE_SDN_TELEMETRY",
+    "files": [
+      "docker-compose.network.yml",
+      "docker-compose.telemetry.yml"
+    ]
+  },
+  "coreStack": {
+    "label": "IAM, messaging, tooling, ChatOps (Zulip)",
+    "files": [
+      "docker-compose.iam.yml",
+      "docker-compose.messaging.yml",
+      "docker-compose.tooling.yml",
+      "docker-compose.chatops.yml"
+    ]
+  },
+  "devSingleLxc": {
+    "label": "One LXC / one Docker daemon: IAM + slim messaging (Postgres, RabbitMQ; no Kafka/NiFi/Solace)",
+    "files": [
+      "docker-compose.iam.yml",
+      "docker-compose.messaging.slim.yml"
+    ],
+    "note": "Ansible: instance devsecops-dev in ansible/roles/lxd_devsecops_stack/defaults/main.yml. Slim only: set lxd_messaging_compose_cli to -f docker-compose.messaging.slim.yml for devsecops-messaging."
+  },
+  "optionalStacks": {
+    "llm": {
+      "composeFiles": ["docker-compose.llm.yml"],
+      "switchName": "IncludeLlm",
+      "environmentVariable": "DEVSECOPS_INCLUDE_LLM",
+      "nonFatal": true,
+      "note": "Requires llm_net (create-networks.ps1 / OpenTofu)."
+    },
+    "discovery": {
+      "composeFiles": ["docker-compose.discovery.yml"],
+      "switchName": "IncludeDiscovery",
+      "environmentVariable": "DEVSECOPS_INCLUDE_DISCOVERY",
+      "nonFatal": false
+    },
+    "aiOrchestration": {
+      "composeFiles": ["docker-compose.ai-orchestration.yml"],
+      "switchName": "IncludeAiOrchestration",
+      "environmentVariable": "DEVSECOPS_INCLUDE_AI_ORCHESTRATION",
+      "nonFatal": false
+    },
+    "identity": {
+      "composeFiles": ["docker-compose.identity.yml"],
+      "switchName": "IncludeIdentity",
+      "environmentVariable": "DEVSECOPS_INCLUDE_IDENTITY",
+      "nonFatal": false,
+      "note": "FreeIPA on iam_net (100.64.20.0/24); optional LDAP backend. See docs/IAM_LDAP_AND_AUTOMATION.md."
+    },
+    "siem": {
+      "composeFiles": ["docker-compose.siem.yml"],
+      "switchName": "IncludeSiem",
+      "environmentVariable": "DEVSECOPS_INCLUDE_SIEM",
+      "nonFatal": false,
+      "note": "Wazuh manager/indexer/dashboard; run scripts/bootstrap-wazuh-siem-config.ps1 first. See docs/WAZUH_SIEM.md."
+    }
+  }
+}

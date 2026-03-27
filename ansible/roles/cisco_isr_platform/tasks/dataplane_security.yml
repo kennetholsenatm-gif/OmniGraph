@@ -1,0 +1,30 @@
+---
+# WAN ingress extended ACL (data plane + traffic destined to the router on that interface).
+# Enable only after validating lines against DHCP/static WAN and required transit.
+- name: Data-plane — resolve WAN ACL name and lines (group_vars may omit keys; use template)
+  ansible.builtin.set_fact:
+    _cisco_isr_wan_acl_name: "{{ cisco_isr_wan_infrastructure_acl.name | default('ISR-WAN-INFILT') }}"
+    _cisco_isr_wan_acl_lines: "{{ cisco_isr_wan_infrastructure_acl.lines if (cisco_isr_wan_infrastructure_acl.lines | default([]) | length) > 0 else cisco_isr_wan_infrastructure_acl_lines_template }}"
+  when: cisco_isr_wan_infrastructure_acl.enabled | default(false) | bool
+
+- name: Data-plane — extended ACL on WAN (inbound)
+  cisco.ios.ios_config:
+    parents:
+      - "ip access-list extended {{ _cisco_isr_wan_acl_name }}"
+    lines: "{{ _cisco_isr_wan_acl_lines }}"
+    save_when: never
+  when:
+    - cisco_isr_wan_infrastructure_acl.enabled | default(false) | bool
+    - (_cisco_isr_wan_acl_lines | default([]) | length) > 0
+    - (_cisco_isr_wan_acl_name | default('') | length) > 0
+
+- name: Data-plane — apply WAN inbound ACL to WAN interface
+  cisco.ios.ios_config:
+    parents:
+      - "interface {{ cisco_isr_wan_interface }}"
+    lines:
+      - "ip access-group {{ _cisco_isr_wan_acl_name }} in"
+    save_when: never
+  when:
+    - cisco_isr_wan_infrastructure_acl.enabled | default(false) | bool
+    - (_cisco_isr_wan_acl_name | default('') | length) > 0

@@ -1,0 +1,89 @@
+---
+# loop var: inv_item — expects _sem_base, _project_id, _none_key, _repository_id, semaphore_api_token, _inventory_ids
+- name: Refresh inventory list
+  ansible.builtin.uri:
+    url: "{{ _sem_base }}/api/project/{{ _project_id }}/inventory"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ semaphore_api_token }}"
+      Accept: "application/json"
+    status_code: [200]
+  register: _inv_loop
+
+- name: Match existing inventory
+  ansible.builtin.set_fact:
+    _inv_match: "{{ _inv_loop.json | default([]) | selectattr('name', 'equalto', inv_item.name) | list | first | default(none) }}"
+
+- name: Require body for static inventories
+  ansible.builtin.assert:
+    that:
+      - inv_item.body is defined
+      - (inv_item.body | string | length) > 0
+    fail_msg: "Inventory '{{ inv_item.name }}' (type {{ inv_item.type }}) needs a non-empty `body` in the manifest."
+  when:
+    - _inv_match is none
+    - inv_item.type in ['static', 'static-yaml']
+
+- name: Require path for file inventory
+  ansible.builtin.assert:
+    that:
+      - inv_item.path is defined
+      - (inv_item.path | string | length) > 0
+    fail_msg: "Inventory '{{ inv_item.name }}' (type file) needs `path` (repo-relative) in the manifest."
+  when:
+    - _inv_match is none
+    - inv_item.type == 'file'
+
+- name: Create inventory (static / static-yaml)
+  ansible.builtin.uri:
+    url: "{{ _sem_base }}/api/project/{{ _project_id }}/inventory"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ semaphore_api_token }}"
+      Accept: "application/json"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ inv_item.name }}"
+      project_id: "{{ _project_id }}"
+      inventory: "{{ inv_item.body }}"
+      type: "{{ inv_item.type }}"
+      ssh_key_id: "{{ _none_key.id | int }}"
+    status_code: [201]
+  register: _inv_created
+  when:
+    - _inv_match is none
+    - inv_item.type in ['static', 'static-yaml']
+
+- name: Create inventory (file in repo)
+  ansible.builtin.uri:
+    url: "{{ _sem_base }}/api/project/{{ _project_id }}/inventory"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ semaphore_api_token }}"
+      Accept: "application/json"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ inv_item.name }}"
+      project_id: "{{ _project_id }}"
+      inventory: "{{ inv_item.path }}"
+      type: file
+      ssh_key_id: "{{ _none_key.id | int }}"
+      repository_id: "{{ _repository_id | int }}"
+    status_code: [201]
+  register: _inv_created
+  when:
+    - _inv_match is none
+    - inv_item.type == 'file'
+
+- name: Fail on unsupported inventory type
+  ansible.builtin.fail:
+    msg: "Unsupported inventory type '{{ inv_item.type }}' for {{ inv_item.name }} — use static, static-yaml, or file."
+  when:
+    - _inv_match is none
+    - inv_item.type not in ['static', 'static-yaml', 'file']
+
+- name: Record inventory id
+  ansible.builtin.set_fact:
+    _inventory_ids: "{{ _inventory_ids | combine({ inv_item.name: ((_inv_match.id if _inv_match is not none else _inv_created.json.id) | int) }) }}"

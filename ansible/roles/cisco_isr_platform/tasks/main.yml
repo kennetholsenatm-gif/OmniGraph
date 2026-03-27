@@ -1,0 +1,36 @@
+---
+- name: Initialize SSH pubkey from inline variable
+  ansible.builtin.set_fact:
+    _cisco_isr_ssh_pubkey_effective: "{{ cisco_isr_admin_ssh_pubkey | default('') | trim }}"
+
+- name: Load SSH pubkey from role files/ when inline empty
+  ansible.builtin.set_fact:
+    _cisco_isr_ssh_pubkey_effective: "{{ lookup('ansible.builtin.file', role_path ~ '/files/' ~ (cisco_isr_admin_ssh_pubkey_file | trim)) | trim }}"
+  when:
+    - (_cisco_isr_ssh_pubkey_effective | length) == 0
+    - (cisco_isr_admin_ssh_pubkey_file | default('') | trim | length) > 0
+  ignore_errors: true
+
+- name: Compute IOS hostname (inventory_hostname fallback; legal chars only)
+  ansible.builtin.set_fact:
+    _cisco_isr_hostname_effective: >-
+      {{
+        (cisco_isr_hostname | default('') | trim)
+        if (cisco_isr_hostname | default('') | trim | length) > 0
+        else (inventory_hostname | regex_replace('[^a-zA-Z0-9\\-]', '-') | truncate(63, True, ''))
+      }}
+
+- ansible.builtin.import_tasks: system_identity.yml
+- ansible.builtin.import_tasks: banner_and_logging.yml
+- ansible.builtin.import_tasks: ssh_crypto.yml
+- ansible.builtin.import_tasks: admin_user.yml
+- ansible.builtin.import_tasks: human_admin_user.yml
+- ansible.builtin.import_tasks: lines_console_vty.yml
+- ansible.builtin.import_tasks: interfaces.yml
+- ansible.builtin.import_tasks: dataplane_security.yml
+- ansible.builtin.import_tasks: ucse.yml
+- ansible.builtin.import_tasks: controlplane_security.yml
+- ansible.builtin.import_tasks: vrrp.yml
+- ansible.builtin.import_tasks: multicast_igmp.yml
+- ansible.builtin.import_tasks: routing_ospf_bgp.yml
+- ansible.builtin.import_tasks: nat_static_legacy.yml

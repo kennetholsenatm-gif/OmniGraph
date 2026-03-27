@@ -1,0 +1,90 @@
+# Example identity list for greenfield (VARLOCK-aligned).
+# Schema: devsecops.identities.schema · Groups + account kinds: docs/LDAP_ACCOUNTS_AND_GROUPS.md
+# Full directory YAML: ldap-directory.template.yaml · Group LDIF: ldap-groups.template.ldif
+# Copy to identities.yaml (gitignored) for scripts/sync-identities-to-keycloak.ps1 and export-identities-to-ldif.ps1.
+# Optional fields: account_kind, member_of (comma-separated group cn for LDIF description / ops notes).
+# No secrets here; passwords/keys in Vault keyed by uid.
+
+identities:
+  # --- Human privileged interactive (chatbots, applications, routine SSO) ---
+  - uid: kbolsen
+    account_kind: human_interactive
+    privilege_level: admin
+    ou: interactive
+    cn: "Kenneth Olsen"
+    mail: kenneth.olsen.atm@gmail.com
+    member_of: human-interactive
+
+  - uid: gale
+    account_kind: human_interactive
+    privilege_level: operator
+    ou: interactive
+    cn: "Gale"
+    mail: gale@example.com
+    member_of: human-interactive
+
+  - uid: katelyn
+    account_kind: human_interactive
+    privilege_level: operator
+    ou: interactive
+    cn: "Katelyn"
+    mail: katelyn@example.com
+    member_of: human-interactive
+
+  # --- Human privileged — infrastructure (IaC / break-glass style; not routine app use) ---
+  - uid: kbolsen-infra
+    account_kind: human_privileged_infra
+    privilege_level: operator
+    ou: privileged-infra
+    cn: "Kenneth Olsen (infrastructure)"
+    mail: kbolsen-infra@example.com
+    member_of: privileged-infra
+
+  - uid: gale-infra
+    account_kind: human_privileged_infra
+    privilege_level: operator
+    ou: privileged-infra
+    cn: "Gale (infrastructure)"
+    mail: gale-infra@example.com
+    member_of: privileged-infra
+
+  # --- Human privileged — server / OS (SSH, sudo) ---
+  - uid: kbolsen-server
+    account_kind: human_privileged_server
+    privilege_level: operator
+    ou: privileged-server
+    cn: "Kenneth Olsen (server)"
+    mail: kbolsen-server@example.com
+    member_of: privileged-server
+
+  - uid: gale-server
+    account_kind: human_privileged_server
+    privilege_level: operator
+    ou: privileged-server
+    cn: "Gale (server)"
+    mail: gale-server@example.com
+    member_of: privileged-server
+
+  # --- Agent / automation LDAP binds (omit these blocks from identities.yaml if you only use Keycloak client credentials) ---
+  - uid: svc-ai-mesh
+    account_kind: service_agent
+    privilege_level: service_agent
+    ou: service-accounts
+    cn: "Service AI mesh orchestrator"
+    mail: svc-ai-mesh@example.com
+    member_of: agent-service-accounts
+
+  - uid: svc-doc-agent
+    account_kind: service_agent
+    privilege_level: service_agent
+    ou: service-accounts
+    cn: "Service documentation agent"
+    mail: svc-doc-agent@example.com
+    member_of: agent-service-accounts
+
+# Optional: LDAP base for LDIF export (use -BaseDn in export-identities-to-ldif.ps1)
+# ldap_base_dn: "dc=devsecops,dc=local"
+#
+# Sync to Keycloak:  .\scripts\sync-identities-to-keycloak.ps1
+# Export to LDIF:    .\scripts\export-identities-to-ldif.ps1 -OutputPath identities.ldif
+# Then append groups: Get-Content .\ldap-groups.template.ldif | Add-Content .\identities.ldif

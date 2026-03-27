@@ -1,47 +1,43 @@
-# Binaries
-/omnigraph
-/bin/
-/dist/
-*.exe
-*.dll
-*.so
-*.dylib
+# IDE / editor
+.cursor/
 
-# Go
-*.test
-*.out
-coverage.out
-vendor/
-
-# Node / Vite
-web/node_modules/
-web/dist/
-*.local
-
-# Environment and secrets
-.env
-.env.*
-!.env.example
-*.pem
+# Local dev and secrets — never commit
+.dev/
 *.key
-id_rsa*
+*.pem
+.env
+.env.local
+*.env.*.local
+# Vault payloads with secret values
+vault-payload-*.json
+vault-payload-*.yaml
+# Greenfield identity list (real names/emails; use identities.example.yaml as template)
+identities.yaml
+identities.ldif
+ldap-directory.yaml
 
-# Terraform / OpenTofu
-*.tfstate
-*.tfstate.*
-.terraform/
-.terraform.lock.hcl
-*.tfplan
+# Local debug / agent logs
+debug-*.log
 
-# OS / editor
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-.idea/
-.vscode/*
-!.vscode/extensions.json
+# Python cache under scripts/
+scripts/__pycache__/
 
-# Logs
-*.log
-npm-debug.log*
+# Ansible network inventory / group_vars with real IPs and secrets (use *.example templates)
+ansible/inventory/network.yml
+ansible/inventory/mini-pc-iam.yml
+ansible/group_vars/network_isr.yml
+# Local SSH pubkey for IaC user (use files/ssh/iac.pub.example as template)
+ansible/roles/cisco_isr_platform/files/ssh/iac.pub
+ansible/group_vars/network_c3560cx.yml
+
+# Local Semaphore GitOps manifest (copy from ansible/files/semaphore-manifest.example.yml)
+ansible/files/semaphore-manifest.yml
+
+# Optional large wiki exports (clone stays small; use docs/snippets as source templates)
+docs/WIKI_EXPORT/
+
+# Local Semaphore bind mounts (copy from docker-compose.override.example.yml)
+deployments/local-control/semaphore/docker-compose.override.yml
+
+# Bootstrap USB bundle build output (large; run build-bundle.sh locally)
+deployments/bootstrap-usb-bundle/out/

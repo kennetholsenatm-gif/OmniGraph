@@ -1,0 +1,28 @@
+---
+# Mini-PC-IAM: copy to mini-pc-iam.yml (gitignored in .gitignore) and set ansible_host / user.
+#
+# For LXC bootstrap (playbooks/bootstrap-mini-pc-iam.yml → deploy-devsecops-lxc.yml):
+#   hosts must be under lxd_hosts (Incus/LXD on this box or SSH to the Alma host).
+#
+# Bare-metal Docker IAM instead: use group ai_mesh_nodes with deploy-devsecops-mesh.yml +
+# start-containers-with-vault.yml (see docs/CANONICAL_DEPLOYMENT_VISION.md#iac-iam-only-mini-pc).
+#
+# USB bundle one-shot:
+#   sudo RUN_ANSIBLE_BOOTSTRAP=1 BOOTSTRAP_INVENTORY=/root/mini-pc-iam.yml \
+#     ANSIBLE_PLAYBOOK_EXTRA_ARGS='-K' BUNDLE_ROOT=/mnt/usb ./bootstrap-on-target.sh
+#
+all:
+  children:
+    lxd_hosts:
+      hosts:
+        mini-pc-iam:
+          ansible_host: 192.168.86.60
+          ansible_user: alma
+          ansible_become: true
+          # ansible_connection: local   # when running ansible on the Incus host against itself
+    ai_mesh_nodes:
+      hosts:
+        mini-pc-iam:
+          ansible_host: 192.168.86.60
+          ansible_user: alma
+          ansible_become: true

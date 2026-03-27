@@ -1,0 +1,8 @@
+---
+# Apply C3560-CX VLANs, trunks, access ports.
+# ansible-playbook -i inventory/network.example.yml playbooks/network-c3560cx.yml
+- name: Configure Catalyst C3560-CX access switches
+  hosts: network_c3560cx
+  gather_facts: false
+  roles:
+    - role: "{{ playbook_dir }}/../roles/cisco_c3560cx_access"

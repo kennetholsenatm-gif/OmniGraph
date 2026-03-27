@@ -1,0 +1,10 @@
+# Scrape targets for SDN / sFlow telemetry stack (docker-compose.telemetry.yml)
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: sflow_rt
+    metrics_path: /prometheus.txt
+    static_configs:
+      - targets: ["sflow-rt:8008"]

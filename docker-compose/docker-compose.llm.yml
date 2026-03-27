@@ -1,0 +1,24 @@
+# BitNet 1.58-bit LLM inference (OpenAI API compatible). Requires llm_net (create via scripts/create-networks.ps1 or create-networks.sh).
+# Host port 8090 to avoid conflict with Zammad (8080). Via gateway: http://localhost/llm/v1/...
+
+services:
+  bitnet-inference:
+    build:
+      context: ./bitnet
+      dockerfile: Dockerfile
+    container_name: devsecops-bitnet-inference
+    hostname: bitnet-inference
+    ports:
+      - "8090:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 2G
+    restart: unless-stopped
+    networks:
+      - llm_net
+
+networks:
+  llm_net:
+    external: true

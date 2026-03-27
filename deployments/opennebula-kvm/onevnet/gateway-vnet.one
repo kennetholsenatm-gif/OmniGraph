@@ -1,0 +1,13 @@
+# OpenNebula: devsecops-gateway — VLAN 2005 / 100.64.5.0/24 (gateway_net)
+NAME   = "devsecops-gateway"
+DESCRIPTION = "Traefik / ingress / MetalLB — 100.64.5.0/24"
+VN_MAD = "bridge"
+BRIDGE = "onebr-devsecops-gateway"
+PHYDEV = "eth0"
+VLAN_ID = "2005"
+AR = [
+  TYPE = "IP4",
+  IP    = "100.64.5.2",
+  SIZE  = 100,
+  LEASES = "YES"
+]

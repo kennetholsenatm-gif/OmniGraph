@@ -1,0 +1,23 @@
+#cloud-config
+# Temporary build-only credentials for Packer SSH; replace on real hardware.
+users:
+  - name: packer
+    groups: wheel
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    lock_passwd: false
+
+ssh_pwauth: true
+
+chpasswd:
+  list: |
+    packer:packer
+  expire: false
+
+package_update: false
+package_upgrade: false
+
+timezone: UTC
+
+runcmd:
+  - systemctl enable --now sshd || systemctl enable --now sshd.service

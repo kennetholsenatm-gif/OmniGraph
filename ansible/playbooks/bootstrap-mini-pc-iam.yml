@@ -1,0 +1,20 @@
+---
+# Thin wrapper: provision only the devsecops-iam LXC on Mini-PC-IAM (Incus/LXD + Docker-in-LXC).
+# Default lxd_apply_names is forced to devsecops-iam unless you override with -e on the CLI.
+#
+# Prerequisites on target: Incus or LXD, Docker (for nested compose inside LXC per role), sudo.
+# From repo ansible/ (after ANSIBLE_COLLECTIONS_PATH set if using USB bundle):
+#
+#   ansible-playbook -i /path/to/inventory.yml playbooks/bootstrap-mini-pc-iam.yml -K
+#
+# Override instance list (not recommended for this playbook name):
+#
+#   ansible-playbook ... -e 'lxd_apply_names=["devsecops-iam","devsecops-messaging"]'
+#
+# Bare-metal Docker IAM (no LXC): use deploy-devsecops-mesh.yml + start-containers-with-vault.yml
+# with IAM-only toggles — see docs/CANONICAL_DEPLOYMENT_VISION.md and docs/BOOTSTRAP_USB_BUNDLE.md.
+#
+- import_playbook: deploy-devsecops-lxc.yml
+  vars:
+    lxd_apply_names:
+      - devsecops-iam

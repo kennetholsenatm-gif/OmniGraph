@@ -1,0 +1,229 @@
+---
+- name: Push host resolv.conf into instance (optional DNS workaround)
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv:
+      - "{{ _lxc_bin }}"
+      - file
+      - push
+      - /etc/resolv.conf
+      - "{{ item.name }}/etc/resolv.conf"
+  environment: "{{ lxd_hypervisor_env }}"
+  loop: "{{ _containers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: lxd_sync_host_resolv_conf | default(false) | bool
+  changed_when: true
+
+- name: Prepare fallback DNS lines for in-container resolv.conf
+  ansible.builtin.set_fact:
+    _lxd_fallback_resolv_lines: "{{ (lxd_dns_fallback_servers | default([])) | map('regex_replace', '^(.*)$', 'nameserver \\1') | list }}"
+  run_once: true
+
+- name: Ensure container DNS is resolvable before package install
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.shell: |
+    {{ _lxc_bin }} exec {{ item.name }} -- bash -ec '
+    if getent hosts mirrors.almalinux.org >/dev/null 2>&1; then
+      echo DNS_OK
+      exit 0
+    fi
+    if [ "{{ lxd_dns_fallback_enabled | default(true) | bool | lower }}" = "true" ] && [ "{{ _lxd_fallback_resolv_lines | length }}" -gt 0 ]; then
+      for ns in {{ lxd_dns_fallback_servers | default([]) | join(' ') }}; do
+        echo "nameserver ${ns}"
+      done >/etc/resolv.conf
+      if getent hosts mirrors.almalinux.org >/dev/null 2>&1; then
+        echo DNS_FIXED
+        exit 0
+      fi
+    fi
+    echo "ERROR: No DNS inside this container (cannot resolve mirrors.almalinux.org)." >&2
+    echo "Fix Incus/LXD DNS, or set lxd_dns_fallback_servers/lxd_dns_fallback_enabled, or skip Docker installs with -e lxd_install_docker_in_instance=false (native LXC installs still need working DNS for dnf)." >&2
+    exit 1
+    '
+  args:
+    executable: /bin/bash
+  environment: "{{ lxd_hypervisor_env }}"
+  loop: "{{ _containers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: _dns_bootstrap
+  changed_when: "'DNS_FIXED' in (_dns_bootstrap.stdout | default(''))"
+  failed_when: _dns_bootstrap.rc != 0
+
+- name: Install Docker CE inside instance when missing
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.shell: |
+    {{ _lxc_bin }} exec {{ item.name }} -- bash -ec '
+    if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then exit 0; fi
+    dnf install -y dnf-plugins-core curl
+    dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo || true
+    dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin git jq openssl
+    systemctl enable docker 2>/dev/null || true
+    systemctl start docker 2>/dev/null || true
+    '
+  args:
+    executable: /bin/bash
+  environment: "{{ lxd_hypervisor_env }}"
+  loop: "{{ _containers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: _dock
+  changed_when: true
+  failed_when: _dock.rc != 0
+  when:
+    - lxd_install_docker_in_instance | default(true) | bool
+    - not (item.lxd_native_only | default(false) | bool)
+
+- name: Ensure target directories in instance
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    cmd: "{{ _lxc_bin }} exec {{ item.name }} -- mkdir -p /opt/devsecops-pipeline/scripts"
+  environment: "{{ lxd_hypervisor_env }}"
+  loop: "{{ _containers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  changed_when: true
+  when: not (item.lxd_native_only | default(false) | bool)
+
+- name: Push docker-compose directory into instance
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    cmd: "{{ _lxc_bin }} file push -pr {{ _pipeline_root }}/docker-compose {{ item.name }}/opt/devsecops-pipeline/"
+  environment: "{{ lxd_hypervisor_env }}"
+  loop: "{{ _containers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  changed_when: true
+  when: not (item.lxd_native_only | default(false) | bool)
+
+- name: Push single-pane-of-glass for gateway instance
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    cmd: "{{ _lxc_bin }} file push -pr {{ _pipeline_root }}/single-pane-of-glass {{ item.name }}/opt/devsecops-pipeline/"
+  environment: "{{ lxd_hypervisor_env }}"
+  loop: "{{ _containers }}"
+  when:
+    - item.name == 'devsecops-gateway'
+    - not (item.lxd_native_only | default(false) | bool)
+  loop_control:
+    label: "{{ item.name }}"
+  changed_when: true
+
+- name: Push create-networks.sh
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    cmd: "{{ _lxc_bin }} file push {{ _pipeline_root }}/scripts/create-networks.sh {{ item.name }}/opt/devsecops-pipeline/scripts/create-networks.sh"
+  environment: "{{ lxd_hypervisor_env }}"
+  loop: "{{ _containers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  changed_when: true
+  when: not (item.lxd_native_only | default(false) | bool)
+
+- name: Push secrets-bootstrap.sh
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    cmd: "{{ _lxc_bin }} file push {{ _pipeline_root }}/scripts/secrets-bootstrap.sh {{ item.name }}/opt/devsecops-pipeline/scripts/secrets-bootstrap.sh"
+  environment: "{{ lxd_hypervisor_env }}"
+  loop: "{{ _containers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  changed_when: true
+  when: not (item.lxd_native_only | default(false) | bool)
+
+- name: Write combined env file for LXC compose (controller temp)
+  ansible.builtin.copy:
+    dest: "{{ lxd_env_file_controller_temp }}"
+    mode: "0600"
+    content: |
+      {% for k, v in devsecops_combined_env | dictsort %}
+      {{ k }}={{ v | string | replace('\n', ' ') }}
+      {% endfor %}
+  delegate_to: localhost
+  run_once: true
+  when:
+    - lxd_inject_ansible_env | default(false) | bool
+    - devsecops_combined_env is defined
+    - devsecops_combined_env | length > 0
+  no_log: true
+
+- name: Push Ansible env file into each instance (optional)
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    argv:
+      - "{{ _lxc_bin }}"
+      - file
+      - push
+      - "{{ lxd_env_file_controller_temp }}"
+      - "{{ item.name }}{{ lxd_env_file_container_path }}"
+  environment: "{{ lxd_hypervisor_env }}"
+  loop: "{{ _containers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - lxd_inject_ansible_env | default(false) | bool
+    - devsecops_combined_env is defined
+    - devsecops_combined_env | length > 0
+    - not (item.lxd_native_only | default(false) | bool)
+  changed_when: true
+  no_log: true
+
+- name: Normalize shell script line endings in container
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    cmd: "{{ _lxc_bin }} exec {{ item.name }} -- bash -lc \"sed -i 's/\\r$//' /opt/devsecops-pipeline/scripts/create-networks.sh /opt/devsecops-pipeline/scripts/secrets-bootstrap.sh\""
+  environment: "{{ lxd_hypervisor_env }}"
+  loop: "{{ _containers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  changed_when: true
+  when: not (item.lxd_native_only | default(false) | bool)
+
+- name: Ensure scripts executable in container
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    cmd: "{{ _lxc_bin }} exec {{ item.name }} -- chmod +x /opt/devsecops-pipeline/scripts/create-networks.sh /opt/devsecops-pipeline/scripts/secrets-bootstrap.sh"
+  environment: "{{ lxd_hypervisor_env }}"
+  loop: "{{ _containers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  changed_when: true
+  when: not (item.lxd_native_only | default(false) | bool)
+
+- name: Create Docker networks inside instance
+  become: "{{ lxd_become | bool }}"
+  ansible.builtin.command:
+    cmd: "{{ _lxc_bin }} exec {{ item.name }} -- bash /opt/devsecops-pipeline/scripts/create-networks.sh"
+  environment: "{{ lxd_hypervisor_env }}"
+  loop: "{{ _containers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: _nets
+  changed_when: true
+  when:
+    - lxd_install_docker_in_instance | default(true) | bool
+    - not (item.lxd_native_only | default(false) | bool)
+
+- name: Run docker compose inside instance (optional)
+  become: "{{ lxd_become | bool }}"
+  when:
+    - devsecops_lxc_compose_up | default(false) | bool
+    - lxd_install_docker_in_instance | default(true) | bool
+    - not (item.lxd_native_only | default(false) | bool)
+  ansible.builtin.shell: |
+    {{ _lxc_bin }} exec {{ item.name }} -- bash -lc 'cd /opt/devsecops-pipeline/{{ item.compose_dir }} && docker compose {% if lxd_inject_ansible_env | default(false) | bool %}--env-file {{ lxd_env_file_container_path }} {% endif %}{{ item.compose_cli }} up -d --remove-orphans'
+  args:
+    executable: /bin/bash
+  environment: "{{ lxd_hypervisor_env }}"
+  loop: "{{ _containers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  changed_when: true
+
+- name: Native Semaphore bootstrap (no Docker)
+  ansible.builtin.include_tasks: instance_bootstrap_semaphore_native.yml
+  loop: "{{ _containers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.lxd_native_only | default(false) | bool

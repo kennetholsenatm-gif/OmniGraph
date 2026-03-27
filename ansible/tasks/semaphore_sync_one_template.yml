@@ -1,0 +1,48 @@
+---
+# loop var: tpl_item — expects tpl_item.name, tpl_item.playbook, tpl_item.inventory (name), _inventory_ids, _repository_id, _project_id, _sem_base, _empty_env_id, semaphore_api_token
+- name: Assert template inventory exists in manifest map
+  ansible.builtin.assert:
+    that:
+      - tpl_item.inventory in _inventory_ids
+    fail_msg: "Template '{{ tpl_item.name }}' references inventory '{{ tpl_item.inventory }}' but that name was not created — check sm.inventories in the manifest."
+
+- name: Refresh template list
+  ansible.builtin.uri:
+    url: "{{ _sem_base }}/api/project/{{ _project_id }}/templates"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ semaphore_api_token }}"
+      Accept: "application/json"
+    status_code: [200]
+  register: _tpl_loop
+
+- name: Match existing template
+  ansible.builtin.set_fact:
+    _tpl_match: "{{ _tpl_loop.json | default([]) | selectattr('name', 'equalto', tpl_item.name) | list | first | default(none) }}"
+
+- name: Assemble template POST body
+  ansible.builtin.set_fact:
+    _template_body: "{{ _template_base | combine(_template_env) }}"
+  vars:
+    _template_base:
+      name: "{{ tpl_item.name }}"
+      app: ansible
+      playbook: "{{ tpl_item.playbook }}"
+      repository_id: "{{ _repository_id | int }}"
+      inventory_id: "{{ _inventory_ids[tpl_item.inventory] | int }}"
+      task_params: {}
+    _template_env: "{{ {'environment_id': (_empty_env_id | int)} if (tpl_item.use_empty_environment | default(true) | bool) and (_empty_env_id is not none) else {} }}"
+
+- name: Create Ansible template
+  ansible.builtin.uri:
+    url: "{{ _sem_base }}/api/project/{{ _project_id }}/templates"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ semaphore_api_token }}"
+      Accept: "application/json"
+      Content-Type: "application/json"
+    body_format: json
+    body: "{{ _template_body }}"
+    status_code: [201]
+  register: _tpl_created
+  when: _tpl_match is none

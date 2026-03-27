@@ -1,0 +1,8 @@
+# Copy to tls.yml and mount server cert + key in volume gateway_tls at /etc/traefik/tls/.
+# Traefik merges all YAML in this directory. Without this file (or with empty gateway_tls), websecure will have no default cert; use HTTP (port 80) for local dev.
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /etc/traefik/tls/tls.crt
+        keyFile: /etc/traefik/tls/tls.key

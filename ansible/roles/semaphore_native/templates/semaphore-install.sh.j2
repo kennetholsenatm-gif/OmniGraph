@@ -1,0 +1,227 @@
+#!/bin/bash
+# Installs PostgreSQL + Semaphore UI on AlmaLinux (runs *inside* the LXC).
+# Prefer official RPM (pulls deps); fall back to tarball. Generates crypto secrets at install time.
+set -euo pipefail
+
+# Include /usr/sbin so useradd, systemctl helpers, etc. resolve (minimal cloud images often omit it from default PATH).
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+LOG=/tmp/semaphore-install.log
+# Avoid relying on $PATH inside process substitution (some environments fail with "Command not found").
+exec > >(/usr/bin/tee "${LOG}") 2>&1
+echo "=== semaphore-install $(date -Is) ==="
+
+dnf install -y coreutils shadow-utils sudo curl tar gzip git jq openssl ansible-core python3-libselinux
+
+if ! command -v postgresql-setup >/dev/null 2>&1; then
+  dnf install -y postgresql-server postgresql
+fi
+
+if [ ! -f /var/lib/pgsql/data/PG_VERSION ]; then
+  postgresql-setup --initdb
+fi
+
+systemctl enable --now postgresql
+
+PG_CONF="/var/lib/pgsql/data/postgresql.conf"
+if ! grep -qE '^listen_addresses\s*=' "${PG_CONF}" 2>/dev/null; then
+  echo "listen_addresses = '127.0.0.1'" >> "${PG_CONF}"
+fi
+
+# pg_hba.conf is matched top-to-bottom; the FIRST matching rule wins. Upstream / distro
+# templates often include "host ... 127.0.0.1 ... ident" *before* any lines we append, which
+# breaks TCP password auth (libpq → FATAL: Ident authentication failed).
+# Prepend explicit password-based rules so localhost TCP uses scram-sha-256 (PG13+).
+PG_HBA="/var/lib/pgsql/data/pg_hba.conf"
+PG_HBA_MARKER="BEGIN semaphore-install: tcp localhost password auth"
+if ! grep -q "${PG_HBA_MARKER}" "${PG_HBA}" 2>/dev/null; then
+  tmp="$(mktemp)"
+  {
+    echo "# ${PG_HBA_MARKER}"
+    echo "# Prepend — do not append — so these lines take effect before any host ... ident rules."
+    echo "host all all 127.0.0.1/32 scram-sha-256"
+    echo "host all all ::1/128 scram-sha-256"
+    echo "# END semaphore-install"
+    cat "${PG_HBA}"
+  } > "${tmp}"
+  mv -f "${tmp}" "${PG_HBA}"
+  chown postgres:postgres "${PG_HBA}"
+  chmod 0600 "${PG_HBA}"
+fi
+
+systemctl restart postgresql
+
+sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='{{ semaphore_db_user }}'" | grep -q 1 || \
+  sudo -u postgres psql -c "CREATE USER {{ semaphore_db_user }} WITH PASSWORD '{{ semaphore_db_password | replace("'", "''") }}';"
+
+sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='{{ semaphore_db_name }}'" | grep -q 1 || \
+  sudo -u postgres psql -c "CREATE DATABASE {{ semaphore_db_name }} OWNER {{ semaphore_db_user }};"
+
+ARCH="$(uname -m)"
+case "${ARCH}" in
+  x86_64) S_ARCH="amd64" ;;
+  aarch64) S_ARCH="arm64" ;;
+  *) echo "unsupported arch: ${ARCH}" >&2; exit 1 ;;
+esac
+
+VER="{{ semaphore_version }}"
+RPM_URL="https://github.com/semaphoreui/semaphore/releases/download/v${VER}/semaphore_${VER}_linux_${S_ARCH}.rpm"
+TMP_RPM="/tmp/semaphore-${VER}.rpm"
+TMP_TGZ="/tmp/semaphore-${VER}.tar.gz"
+TGZ_URL="https://github.com/semaphoreui/semaphore/releases/download/v${VER}/semaphore_${VER}_linux_${S_ARCH}.tar.gz"
+
+install_from_tarball() {
+  echo "Installing Semaphore from tarball: ${TGZ_URL}"
+  curl -fsSL -o "${TMP_TGZ}" "${TGZ_URL}"
+  tar -xzf "${TMP_TGZ}" -C /usr/local/bin semaphore
+  chmod 0755 /usr/local/bin/semaphore
+}
+
+if curl -fsSL -o "${TMP_RPM}" "${RPM_URL}"; then
+  echo "Installing Semaphore RPM: ${RPM_URL}"
+  if ! dnf install -y --nogpgcheck "${TMP_RPM}"; then
+    echo "WARN: dnf install RPM failed; falling back to tarball." >&2
+    install_from_tarball
+  fi
+else
+  echo "WARN: could not download RPM; falling back to tarball." >&2
+  install_from_tarball
+fi
+
+SEM_BIN="$(command -v semaphore || true)"
+if [ -z "${SEM_BIN}" ] && [ -x /usr/local/bin/semaphore ]; then
+  SEM_BIN="/usr/local/bin/semaphore"
+fi
+if [ -z "${SEM_BIN}" ]; then
+  echo "ERROR: semaphore binary not found after install." >&2
+  exit 1
+fi
+echo "Semaphore binary: ${SEM_BIN}"
+"${SEM_BIN}" version || true
+
+if ! id semaphore >/dev/null 2>&1; then
+  useradd --system --home-dir /var/lib/semaphore --create-home --shell /sbin/nologin semaphore
+fi
+
+install -d -m 0755 -o root -g root /etc/semaphore
+install -d -m 0755 -o semaphore -g semaphore /var/lib/semaphore
+install -d -m 0755 -o semaphore -g semaphore /var/lib/semaphore/tmp
+
+# Semaphore decodes these with encoding/base64 (see util/config.go). Hex strings are NOT valid base64 and break securecookie / startup.
+ENC_KEY="$(openssl rand -base64 32 | tr -d '\n\r')"
+COOKIE_HASH="$(openssl rand -base64 32 | tr -d '\n\r')"
+COOKIE_ENC="$(openssl rand -base64 32 | tr -d '\n\r')"
+
+# Write env without shell-expanding secrets from Jinja; printf avoids heredoc/$ issues.
+# Local Postgres over TCP: lib/pq defaults to sslmode=prefer; without sslmode=disable the client
+# may negotiate SSL and fail against a non-TLS local server (symptom: semaphore exits 1 immediately).
+# SEMAPHORE_DB_OPTIONS must be valid JSON (maps to query string on postgres:// URL).
+{
+  echo "SEMAPHORE_DB_DIALECT=postgres"
+  echo "SEMAPHORE_DB_HOST=127.0.0.1"
+  echo "SEMAPHORE_DB_PORT=5432"
+  echo "SEMAPHORE_DB_USER={{ semaphore_db_user }}"
+  printf '%s\n' "SEMAPHORE_DB_PASS={{ semaphore_db_password | replace('%', '%%') }}"
+  echo "SEMAPHORE_DB={{ semaphore_db_name }}"
+  echo 'SEMAPHORE_DB_OPTIONS={"sslmode":"disable"}'
+  echo "SEMAPHORE_TMP_PATH=/var/lib/semaphore/tmp"
+  echo "SEMAPHORE_PLAYBOOK_PATH=/var/lib/semaphore/tmp"
+  echo "SEMAPHORE_WEB_ROOT={{ semaphore_web_host }}"
+  echo "SEMAPHORE_ACCESS_KEY_ENCRYPTION=${ENC_KEY}"
+  echo "SEMAPHORE_COOKIE_HASH=${COOKIE_HASH}"
+  echo "SEMAPHORE_COOKIE_ENCRYPTION=${COOKIE_ENC}"
+  echo "SEMAPHORE_PORT=:{{ semaphore_listen_port }}"
+  echo "SEMAPHORE_LOG_LEVEL=info"
+  echo "TZ=UTC"
+} > /etc/semaphore/semaphore.env
+
+chown root:root /etc/semaphore/semaphore.env
+chmod 0600 /etc/semaphore/semaphore.env
+
+# Fail fast if Postgres auth/network is wrong (same creds Semaphore will use).
+echo "Testing PostgreSQL login (sslmode=disable)..."
+export PGSSLMODE=disable
+export PGPASSWORD={{ semaphore_db_password | quote }}
+if ! psql -h 127.0.0.1 -p 5432 -U {{ semaphore_db_user | quote }} -d {{ semaphore_db_name | quote }} -c "SELECT 1" >/dev/null; then
+  echo "ERROR: psql could not connect to 127.0.0.1:5432 as {{ semaphore_db_user }} / {{ semaphore_db_name }}." >&2
+  echo "Check postgresql.service, pg_hba.conf, and password for role {{ semaphore_db_user }}." >&2
+  exit 1
+fi
+
+cat >/etc/systemd/system/semaphore.service <<UNIT
+[Unit]
+Description=Semaphore UI (native)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=semaphore
+Group=semaphore
+EnvironmentFile=/etc/semaphore/semaphore.env
+WorkingDirectory=/var/lib/semaphore
+# Env-only install: without --no-config, Semaphore insists on a JSON file from `semaphore setup`.
+ExecStart=${SEM_BIN} server --no-config
+Restart=on-failure
+RestartSec=5
+# Allow debugging repeated crashes without systemd start-limit blocking
+StartLimitIntervalSec=0
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+# LXC templates sometimes inject /run/systemd/system/service.d/zzz-lxc-service.conf with start limits.
+# A drop-in overrides that for this unit only.
+mkdir -p /etc/systemd/system/semaphore.service.d
+cat >/etc/systemd/system/semaphore.service.d/10-startlimits.conf <<'DROPIN'
+[Service]
+StartLimitIntervalSec=0
+RestartSec=5
+DROPIN
+
+systemctl daemon-reload
+systemctl enable semaphore
+
+if ! systemctl start semaphore; then
+  echo "ERROR: systemctl start semaphore failed. Recent logs:" >&2
+  journalctl -u semaphore -n 80 --no-pager || true
+  exit 1
+fi
+
+# Docker image creates the first admin from SEMAPHORE_ADMIN_*; the native binary does not.
+# Create the admin via CLI (same creds as Ansible defaults). Idempotent: skip if login exists.
+SEM_BIN="$(command -v semaphore || true)"
+if [ -z "${SEM_BIN}" ] && [ -x /usr/local/bin/semaphore ]; then
+  SEM_BIN="/usr/local/bin/semaphore"
+fi
+if command -v systemd-run >/dev/null 2>&1 && [ -f /etc/semaphore/semaphore.env ]; then
+  if systemd-run --pipe --wait \
+      -p User=semaphore \
+      -p Group=semaphore \
+      -p WorkingDirectory=/var/lib/semaphore \
+      -p EnvironmentFile=/etc/semaphore/semaphore.env \
+      "${SEM_BIN}" user list --no-config 2>/dev/null | grep -Fxq '{{ semaphore_admin_user }}'; then
+    echo "Semaphore admin user '{{ semaphore_admin_user }}' already exists."
+  else
+    echo "Creating initial Semaphore admin user '{{ semaphore_admin_user }}'..."
+    if systemd-run --pipe --wait \
+        -p User=semaphore \
+        -p Group=semaphore \
+        -p WorkingDirectory=/var/lib/semaphore \
+        -p EnvironmentFile=/etc/semaphore/semaphore.env \
+        "${SEM_BIN}" user add --no-config --admin \
+        --login {{ semaphore_admin_user | quote }} \
+        --email {{ semaphore_admin_email | quote }} \
+        --name {{ semaphore_admin_name | quote }} \
+        --password {{ semaphore_admin_password | quote }}; then
+      echo "Admin user created."
+    else
+      echo "WARN: semaphore user add failed; create an admin manually: semaphore user add --no-config --admin ..." >&2
+    fi
+  fi
+else
+  echo "WARN: systemd-run missing; cannot auto-create admin. Run: semaphore user add --no-config --admin ..." >&2
+fi
+
+systemctl --no-pager --full status semaphore || true

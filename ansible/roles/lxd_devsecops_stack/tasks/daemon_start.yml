@@ -1,0 +1,131 @@
+---
+# Incus/LXD CLI returns "daemon doesn't appear to be started" if the socket is down.
+# Do not set become on the block: multiple privileged tasks (or block+task) can trigger "Duplicate become password prompt" with -K.
+- name: Ensure Incus daemon is running (systemd + socket)
+  when:
+    - lxd_manage_daemon | default(true) | bool
+    - (_lxc_bin | basename) == 'incus'
+  block:
+    - name: Start Incus and wait for API socket (single become / one sudo session)
+      become: "{{ lxd_become | bool }}"
+      ansible.builtin.shell: |
+        systemctl start incus.socket incus.service || true
+        set -eu
+        deadline=$(($(date +%s) + {{ lxd_daemon_socket_timeout | int }}))
+        while [[ $(date +%s) -lt $deadline ]]; do
+          for p in /var/lib/incus/unix.socket /run/incus/unix.socket /run/incus/unix.sock; do
+            if [[ -S "$p" ]]; then
+              echo "$p"
+              exit 0
+            fi
+          done
+          sleep 1
+        done
+        echo "No Incus socket under /var/lib/incus or /run/incus. Try: sudo systemctl status incus.socket incus.service" >&2
+        echo "WSL2: ensure /etc/wsl.conf has [boot] systemd=true and restart WSL." >&2
+        exit 1
+      args:
+        executable: /bin/bash
+      register: _incus_sock_discover
+      changed_when: false
+
+  rescue:
+    - name: Explain Incus daemon start failure
+      ansible.builtin.fail:
+        msg: >-
+          Incus did not become ready. As root: systemctl enable --now incus.socket incus.service;
+          then try: ls -l /run/incus/unix.socket /var/lib/incus/unix.socket.
+          If only /run/incus exists, use: export INCUS_SOCKET=/run/incus/unix.socket
+          (or set role var lxd_incus_socket). On WSL2 enable systemd in wsl.conf and reboot WSL.
+  run_once: true
+
+- name: Ensure LXD snap daemon is running
+  when:
+    - lxd_manage_daemon | default(true) | bool
+    - "'/snap/' in _lxc_bin"
+    - (_lxc_bin | basename) == 'lxc'
+  block:
+    - name: Start snap LXD and wait for socket (single become)
+      become: "{{ lxd_become | bool }}"
+      ansible.builtin.shell: |
+        snap start lxd || true
+        set -eu
+        SOCK=/var/snap/lxd/common/lxd/unix.socket
+        deadline=$(($(date +%s) + {{ lxd_daemon_socket_timeout | int }}))
+        while [[ $(date +%s) -lt $deadline ]]; do
+          if [[ -S "$SOCK" ]]; then
+            echo "$SOCK"
+            exit 0
+          fi
+          sleep 1
+        done
+        echo "LXD snap socket missing: $SOCK" >&2
+        exit 1
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+  rescue:
+    - name: Explain LXD snap daemon failure
+      ansible.builtin.fail:
+        msg: "LXD snap socket missing. Run: sudo snap start lxd  (playbook needs --become / -b for this task)."
+  run_once: true
+
+- name: Ensure LXD package daemon is running (non-snap)
+  when:
+    - lxd_manage_daemon | default(true) | bool
+    - "'/snap/' not in _lxc_bin"
+    - (_lxc_bin | basename) == 'lxc'
+  block:
+    - name: Start LXD systemd units and wait for socket (single become)
+      become: "{{ lxd_become | bool }}"
+      ansible.builtin.shell: |
+        systemctl start lxd.socket lxd.service || true
+        set -eu
+        SOCK=/var/lib/lxd/unix.socket
+        deadline=$(($(date +%s) + {{ lxd_daemon_socket_timeout | int }}))
+        while [[ $(date +%s) -lt $deadline ]]; do
+          if [[ -S "$SOCK" ]]; then
+            echo "$SOCK"
+            exit 0
+          fi
+          sleep 1
+        done
+        echo "LXD socket missing: $SOCK" >&2
+        exit 1
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+  rescue:
+    - name: Explain LXD package daemon failure
+      ansible.builtin.fail:
+        msg: "LXD socket /var/lib/lxd/unix.socket missing. Enable lxd.socket / lxd.service and run lxd init. Use playbook --become (-b)."
+  run_once: true
+
+- name: Set Incus INCUS_SOCKET from role override
+  ansible.builtin.set_fact:
+    lxd_hypervisor_env:
+      INCUS_SOCKET: "{{ lxd_incus_socket | trim }}"
+  when:
+    - (_lxc_bin | basename) == 'incus'
+    - (lxd_incus_socket | default('', true) | trim | length) > 0
+  run_once: true
+
+- name: Set Incus INCUS_SOCKET from discovered daemon socket
+  ansible.builtin.set_fact:
+    lxd_hypervisor_env:
+      INCUS_SOCKET: "{{ _incus_sock_discover.stdout | trim }}"
+  when:
+    - (_lxc_bin | basename) == 'incus'
+    - (lxd_incus_socket | default('', true) | trim | length) == 0
+    - _incus_sock_discover is defined
+    - (_incus_sock_discover.rc | default(1)) == 0
+    - (_incus_sock_discover.stdout | default('') | trim | length) > 0
+  run_once: true
+
+- name: Default empty extra env for LXD/snap clients
+  ansible.builtin.set_fact:
+    lxd_hypervisor_env: {}
+  when: lxd_hypervisor_env is not defined
+  run_once: true
