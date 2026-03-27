@@ -4,7 +4,20 @@ labels: ["bug"]
 body:
   - type: markdown
     attributes:
-      value: Thanks for taking the time to fill this out.
+      value: Thanks for taking the time to fill this out. OmniGraph is graph-forward—note whether the issue is in the **web workspace**, the **CLI**, **serve**, or elsewhere.
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where did you see the problem?
+      options:
+        - Web workspace (graph / schema / pipeline / inventory / posture)
+        - omnigraph CLI
+        - omnigraph serve (HTTP API)
+        - Documentation
+        - Not sure
+    validations:
+      required: true
 
   - type: textarea
     id: summary

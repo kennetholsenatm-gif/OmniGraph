@@ -1,8 +1,10 @@
-# Journeys
+# CLI and CI automation
+
+This page documents **headless and scripted** use of the **`omnigraph`** binary: validation, policy, graph emission, security scans, orchestration, and `serve`. It is the **automation path** that **feeds** the web workspace and CI—not the main product pitch; for the interactive graph UI, start with [using-the-web.md](using-the-web.md) and [README.md](../README.md).
 
 These scenarios use the real CLI and files under [`testdata/`](../testdata/). Run commands from the **repository root** after building the binary ([local-dev.md](development/local-dev.md)).
 
-**Prerequisites:** Go 1.23+, Node.js 20+ (for the web UI only), Git.
+**Prerequisites:** Go 1.23+, Node.js 20+ (only if you also run the web app), Git.
 
 **Build once:**
 
@@ -32,9 +34,9 @@ flowchart TB
 ```
 
 - **Validate** proves the project document matches the JSON Schema (and optionally runs policy).
-- **`graph emit`** produces `omnigraph/graph/v1` for the UI or CI, optionally folding in telemetry and security documents.
+- **`graph emit`** produces `omnigraph/graph/v1` for the **Visualizer** tab, CI, or other consumers, optionally folding in telemetry and security documents.
 
-## Journey 1: Validate schema only
+## Scenario 1: Validate schema only
 
 **Goal.** Fail fast on invalid `.omnigraph.schema` before any tool runs.
 
@@ -42,7 +44,7 @@ flowchart TB
 ./bin/omnigraph validate testdata/sample.omnigraph.schema
 ```
 
-## Journey 2: Validate with policy-as-code
+## Scenario 2: Validate with policy-as-code
 
 **Goal.** Run Rego policies packaged as `omnigraph/policy/v1` policy sets against the same document (warn by default; fail with `--enforce` when violations use `deny` enforcement).
 
@@ -58,9 +60,9 @@ Strict gate for CI-style exits:
 
 Example policy sources: [`testdata/policies/security-baseline.yaml`](../testdata/policies/security-baseline.yaml) (embedded Rego blocks).
 
-## Journey 3: Emit graph JSON for UI or CI
+## Scenario 3: Emit graph JSON for UI or CI
 
-**Goal.** Produce `omnigraph/graph/v1` on stdout, enriched with sample telemetry and security payloads.
+**Goal.** Produce `omnigraph/graph/v1` on stdout, enriched with sample telemetry and security payloads (paste into the **Visualizer** or save as an artifact).
 
 ```bash
 ./bin/omnigraph graph emit testdata/sample.omnigraph.schema \
@@ -78,7 +80,7 @@ Redirect when you need a file:
 
 Optional inputs (when you have them): `--plan-json` (terraform/tofu show -json plan), `--tfstate` (JSON state path).
 
-## Journey 4: Passive security posture scan
+## Scenario 4: Passive security posture scan
 
 **Goal.** Run read-only, ATT&CK-aligned modules and write `omnigraph/security/v1` JSON for merging into graphs or offline review.
 
@@ -107,7 +109,7 @@ Inventory-driven SSH (one JSON per host under an output directory):
   --output-dir ./scans
 ```
 
-## Journey 5: Orchestrated plan, approval, apply, Ansible
+## Scenario 5: Orchestrated plan, approval, apply, Ansible
 
 **Goal.** Run the chained pipeline: validation, OpenTofu/Terraform plan, projected inventory, `ansible-playbook --check`, human approval (unless `--auto-approve`), apply, then live Ansible.
 
@@ -134,7 +136,7 @@ Container isolation (Docker or Podman):
 
 Alias: `omnigraph pipeline` is the same as `orchestrate`.
 
-## Journey 6: HTTP API and optional bundled UI
+## Scenario 6: HTTP API and optional bundled UI
 
 **Goal.** Expose repository scan and workspace summary APIs locally; optionally serve a built web app.
 
@@ -156,6 +158,7 @@ Experimental endpoints (`POST /api/v1/security/scan`, inventory, host-ops, etc.)
 
 ## Where to go next
 
-- [Overview](overview.md) — mental model
-- [Security posture](security/posture.md) — policy, scans, `serve` surface
-- [Execution matrix](core-concepts/execution-matrix.md) — runner choice and pipeline phases
+- [Using the web workspace](using-the-web.md)
+- [Overview](overview.md)
+- [Security posture](security/posture.md)
+- [Execution matrix](core-concepts/execution-matrix.md)

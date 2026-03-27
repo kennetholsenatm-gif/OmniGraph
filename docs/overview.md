@@ -4,50 +4,52 @@ This page orients you in one pass: **who** typically uses OmniGraph, **what** it
 
 ## Who this is for
 
-- **Platform / IaC engineers** chaining validation, OpenTofu or Terraform plans, and Ansible apply in a repeatable pipeline.
-- **Operators and SRE** who need graph and run visibility without standardizing on a single vendor UI.
-- **Security and compliance reviewers** who want policy checks on intent documents and optional passive posture scans that feed the same graph model.
-- **Contributors** extending the Go control plane, schemas, or the React UI.
+- **Operators, reviewers, and platform engineers** who want **graph-level visibility** into intent, topology, pipeline context, and posture without living in raw logs.
+- **Teams standardizing on a shared workspace** (React UI + optional `omnigraph serve`) for exploration before or alongside automation.
+- **Automation owners** who still need a solid **CLI** for CI, scans, and orchestration—the binary **feeds** the same graph artifacts the UI displays.
+- **Contributors** extending the web app, schemas, or Go control plane.
 
-OmniGraph is not a replacement for Terraform, OpenTofu, Ansible, or your cloud APIs. It sits **above** those tools: contracts, orchestration gates, and emitted artifacts.
+OmniGraph is not a replacement for Terraform, OpenTofu, Ansible, or your cloud APIs. It sits **above** those tools: contracts, visibility, orchestration when you want it, and emitted artifacts for the workspace. Read [product-philosophy.md](product-philosophy.md) for positioning.
 
 ## What OmniGraph does
 
-- **Schema-first project documents** (`.omnigraph.schema` and related JSON Schema) validated before execution.
-- **CLI orchestration** for plan → check → approve → apply → post-apply patterns, with pluggable **host (`exec`) or container** runners.
-- **Versioned artifacts** such as `omnigraph/graph/v1` for visualization and CI, optionally merged with `omnigraph/telemetry/v1` and `omnigraph/security/v1` payloads.
-- **Optional HTTP API** (`omnigraph serve`) for repository/workspace discovery and the built web UI when you point `--web-dist` at a production build.
-- **Policy-as-code hooks** (Rego embedded in policy sets) during `validate` and dedicated `policy` subcommands.
+- **Interactive web workspace** ([`web/`](../web/)): Visualizer (graph JSON), schema validation, pipeline command builder, inventory and server-backed summary, posture JSON, optional WASM HCL IDE—see [using-the-web.md](using-the-web.md).
+- **Versioned graph artifacts** (`omnigraph/graph/v1`) merged with optional `omnigraph/telemetry/v1` and `omnigraph/security/v1` for what you **see** in the UI and in CI consumers.
+- **HTTP API** (`omnigraph serve`) for repository/workspace discovery and serving the built UI with `--web-dist`.
+- **Schema-first project documents** (`.omnigraph.schema` and related JSON Schema) validated in the UI and CLI.
+- **Policy-as-code** (Rego in policy sets) during `validate` and `policy` subcommands—results inform gates and can align with workspace context.
+- **CLI orchestration** for plan → check → approve → apply → post-apply when you need headless pipelines; pluggable **host (`exec`) or container** runners. Documented in [cli-and-ci.md](cli-and-ci.md).
 
-Stub or experimental areas are called out in [journeys.md](journeys.md) and in CLI help (for example `--iac-engine=pulumi` on `orchestrate`).
+Stub or experimental areas are called out in [cli-and-ci.md](cli-and-ci.md) and in CLI help (for example `--iac-engine=pulumi` on `orchestrate`).
 
 ## System context
 
-The diagram below is logical, not a deployment diagram: it shows who touches which entrypoints and that external IaC tools remain yours to operate.
+The diagram below is logical: the **browser** is the primary human entry for exploration; **CLI** and **CI** are parallel paths for automation. Both consume or produce the same contracts and artifacts.
 
 ```mermaid
-flowchart LR
-  subgraph people_automation [People_and_automation]
+flowchart TB
+  subgraph people [People_and_automation]
+    Browser
     Operator
     CIJob[CI_job]
-    Browser
   end
-  subgraph omnigraph_entry [OmniGraph]
+  subgraph entry [OmniGraph]
+    UI[Web_workspace_serve_and_static]
     CLI[omnigraph_CLI]
-    HTTP[serve_HTTP_API]
   end
-  subgraph external_iac [Your_IaC_runtime]
+  subgraph external [Your_IaC_runtime]
     Tools[OpenTofu_Terraform_Ansible_others]
   end
+  Browser --> UI
   Operator --> CLI
   CIJob --> CLI
-  Browser --> HTTP
+  UI --> Tools
   CLI --> Tools
 ```
 
 ## Artifact relationships
 
-A common path: validate a project document, emit a graph for the UI or pipelines, and enrich it with telemetry and security scans produced separately.
+A common path: validate a project document, emit a graph for the **Visualizer** or pipelines, and enrich it with telemetry and security scans produced separately.
 
 ```mermaid
 flowchart LR
@@ -56,8 +58,8 @@ flowchart LR
   Tel[telemetry_v1_optional]
   SecDoc[security_v1_optional]
   Schema --> GraphOut
-  Tel -->|"omnigraph_graph_emit_--telemetry-file"| GraphOut
-  SecDoc -->|"omnigraph_graph_emit_--security-file"| GraphOut
+  Tel -->|"graph_emit_merge"| GraphOut
+  SecDoc -->|"graph_emit_merge"| GraphOut
 ```
 
 - **IR YAML** (`omnigraph/ir/v1`) describes infrastructure intent for validation and emission workflows; see [omnigraph-ir.md](core-concepts/omnigraph-ir.md). Example: [`testdata/sample.ir.v1.yaml`](../testdata/sample.ir.v1.yaml).
@@ -67,16 +69,17 @@ flowchart LR
 
 | Path | Role |
 |------|------|
-| [`cmd/`](../cmd/), [`internal/`](../internal/) | CLI implementation, orchestration, graph/security/policy engines |
-| [`schemas/`](../schemas/) | Versioned JSON Schema and contract sources |
-| [`docs/`](../docs/) | Canonical documentation (this tree) |
-| [`web/`](../web/) | React frontend |
-| [`wasm/`](../wasm/) | WASM modules used by UI or runtime helpers |
-| [`testdata/`](../testdata/) | Small fixtures for validation, policies, and examples |
+| [`web/`](../web/) | React workspace (graph, schema, pipeline, inventory, posture). |
+| [`wasm/`](../wasm/) | WASM used by the UI. |
+| [`cmd/`](../cmd/), [`internal/`](../internal/) | CLI and control plane (orchestration, graph emit, serve, policy, security). |
+| [`schemas/`](../schemas/) | Versioned JSON Schema and contract sources. |
+| [`docs/`](../docs/) | Canonical documentation (this tree). |
+| [`testdata/`](../testdata/) | Fixtures for validation, policies, sample graph/telemetry/security. |
 
 ## Related reading
 
-- [Journeys (hands-on)](journeys.md)
+- [Using the web workspace](using-the-web.md)
+- [CLI and CI](cli-and-ci.md)
 - [Architecture (layers)](core-concepts/architecture.md)
 - [Execution matrix](core-concepts/execution-matrix.md)
 - [Security posture](security/posture.md)

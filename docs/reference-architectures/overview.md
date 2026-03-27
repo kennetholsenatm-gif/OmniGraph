@@ -21,4 +21,5 @@ only supported way to run OmniGraph.
 
 - [Documentation hub](../README.md)
 - [Overview](../overview.md)
-- [Journeys](../journeys.md) (CLI flows against `testdata/`)
+- [Using the web workspace](../using-the-web.md)
+- [CLI and CI](../cli-and-ci.md) (terminal flows against `testdata/`)

@@ -1,6 +1,6 @@
 # Security posture
 
-This page maps **how OmniGraph surfaces security and policy concerns** in the CLI and in `serve`, and points to architecture decisions (ADRs) that explain constraints—not a checklist for your entire organization’s compliance program.
+Policy checks and passive scans ultimately **feed the same graph model** the web workspace uses: merged **`securityPosture`** on nodes after `graph emit --security-file`, and **Posture** tab JSON you can paste or generate from **`omnigraph security`**. This page maps how those concerns surface in the **CLI** and in **`serve`**, and points to ADRs—not a full organizational compliance checklist.
 
 ## Policy-as-code
 
@@ -44,6 +44,7 @@ These records explain **why** core behavior is shaped the way it is:
 
 ## Related reading
 
-- [Journeys](../journeys.md) — validate with policy, security scan, serve
+- [Using the web workspace](../using-the-web.md) — Posture tab and graph context
+- [CLI and CI](../cli-and-ci.md) — validate with policy, security scan, serve
 - [Overview](../overview.md) — system context
 - [State management](../core-concepts/state-management.md) — locks and run metadata

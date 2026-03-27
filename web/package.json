@@ -1,5 +1,6 @@
 {
   "name": "web",
+  "description": "OmniGraph web workspace \u2014 interactive graph, schema, pipeline, inventory, and posture UI",
   "private": true,
   "version": "0.0.0",
   "type": "module",

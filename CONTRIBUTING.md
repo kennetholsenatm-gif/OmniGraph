@@ -1,6 +1,8 @@
 # Contributing to OmniGraph
 
-Thank you for your interest in contributing to OmniGraph! This guide covers everything you need to set up a development environment and contribute effectively.
+Thank you for your interest in contributing to OmniGraph. The product is **graph-forward**: the React workspace in `web/` is how most people **see** infrastructure intent and posture. The Go CLI and orchestration paths **validate, run, and emit** the JSON that feeds that UI and CI—they are co-critical but not the whole story. Read [docs/product-philosophy.md](docs/product-philosophy.md) if you are unsure where a change should land.
+
+This guide covers local setup for **both** the web app and the control plane.
 
 ## Development Prerequisites
 
@@ -26,41 +28,7 @@ git clone https://github.com/<ORG_OR_USER>/<REPOSITORY>.git
 cd <REPOSITORY>
 ```
 
-### 2. Control Plane (Go)
-
-Build and test the CLI:
-
-```bash
-# Run tests
-go vet ./...
-go test ./...
-
-# Build binary
-go build -o bin/omnigraph ./cmd/omnigraph
-
-# Verify installation
-./bin/omnigraph --version
-./bin/omnigraph validate testdata/sample.omnigraph.schema
-./bin/omnigraph coerce --format=tfvars testdata/sample.omnigraph.schema
-./bin/omnigraph graph emit testdata/sample.omnigraph.schema \
-  --plan-json internal/plan/testdata/minimal-plan.json \
-  --tfstate internal/state/testdata/minimal.state.json
-```
-
-**Windows PowerShell:**
-```powershell
-go build -o bin\omnigraph.exe .\cmd\omnigraph
-.\bin\omnigraph.exe --version
-```
-
-**Using Make (optional):**
-```bash
-make vet
-make test
-make build
-```
-
-### 3. Web Application
+### 2. Web workspace (primary UI)
 
 ```bash
 cd web
@@ -97,6 +65,42 @@ $env:VITE_ENABLE_WASM_SPIKE = "true"
 npm run dev
 ```
 
+End-user-oriented tab reference: [docs/using-the-web.md](docs/using-the-web.md).
+
+### 3. Control plane (Go)
+
+Build and test the CLI:
+
+```bash
+# Run tests
+go vet ./...
+go test ./...
+
+# Build binary
+go build -o bin/omnigraph ./cmd/omnigraph
+
+# Verify installation
+./bin/omnigraph --version
+./bin/omnigraph validate testdata/sample.omnigraph.schema
+./bin/omnigraph coerce --format=tfvars testdata/sample.omnigraph.schema
+./bin/omnigraph graph emit testdata/sample.omnigraph.schema \
+  --plan-json internal/plan/testdata/minimal-plan.json \
+  --tfstate internal/state/testdata/minimal.state.json
+```
+
+**Windows PowerShell:**
+```powershell
+go build -o bin\omnigraph.exe .\cmd\omnigraph
+.\bin\omnigraph.exe --version
+```
+
+**Using Make (optional):**
+```bash
+make vet
+make test
+make build
+```
+
 ### 4. Orchestration Testing
 
 Test the full orchestration pipeline (requires OpenTofu workspace and Ansible playbook):
@@ -119,6 +123,8 @@ go build -o bin/omnigraph ./cmd/omnigraph
 ## Project Structure
 
 ```
+├── web/                    # React workspace (graph, schema, pipeline, inventory, posture)
+├── wasm/                   # WebAssembly modules for the UI
 ├── cmd/omnigraph/          # CLI entry point
 ├── internal/
 │   ├── cli/                # Command implementations
@@ -134,10 +140,8 @@ go build -o bin/omnigraph ./cmd/omnigraph
 │   ├── serve/              # HTTP API server
 │   └── state/              # State management
 ├── schemas/                # JSON Schema definitions
-├── web/                    # React frontend
-├── wasm/                   # WebAssembly modules
 ├── docs/                   # Canonical documentation
-├── wiki/                   # Wiki navigation + sync instructions (see wiki/SYNC.md)
+├── wiki/                   # Wiki navigation; GitHub Wiki sync (see wiki/SYNC.md)
 └── testdata/               # Test fixtures
 ```
 
@@ -187,6 +191,8 @@ go build -o bin/omnigraph ./cmd/omnigraph
 
 Start with these resources:
 
+- [Product philosophy](docs/product-philosophy.md)
+- [Using the web workspace](docs/using-the-web.md)
 - [Architecture Overview](docs/core-concepts/architecture.md)
 - [Architecture Decision Records](docs/core-concepts/adr/)
 - [Execution Matrix](docs/core-concepts/execution-matrix.md)
@@ -196,4 +202,4 @@ Start with these resources:
 
 - Open an issue in your upstream repository
 - Check discussions in your upstream repository
-- Review the canonical docs under `docs/`. Short wiki-style navigation lives in `wiki/`; to update the GitHub **Wiki** tab, follow [`wiki/SYNC.md`](wiki/SYNC.md) after enabling Wikis in repo settings.
+- Review the canonical docs under `docs/`. Short wiki navigation lives in `wiki/`; to update the GitHub **Wiki** tab, follow [`wiki/SYNC.md`](wiki/SYNC.md) after enabling Wikis in repo settings.

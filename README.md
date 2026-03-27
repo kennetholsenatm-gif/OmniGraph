@@ -1,15 +1,19 @@
 # OmniGraph
 
-If you run OpenTofu or Terraform and still hand off to Ansible, you already maintain **several** sources of truth: HCL, playbooks, CI scripts, and ad-hoc checks. OmniGraph adds a **single schema-backed project document** (`.omnigraph.schema`) as the front door: validate it, attach **Rego policy** if you want gates, then drive **plan → check → approve → apply → Ansible** from one CLI—or stop at validation and **graph JSON** if that is all you need. The binary does not hide your stack; it **coordinates** it and produces **versioned artifacts** (`omnigraph/graph/v1`, optional telemetry and security posture) for automation or the React UI in `web/`.
+**Stop flying blind. See your infrastructure.**
+
+If your platform relies on OpenTofu, Terraform, and Ansible, you are likely maintaining a tangled mess of disjointed sources of truth. HCL files, playbooks, and scattered CI scripts leave you guessing what your actual deployment posture looks like until something breaks.
+
+**OmniGraph** is a **visual grapher and web workspace**: an interactive React UI built around `omnigraph/graph/v1` and related artifacts, so you can **see** intent, topology, pipeline context, and posture instead of living in log tail. A Go control plane and CLI sit underneath to validate schema, run orchestration when you need it, and emit the JSON the dashboard consumes—they are the engine, not “yet another generic pipeline CLI” story. OpenTofu, Terraform, and Ansible stay yours; OmniGraph connects and visualizes the handoff.
 
 ```mermaid
 flowchart TB
-  subgraph og [OmniGraph_CLI]
-    V[Validate_schema_and_policy]
-    P[Orchestrated_pipeline]
-    E[Emit_graph_and_artifacts]
+  subgraph og [OmniGraph_web_workspace]
+    V[Visual_schema_validation]
+    P[Pipeline_and_orchestration_context]
+    E[Interactive_graph_dashboard]
   end
-  subgraph yours [Tools_you_keep]
+  subgraph yours [Your_existing_stack]
     TF[OpenTofu_Terraform]
     AN[Ansible]
   end
@@ -19,88 +23,86 @@ flowchart TB
   P --> E
 ```
 
-**What the CLI is for (in practice):** `validate` and `policy` for intent and governance; `orchestrate` (alias `pipeline`) for the full handoff; `graph emit` for UI/CI snapshots; `security scan` for read-only posture JSON you can merge into graphs; `serve` for a local HTTP API and optional static UI. Run `omnigraph --help` after building.
+## Hook your stack into the matrix
+
+OmniGraph is the **visual front door** to your operations. A single **`.omnigraph.schema`** project document anchors intent; the workspace turns that into something you can explore.
+
+- **Interactive visualization:** Pan and inspect an **omnigraph/graph/v1** flow in the **Visualizer** tab—resources and relationships as a graph, not a wall of text.
+- **Pipeline in context:** **GitOps Pipeline** composes the real `orchestrate` handoff; you see how plan, apply, and Ansible steps relate to your repo paths.
+- **Policy and posture in the same surface:** **Schema Contract** validates documents; **Posture** holds `omnigraph/security/v1` payloads that enrich what you see; Rego policy gates apply in validation and automation paths.
+- **Inventory and discovery:** **Inventory** ties plan JSON, state, Ansible inventory, optional **omnigraph serve** workspace summary, or a folder scan back into the workspace.
+- **Optional HCL IDE:** **Web IDE** uses WASM-backed HCL diagnostics when enabled for local editing feedback.
+
+For a walkthrough of each sidebar tab, see **[docs/using-the-web.md](docs/using-the-web.md)**.
 
 ---
 
-## Build
+## Fire up the dashboard
 
-**Go 1.23+** (CI uses a newer toolchain; see `go.mod` / `.github/workflows/ci.yml`).
+Requires **Node.js 20+**.
+
+```bash
+cd web
+npm ci
+npm run dev
+```
+
+Open the URL Vite prints (usually `http://localhost:5173`). The MVP loads with sample schema and graph JSON; paste your own `omnigraph/graph/v1` into **Visualizer**, or tune **Git repository root** and use **Inventory** to pull context from disk or a local **omnigraph serve** instance.
+
+**Integrated API + UI:** build the static app (`npm run build` in `web/`), then run **`omnigraph serve --web-dist web/dist`** so the browser and **`/api/v1/*`** share an origin. See **`omnigraph serve --help`** for loopback defaults and optional authenticated APIs.
+
+---
+
+## Engine and automation (CLI)
+
+The **`omnigraph`** binary validates documents, runs policy, emits graph JSON for CI, performs security scans, and drives **`orchestrate`** when you want headless or scripted pipelines. That work **feeds** the web workspace; it is documented as automation, not as the product headline.
 
 ```bash
 go build -o bin/omnigraph ./cmd/omnigraph
-./bin/omnigraph --help
-```
-
-```powershell
-go build -o bin\omnigraph.exe .\cmd\omnigraph
-.\bin\omnigraph.exe --help
-```
-
-Also available: `Makefile`, `build-windows.cmd`.
-
-## Run it on the sample files
-
-Under **`testdata/`** there are real inputs you can use without writing your own repo yet.
-
-Schema check only:
-
-```bash
 ./bin/omnigraph validate testdata/sample.omnigraph.schema
 ```
 
-Same document **plus** embedded Rego policy sets (fails with `--enforce` if a `deny` rule hits):
+Full command recipes (CI, SSH scans, `serve` flags): **[docs/cli-and-ci.md](docs/cli-and-ci.md)**.
+
+**Same document with policy, graph emit, scan, orchestrate** — quick samples:
 
 ```bash
 ./bin/omnigraph validate testdata/sample.omnigraph.schema --policy-dir testdata/policies
 ./bin/omnigraph validate testdata/sample.omnigraph.schema --policy-dir testdata/policies --enforce
-```
-
-Emit **`omnigraph/graph/v1`** JSON with merged telemetry and security fixtures:
-
-```bash
 ./bin/omnigraph graph emit testdata/sample.omnigraph.schema \
   --telemetry-file testdata/sample.telemetry.json \
   --security-file testdata/sample.security.json > graph.json
-```
-
-**Passive posture scan** (authorized targets only—see `omnigraph security --help`):
-
-```bash
 ./bin/omnigraph security scan --local --output ./local-scan.json
-```
-
-**Full orchestration** needs your own OpenTofu/Terraform root, playbook path, and credentials via **environment variables** only (no secrets in committed schema). Example shape:
-
-```bash
 ./bin/omnigraph orchestrate --workdir /path/to/tf/root --playbook ansible/site.yml
 ```
 
-Use `--runner container` when you want Docker/Podman-isolated tool runs. `--iac-engine=pulumi` is not implemented yet.
-
-## Web UI
-
-**Node.js 20+.** From `web/`: `npm ci`, then `npm run dev`. Production build: `npm run build`; serve with `omnigraph serve --web-dist web/dist` if you want the API and UI on loopback (treat non-local binds and experimental API flags carefully—see `omnigraph serve --help`).
-
-## Repository layout (quick)
-
-| Path | Role |
-|------|------|
-| `cmd/omnigraph` | CLI entrypoint |
-| `internal/` | Control plane implementation |
-| `schemas/` | JSON Schema contracts (`omnigraph/*/v1`) |
-| `testdata/` | Fixtures for the commands above |
-| `docs/` | Long-form docs, Mermaid diagrams, ADRs, reference architectures |
-| `web/` | React frontend |
-| `wasm/` | WASM helpers used by the UI/runtime |
-| `wiki/` | Short navigation + [how to publish GitHub Wiki](wiki/SYNC.md) |
-
-Example deployment write-ups under `docs/reference-architectures/` are **illustrative**, not mandatory patterns.
-
-## Contributing and license
-
-**[CONTRIBUTING.md](CONTRIBUTING.md)** · **[LICENSE](LICENSE)** (MIT)
+Use `--runner container` for isolated tool runs when needed. `--iac-engine=pulumi` is not implemented yet.
 
 ---
 
-*More depth (architecture, execution matrix, IR model, security posture): everything expands from **[docs/README.md](docs/README.md)**—but you should not need it to build, validate, or emit a graph from this page.*
+## Repository layout
+
+| Path | Role |
+|------|------|
+| **`web/`** | React workspace: graph canvas, schema, pipeline, inventory, posture, Web IDE. |
+| **`schemas/`** | JSON Schema contracts (`omnigraph/*/v1`). |
+| **`wasm/`** | WASM modules used by the UI (e.g. HCL diagnostics). |
+| **`cmd/omnigraph`** | CLI entrypoint. |
+| **`internal/`** | Go control plane: validation, graph emit, orchestration, serve, policy, security. |
+| **`testdata/`** | Fixtures for schema, policies, sample graph/telemetry/security JSON. |
+| **`docs/`** | Canonical documentation, including [product philosophy](docs/product-philosophy.md). |
+| **`wiki/`** | Short wiki navigation; see [wiki/SYNC.md](wiki/SYNC.md) to publish the GitHub Wiki tab. |
+
+Example deployment write-ups under **`docs/reference-architectures/`** are illustrative only.
+
+---
+
+## Documentation and deep dives
+
+- **[Documentation hub](docs/README.md)** — reading order and section map  
+- **[Product philosophy](docs/product-philosophy.md)** — why visualization leads; what the CLI is for  
+- **[Using the web workspace](docs/using-the-web.md)** — tabs, persistence, serve  
+- **[Overview](docs/overview.md)** — who / what / where, diagrams  
+- **[Security posture](docs/security/posture.md)** — policy, scans, hardening `serve`  
+
+**License:** [MIT](LICENSE) · **[Contributing](CONTRIBUTING.md)**

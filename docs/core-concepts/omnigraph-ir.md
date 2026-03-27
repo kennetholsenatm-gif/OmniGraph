@@ -29,6 +29,7 @@ architecture examples.
 ## Related docs
 
 - [Overview](../overview.md)
-- [Journeys](../journeys.md)
+- [Using the web workspace](../using-the-web.md)
+- [CLI and CI](../cli-and-ci.md)
 - [IR contracts reference](../schemas/ir-contracts.md)
 - [Security posture](../security/posture.md)
