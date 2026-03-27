@@ -10,6 +10,19 @@ clear layers so teams can integrate their own providers and delivery workflows.
 3. Execution layer: host and container runners for external tools
 4. Integration layer: inventory, telemetry, identity, and policy adapters
 
+```mermaid
+flowchart TB
+  presentation[Presentation_layer]
+  control_plane[Control_plane]
+  execution_layer[Execution_layer]
+  integration_layer[Integration_layer]
+  presentation --> control_plane
+  control_plane --> execution_layer
+  execution_layer --> integration_layer
+```
+
+Each layer consumes the one below: the UI and validation UX sit on the Go control plane; orchestration drives runners; runners and hooks talk to inventory, telemetry, identity, and policy integrations.
+
 ## Key Design Principles
 
 - Schema-first contracts before imperative execution
@@ -19,7 +32,8 @@ clear layers so teams can integrate their own providers and delivery workflows.
 
 ## Related Docs
 
-- `docs/core-concepts/omnigraph-ir.md`
-- `docs/core-concepts/state-management.md`
-- `docs/core-concepts/execution-matrix.md`
-- `docs/reference-architectures/overview.md`
+- [Overview](../overview.md) (who / what / where)
+- `omnigraph-ir.md`
+- `state-management.md`
+- `execution-matrix.md`
+- [Reference architectures overview](../reference-architectures/overview.md)

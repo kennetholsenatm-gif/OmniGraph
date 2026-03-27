@@ -2,6 +2,8 @@
 
 This wiki mirrors canonical documentation in `docs/`.
 
+- [Overview](../docs/overview.md) (canonical)
+- [Journeys](../docs/journeys.md) (canonical)
 - [Getting Started](Getting-Started.md)
 - [Core Concepts](Core-Concepts.md)
 - [Development](Development.md)

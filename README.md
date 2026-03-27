@@ -1,9 +1,6 @@
 # OmniGraph
 
-OmniGraph is a unified Infrastructure as Code (IaC) control plane for modeling,
-validating, and orchestrating infrastructure intent across multiple execution tools.
-It provides a schema-first contract, a Go-based orchestration backend, and a web UI
-for graph and run visibility.
+OmniGraph is a **schema-first control plane** for infrastructure work: validate project intent, orchestrate OpenTofu/Terraform-style planning with optional Ansible handoff, and emit **versioned artifacts** (graphs, telemetry, security posture) for automation or the web UI. It coordinates the tools you already use; it does not replace them.
 
 ## Core Capabilities
 
@@ -52,12 +49,17 @@ npm run dev
 - `web/`: React frontend
 - `wasm/`: WebAssembly modules used by UI/runtime features
 
-## Documentation Map
+## Documentation
 
-- Core concepts: `docs/core-concepts/`
-- Development workflows: `docs/development/`
-- Reference architectures (examples): `docs/reference-architectures/`
-- Schema references: `docs/schemas/`
+**Reading order:** start with the [documentation hub](docs/README.md), then [Overview](docs/overview.md) (who / what / where) and [Journeys](docs/journeys.md) (hands-on CLI scenarios with `testdata/`).
+
+| Section | Path |
+|--------|------|
+| Core concepts | [docs/core-concepts/](docs/core-concepts/) |
+| Security and policy surface | [docs/security/posture.md](docs/security/posture.md) |
+| Development | [docs/development/](docs/development/) |
+| Reference architectures (examples) | [docs/reference-architectures/](docs/reference-architectures/) |
+| Schema references | [docs/schemas/](docs/schemas/) |
 
 ## Reference Architectures
 

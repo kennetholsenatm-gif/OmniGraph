@@ -12,3 +12,9 @@ safe hand-off across pipeline phases.
 
 See ADRs under `docs/core-concepts/adr/` for design decisions that define locking,
 schema-first configuration, and secret handling.
+
+## Related docs
+
+- [Overview](../overview.md)
+- [Security posture](../security/posture.md)
+- [Architecture](architecture.md)
