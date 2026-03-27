@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/kennetholsenatm-gif/OmniGraph/schemas/agentmesh.v1.schema.json",
+  "$id": "https://github.com/kennetholsenatm-gif/omnigraph/schemas/agentmesh.v1.schema.json",
   "title": "omnigraph/agentmesh/v1",
   "description": "Agent mesh configuration for QminiWasm-Core integration",
   "type": "object",

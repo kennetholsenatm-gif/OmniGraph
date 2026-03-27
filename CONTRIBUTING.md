@@ -22,8 +22,8 @@ Thank you for your interest in contributing to OmniGraph! This guide covers ever
 ### 1. Clone and Configure
 
 ```bash
-git clone https://github.com/kennetholsenatm-gif/OmniGraph.git
-cd OmniGraph
+git clone https://github.com/<ORG_OR_USER>/<REPOSITORY>.git
+cd <REPOSITORY>
 ```
 
 ### 2. Control Plane (Go)
@@ -179,20 +179,20 @@ go build -o bin/omnigraph ./cmd/omnigraph
 ## Security
 
 - **Never commit credentials** or `.env` files with secrets
-- Use memory-only secret injection ([ADR 003](docs/adr/003-memory-only-secrets.md))
+- Use memory-only secret injection ([ADR 003](docs/core-concepts/adr/003-memory-only-secrets.md))
 - Report security vulnerabilities privately
 
 ## Architecture
 
 Start with these resources:
 
-- [Architecture Overview](docs/architecture.md)
-- [Architecture Decision Records](docs/adr/)
-- [Execution Matrix](docs/execution-matrix.md)
-- [Integrations](docs/integrations.md)
+- [Architecture Overview](docs/core-concepts/architecture.md)
+- [Architecture Decision Records](docs/core-concepts/adr/)
+- [Execution Matrix](docs/core-concepts/execution-matrix.md)
+- [Integrations](docs/core-concepts/integrations.md)
 
 ## Getting Help
 
-- Open an [issue](https://github.com/kennetholsenatm-gif/OmniGraph/issues) for bugs or feature requests
-- Check existing [discussions](https://github.com/kennetholsenatm-gif/OmniGraph/discussions) for questions
-- Review the [wiki](wiki/Home.md) for user guides
+- Open an issue in your upstream repository
+- Check discussions in your upstream repository
+- Review the canonical docs under `docs/` (wiki is a mirror)
