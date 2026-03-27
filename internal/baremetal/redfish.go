@@ -149,10 +149,10 @@ type RedfishVolume struct {
 
 // NewRedfishProvider creates a new Redfish provider
 func NewRedfishProvider(config Config) *RedfishProvider {
-	// Create HTTP client with TLS configuration
+	// Create HTTP client with TLS configuration (verify by default; opt into skip for self-signed BMCs).
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true, // BMCs often use self-signed certs
+			InsecureSkipVerify: config.RedfishInsecureTLS,
 		},
 		MaxIdleConns:       10,
 		IdleConnTimeout:    30 * time.Second,

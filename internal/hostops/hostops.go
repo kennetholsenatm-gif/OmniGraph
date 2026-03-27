@@ -42,7 +42,8 @@ func JournalTail(ctx context.Context, c *ssh.Client, unit string, lines int) (st
 	if c == nil {
 		return "", fmt.Errorf("nil ssh client")
 	}
-	if !unitNameRe.MatchString(strings.TrimSpace(unit)) {
+	unit = strings.TrimSpace(unit)
+	if !unitNameRe.MatchString(unit) {
 		return "", fmt.Errorf("invalid unit name")
 	}
 	if lines <= 0 {
@@ -76,7 +77,8 @@ func RestartService(ctx context.Context, c *ssh.Client, unit string) (string, er
 	if c == nil {
 		return "", fmt.Errorf("nil ssh client")
 	}
-	if !unitNameRe.MatchString(strings.TrimSpace(unit)) {
+	unit = strings.TrimSpace(unit)
+	if !unitNameRe.MatchString(unit) {
 		return "", fmt.Errorf("invalid unit name")
 	}
 	sess, err := c.NewSession()
@@ -88,7 +90,7 @@ func RestartService(ctx context.Context, c *ssh.Client, unit string) (string, er
 	var out strings.Builder
 	sess.Stdout = &out
 	sess.Stderr = &out
-	cmd := remotecmd.RemoteShC([]string{"systemctl", "restart", strings.TrimSpace(unit)})
+	cmd := remotecmd.RemoteShC([]string{"systemctl", "restart", unit})
 	if err := sess.Run(cmd); err != nil {
 		var ee *ssh.ExitError
 		if errors.As(err, &ee) {
