@@ -1,9 +1,0 @@
-# {{ ansible_managed }} — DevSecOps pipeline (FreeRADIUS NAS clients)
-{% for c in freeradius_clients %}
-client {{ c.name }} {
-    ipaddr          = {{ c.ipaddr | default(c.cidr | default('0.0.0.0/0')) }}
-    secret          = {{ c.secret | to_json }}
-    require_message_authenticator = no
-    nas_type        = other
-}
-{% endfor %}

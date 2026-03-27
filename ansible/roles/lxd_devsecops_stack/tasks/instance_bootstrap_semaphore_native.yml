@@ -1,8 +1,0 @@
----
-# Path-based role name: plain "semaphore_native" fails when ANSIBLE_ROLES_PATH / ansible.cfg
-# roles_path is not applied (common when running from world-writable /mnt/c/.../playbooks).
-- name: Install native Semaphore in LXC
-  ansible.builtin.include_role:
-    name: "{{ playbook_dir | dirname }}/roles/semaphore_native"
-  vars:
-    semaphore_lxc_name: "{{ item.name }}"

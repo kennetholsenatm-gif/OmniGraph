@@ -1,7 +1,7 @@
 [project]
-name = "devsecops-pipeline"
+name = "omnigraph"
 version = "0.0.0"
-description = "DevSecOps pipeline repo (Ansible, OpenTofu, scripts)"
+description = "OmniGraph public repository metadata"
 readme = "README.md"
 requires-python = ">=3.11"
 

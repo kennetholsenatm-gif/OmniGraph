@@ -4,7 +4,7 @@ This document describes the improvements made to transform OmniGraph into a comp
 
 ## Overview
 
-OmniGraph has been enhanced with enterprise-grade features for managing infrastructure lifecycle, pipeline orchestration, observability, and state management. These improvements make it suitable for production use as a comprehensive DevSecOps control plane.
+OmniGraph has been enhanced with enterprise-grade features for managing infrastructure lifecycle, pipeline orchestration, observability, and state management. These improvements make it suitable for production use as a comprehensive infrastructure control plane.
 
 ## New Features
 

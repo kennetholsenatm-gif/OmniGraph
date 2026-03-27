@@ -1,6 +1,0 @@
-# Python packages for the Ansible *controller* (install into the same env as ansible-playbook).
-# Required for ansible.netcommon.network_cli SSH to Cisco IOS/IOS-XE (cisco.ios).
-paramiko>=3.0
-
-# Optional: native libssh backend (often faster; avoids paramiko). If installed, Ansible prefers it.
-# ansible-pylibssh>=1.1.0

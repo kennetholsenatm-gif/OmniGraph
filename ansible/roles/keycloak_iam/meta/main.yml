@@ -1,4 +1,0 @@
----
-dependencies:
-  - name: community.general
-    version: ">=6.0.0"

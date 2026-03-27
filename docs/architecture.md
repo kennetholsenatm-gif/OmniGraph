@@ -2,7 +2,7 @@
 
 ## High-level overview
 
-OmniGraph is a state-aware, multi-paradigm DevSecOps orchestration platform. Unlike traditional CI/CD pipelines that treat infrastructure deployments as isolated scripts, OmniGraph acts as a continuous state engine. It bridges the gap between declarative provisioning (OpenTofu/Terraform), imperative configuration (Ansible), and real-time environment telemetry (NetBox/Zabbix) through a unified GitOps workflow.
+OmniGraph is a state-aware, multi-paradigm infrastructure orchestration platform. Unlike traditional CI/CD pipelines that treat infrastructure deployments as isolated scripts, OmniGraph acts as a continuous state engine. It bridges the gap between declarative provisioning (OpenTofu/Terraform), imperative configuration (Ansible), and real-time environment telemetry (NetBox/Zabbix) through a unified GitOps workflow.
 
 ## Core architectural layers
 

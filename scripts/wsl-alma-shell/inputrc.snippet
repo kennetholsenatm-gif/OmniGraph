@@ -1,9 +1,0 @@
-# OmniGraph WSL shell — readline (IOS-adjacent completion)
-# Plain "?" is bound to possible-completions (Cisco-like word help). That steals
-# normal "?" typing in the shell line; use paste or disable this file if that hurts.
-
-set show-all-if-ambiguous on
-set menu-complete-display-prefix on
-TAB: menu-complete
-"\e[Z": menu-complete-backward
-"?": possible-completions

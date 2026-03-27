@@ -1,8 +1,0 @@
----
-galaxy_info:
-  role_name: cisco_c3560cx_access
-  author: devsecops-pipeline
-  description: VLANs, trunks, and access ports for Catalyst C3560-CX (IOS).
-  license: MIT
-  min_ansible_version: "2.14"
-dependencies: []

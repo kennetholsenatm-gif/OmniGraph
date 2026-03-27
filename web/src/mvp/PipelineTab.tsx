@@ -148,7 +148,7 @@ export function PipelineTab(p: PipelineTabProps) {
           stay in env only (ADR 003). See{' '}
           <a
             className="text-blue-400 underline-offset-2 hover:underline"
-            href="https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/architecture.md"
+            href="/docs/architecture.md"
             target="_blank"
             rel="noreferrer"
           >
@@ -165,7 +165,7 @@ export function PipelineTab(p: PipelineTabProps) {
             className={fieldClass}
             value={p.workdir}
             onChange={(e) => p.onWorkdirChange(e.target.value)}
-            placeholder="C:\GiTeaRepos\devsecops-pipeline\opentofu"
+            placeholder="C:\path\to\infrastructure\opentofu"
           />
         </div>
         <div className="md:col-span-2">
@@ -176,7 +176,7 @@ export function PipelineTab(p: PipelineTabProps) {
             className={fieldClass}
             value={p.ansibleRoot}
             onChange={(e) => p.onAnsibleRootChange(e.target.value)}
-            placeholder="C:\GiTeaRepos\devsecops-pipeline\ansible"
+            placeholder="C:\path\to\infrastructure\ansible"
             disabled={p.usePlaybookOverride}
           />
           <p className="mt-1 text-xs text-gray-600">
