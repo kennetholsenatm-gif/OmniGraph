@@ -19,6 +19,7 @@ Then: [CLI and CI](cli-and-ci.md) (headless commands and `testdata/`), [IR model
 
 | Intent | Start here |
 |--------|------------|
+| Terms and acronyms (graph, schema shapes, WASM-backed HCL) | [GLOSSARY.md](GLOSSARY.md) |
 | Why graph/UI leads; anti-“generic CLI” | [product-philosophy.md](product-philosophy.md) |
 | Use the graph and workspace in the browser | [using-the-web.md](using-the-web.md) |
 | What is this and for whom? | [overview.md](overview.md) |
