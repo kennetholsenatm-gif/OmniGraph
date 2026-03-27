@@ -136,7 +136,8 @@ go build -o bin/omnigraph ./cmd/omnigraph
 ├── schemas/                # JSON Schema definitions
 ├── web/                    # React frontend
 ├── wasm/                   # WebAssembly modules
-├── docs/                   # Architecture and ADRs
+├── docs/                   # Canonical documentation
+├── wiki/                   # Wiki navigation + sync instructions (see wiki/SYNC.md)
 └── testdata/               # Test fixtures
 ```
 
@@ -195,4 +196,4 @@ Start with these resources:
 
 - Open an issue in your upstream repository
 - Check discussions in your upstream repository
-- Review the canonical docs under `docs/` (wiki is a mirror)
+- Review the canonical docs under `docs/`. Short wiki-style navigation lives in `wiki/`; to update the GitHub **Wiki** tab, follow [`wiki/SYNC.md`](wiki/SYNC.md) after enabling Wikis in repo settings.

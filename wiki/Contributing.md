@@ -1,5 +1,5 @@
 # Contributing
 
-Canonical source: `CONTRIBUTING.md`.
+Canonical guide: **[CONTRIBUTING.md](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/CONTRIBUTING.md)** on `main` (setup, validation commands, PR expectations).
 
-Use the root contribution guide for setup, validation commands, and PR expectations.
+Return to [Home](Home.md).
