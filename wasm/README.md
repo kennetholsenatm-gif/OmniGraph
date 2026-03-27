@@ -1,6 +1,6 @@
 # WebAssembly linters
 
-Browser-side tooling aligned with [ADR 001](../docs/adr/001-wasm-linters.md).
+Browser-side tooling aligned with [ADR 001](../docs/core-concepts/adr/001-wasm-linters.md).
 
 ## Shipped: HCL parse diagnostics (`hcldiag.wasm`)
 
