@@ -1,5 +1,5 @@
 # Gitleaks — secret scanning (pre-commit + CI). Tune allowlists for false positives.
-title = "devsecops-pipeline"
+title = "omnigraph"
 
 [allowlist]
 description = "Docs and examples often contain token-shaped strings"

@@ -460,7 +460,7 @@ export default function OmniGraphMVP() {
               type="text"
               value={gitRepoRoot}
               onChange={(e) => setGitRepoRoot(e.target.value)}
-              placeholder="e.g. C:\GiTeaRepos\devsecops-pipeline"
+              placeholder="e.g. /path/to/repo"
               className="min-w-0 flex-1 rounded-lg border border-gray-800 bg-gray-900/80 px-3 py-1.5 font-mono text-xs text-gray-200 placeholder:text-gray-600 focus:border-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
               aria-label="Git repository root path"
             />

@@ -1,5 +1,0 @@
-# Packer output
-output-alma10-incus-host/
-crash.log
-*.pkrvars.hcl
-!variables.pkr.hcl
