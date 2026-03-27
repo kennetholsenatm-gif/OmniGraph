@@ -1,6 +1,11 @@
 # Getting Started
 
-Canonical sources: [README.md](../README.md), [docs/overview.md](../docs/overview.md), [docs/journeys.md](../docs/journeys.md), and [docs/development/local-dev.md](../docs/development/local-dev.md).
+Canonical sources on `main`:
+
+- [README](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/README.md) — build and first commands  
+- [docs/journeys.md](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/journeys.md) — step-by-step CLI  
+- [docs/overview.md](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/overview.md) — mental model  
+- [docs/development/local-dev.md](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/development/local-dev.md) — prerequisites and checks  
 
 ## Quick start
 
@@ -11,3 +16,5 @@ cd web
 npm ci
 npm run dev
 ```
+
+Return to [Home](Home.md).
