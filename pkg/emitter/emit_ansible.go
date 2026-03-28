@@ -1,4 +1,4 @@
-package reconciler
+package emitter
 
 import (
 	"context"
@@ -15,7 +15,7 @@ func (ansibleInventoryBackend) Format() string { return AnsibleInventoryINI }
 
 func (ansibleInventoryBackend) Emit(_ context.Context, doc *Document) ([]Artifact, error) {
 	if doc == nil {
-		return nil, fmt.Errorf("reconciler: nil document")
+		return nil, fmt.Errorf("emitter: nil document")
 	}
 	hosts := make(map[string]string)
 	for _, t := range doc.Spec.Targets {

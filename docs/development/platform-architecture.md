@@ -2,15 +2,15 @@
 
 OmniGraph is easier to extend when you see it as a **living ecosystem** of contracts, translators, and surfaces—not a single lump of code. This guide walks through **why** the repository was reshaped, **what** each pillar does, and **where** to plug in safely. It complements the shorter [architecture overview](../core-concepts/architecture.md) with narrative depth; use the glossary below when terminology overlaps.
 
-## Glossary: three different “reconciliations”
+## Glossary: emitter vs manifest reconciliation vs orchestration
 
 | Term | Meaning |
 |------|--------|
-| **Reconciler Engine** | The **translation layer** that turns declarative **`omnigraph/ir/v1`** intent into **concrete execution artifacts** (Ansible inventory today; more backends over time). First-class, documented, and extended through Go interfaces. See [Reconciler Engine](../core-concepts/reconciler-engine.md). |
+| **Emitter Engine** | The **translation layer** that turns declarative **`omnigraph/ir/v1`** intent into **concrete execution artifacts** (Ansible inventory today; more backends over time). First-class, documented, and extended through Go interfaces. See [Emitter Engine](../core-concepts/emitter-engine.md). |
 | **Manifest reconciliation** | A **Kubernetes-style loop**: desired resources in a manifest versus actual provider state, driven by `omnigraph apply` and `internal/reconcile`. See [Declarative reconciliation (reference)](../reference-architectures/declarative-reconciliation.md). |
 | **Orchestration** | **Chained execution** of external tools (OpenTofu plan/apply, inventory projection, Ansible check/apply) in [`internal/orchestrate`](../../internal/orchestrate/). It **consumes** workspaces and state; it is not the same as IR emission. |
 
-Keeping these distinct prevents “reconcile” from meaning everything at once.
+Keeping these distinct reserves **reconcile** for desired-vs-actual manifest control and avoids overloading it with IR compilation.
 
 ## The problem we left behind
 
@@ -20,7 +20,7 @@ For a long time the repository felt **flat and coupled**: the Go control plane�
 
 ## The resolution in four moves
 
-We **decoupled** repositories-within-the-repo using **Go workspaces**, **isolated** the web application as its own package, **elevated** the Reconciler Engine as a first-class architectural actor, **hardened** the WebAssembly bridge against hostile input, and **proved** the full pipeline under stress with a dedicated **E2E** harness. Each move has a dedicated deep dive; here they form one story.
+We **decoupled** repositories-within-the-repo using **Go workspaces**, **isolated** the web application as its own package, **elevated** the Emitter Engine as a first-class architectural actor, **hardened** the WebAssembly bridge against hostile input, and **proved** the full pipeline under stress with a dedicated **E2E** harness. Each move has a dedicated deep dive; here they form one story.
 
 ### 1. Workspaces and an isolated frontend
 
@@ -36,18 +36,18 @@ flowchart TB
   end
   subgraph goWork [Go_workspace]
     CLI[omnigraph_CLI]
-    Reconciler[Reconciler_Engine]
+    Emitter[Emitter_Engine]
     WasmMod[wasm_hcldiag_and_tools]
   end
   UI --> WasmHost
   WasmHost --> WasmMod
   UI -. consumes_JSON_and_graph_artifacts .-> CLI
-  CLI --> Reconciler
+  CLI --> Emitter
 ```
 
-### 2. Reconciler Engine as the visible heart
+### 2. Emitter Engine as the visible heart
 
-Declarative graph state—**`omnigraph/ir/v1`**—is the handoff between “what we intend” and “what runners can execute.” The **Reconciler Engine** is the subsystem that **materializes** that intent: today, for example, **Ansible INI inventory** from targets; tomorrow, additional formats registered in one place. Developers extend it by implementing small **backend** types and registering them; failures return as ordinary **`error`** values, not opaque crashes. The full contract and extension story live in [Reconciler Engine](../core-concepts/reconciler-engine.md).
+Declarative graph state—**`omnigraph/ir/v1`**—is the handoff between “what we intend” and “what runners can execute.” The **Emitter Engine** is the subsystem that **materializes** that intent: today, for example, **Ansible INI inventory** from targets; tomorrow, additional formats registered in one place. Developers extend it by implementing small **backend** types and registering them; failures return as ordinary **`error`** values, not opaque crashes. The full contract and extension story live in [Emitter Engine](../core-concepts/emitter-engine.md).
 
 ### 3. WebAssembly boundary safety
 
@@ -63,7 +63,7 @@ flowchart LR
     MockAnsible[Simulated_Ansible_endpoints]
     Fixtures[Mock_IR_and_state]
   end
-  Pipeline[CLI_and_Reconciler_paths]
+  Pipeline[CLI_and_emitter_paths]
   Fixtures --> Pipeline
   Pipeline --> MockAnsible
 ```
@@ -72,7 +72,7 @@ flowchart LR
 
 | Topic | Document |
 |--------|-----------|
-| Reconciler Engine interfaces and registration | [reconciler-engine.md](../core-concepts/reconciler-engine.md) |
+| Emitter Engine interfaces and registration | [emitter-engine.md](../core-concepts/emitter-engine.md) |
 | Wasm hardening and fuzzing | [ADR 008](../core-concepts/adr/008-wasm-bridge-hardening.md), [wasm/README.md](../../wasm/README.md) |
 | E2E layout and philosophy | [e2e-testing.md](e2e-testing.md) |
 | Clone, build, test commands | [CONTRIBUTING.md](../../CONTRIBUTING.md), [local-dev.md](local-dev.md) |

@@ -1,4 +1,4 @@
-package reconciler
+package emitter
 
 import (
 	"context"

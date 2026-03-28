@@ -1,4 +1,4 @@
-package reconciler
+package emitter
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 )
 
 // ErrNotImplemented is returned by backend stubs until an emitter is completed.
-var ErrNotImplemented = errors.New("reconciler: emitter not implemented")
+var ErrNotImplemented = errors.New("emitter: not implemented")
 
 // Artifact is one generated file or blob (logical path + content).
 type Artifact struct {
@@ -36,14 +36,14 @@ func NewRegistry() *Registry {
 // Register adds a backend; panics if format is empty or duplicate.
 func (r *Registry) Register(b Backend) {
 	if b == nil {
-		panic("reconciler: Register nil backend")
+		panic("emitter: Register nil backend")
 	}
 	f := b.Format()
 	if f == "" {
-		panic("reconciler: Register empty format")
+		panic("emitter: Register empty format")
 	}
 	if _, ok := r.byFormat[f]; ok {
-		panic("reconciler: duplicate backend " + f)
+		panic("emitter: duplicate backend " + f)
 	}
 	r.byFormat[f] = b
 }
@@ -59,11 +59,11 @@ func (r *Registry) Get(format string) Backend {
 // Emit runs a single backend by format id.
 func (r *Registry) Emit(ctx context.Context, format string, doc *Document) ([]Artifact, error) {
 	if doc == nil {
-		return nil, fmt.Errorf("reconciler: nil document")
+		return nil, fmt.Errorf("emitter: nil document")
 	}
 	b := r.Get(format)
 	if b == nil {
-		return nil, fmt.Errorf("reconciler: unknown backend %q", format)
+		return nil, fmt.Errorf("emitter: unknown backend %q", format)
 	}
 	return b.Emit(ctx, doc)
 }

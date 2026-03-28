@@ -28,7 +28,7 @@ architecture examples.
 
 ## Related docs
 
-- [Reconciler Engine](reconciler-engine.md) — how IR is translated into execution artifacts
+- [Emitter Engine](emitter-engine.md) — how IR is compiled into execution artifacts
 - [Overview](../overview.md)
 - [Using the web workspace](../using-the-web.md)
 - [CLI and CI](../cli-and-ci.md)
