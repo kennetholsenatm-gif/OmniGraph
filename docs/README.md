@@ -7,12 +7,14 @@ OmniGraph is a **graph-forward web workspace** backed by schema-first contracts 
 ## 15-minute reading order
 
 1. [Product philosophy](product-philosophy.md) — visualization-first positioning; what the CLI is for.
-2. [Platform architecture for contributors](development/platform-architecture.md) — narrative: workspaces, Reconciler Engine, Wasm safety, E2E (start here if you ship code).
-3. [Using the web workspace](using-the-web.md) — run the UI; what each tab does.
-4. [Overview](overview.md) — who / what / where, diagrams, artifacts.
-5. [Architecture](core-concepts/architecture.md) — layers (presentation first).
-6. [Execution matrix](core-concepts/execution-matrix.md) — runners; how orchestration feeds artifacts the UI consumes.
-7. [Security posture](security/posture.md) — policy, scans, `serve` hardening, Wasm boundary.
+2. [UX architecture](core-concepts/ux-architecture.md) — progressive disclosure, backend truth (SSE), contextual debugging.
+3. [Understanding the UI modes](guides/ui-modes.md) — Topology, Reconciliation, Posture; mapping to sidebar tabs.
+4. [Platform architecture for contributors](development/platform-architecture.md) — narrative: workspaces, Reconciler Engine, Wasm safety, E2E (start here if you ship code).
+5. [Using the web workspace](using-the-web.md) — run the UI; what each tab does.
+6. [Overview](overview.md) — who / what / where, diagrams, artifacts.
+7. [Architecture](core-concepts/architecture.md) — layers (presentation first).
+8. [Execution matrix](core-concepts/execution-matrix.md) — runners; how orchestration feeds artifacts the UI consumes.
+9. [Security posture](security/posture.md) — policy, scans, `serve` hardening, Wasm boundary.
 
 Then: [CLI and CI](cli-and-ci.md) (headless commands and `testdata/`), [IR model](core-concepts/omnigraph-ir.md), [Reconciler Engine](core-concepts/reconciler-engine.md), [E2E testing](development/e2e-testing.md), [schemas](schemas/), [reference architectures](reference-architectures/overview.md) (non-normative).
 
@@ -33,7 +35,8 @@ Then: [CLI and CI](cli-and-ci.md) (headless commands and `testdata/`), [IR model
 
 ## Section map
 
-- **core-concepts/** — architecture, IR, state, integrations, execution, ADRs, inventory.
+- **guides/** — task-oriented guides (UI modes, future how-tos).
+- **core-concepts/** — architecture, UX architecture, IR, state, integrations, execution, ADRs, inventory.
 - **development/** — platform architecture narrative, local builds, web frontend, E2E, contributing pointers.
 - **reference-architectures/** — example topologies; adapt to your standards.
 - **schemas/** — contract references for IR, run, and related formats.

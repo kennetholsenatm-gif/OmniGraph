@@ -91,7 +91,11 @@ export function GraphVisualizerTab({
           spellCheck={false}
           value={graphText}
           onChange={(e) => onGraphTextChange(e.target.value)}
-          className="min-h-32 w-full flex-1 resize-y rounded-lg border border-gray-800 bg-gray-900/80 p-3 font-mono text-xs text-gray-100 outline-none focus:ring-2 focus:ring-blue-500/40"
+          className={`w-full resize-y rounded-lg border border-gray-800 bg-gray-900/80 p-3 font-mono text-xs text-gray-100 outline-none transition-[max-height,min-height] duration-300 focus:ring-2 focus:ring-blue-500/40 ${
+            selectedNode
+              ? 'max-h-36 min-h-0 shrink-0 lg:max-h-28'
+              : 'min-h-32 min-w-0 flex-1'
+          }`}
           aria-label="Omnigraph graph v1 JSON"
         />
         <p className="text-xs text-gray-500">
@@ -136,12 +140,26 @@ export function GraphVisualizerTab({
                 </div>
               </div>
             ) : null}
+            {selectedNode.debugLog.length > 0 ? (
+              <div className="space-y-2 border-t border-gray-800 pt-4">
+                <span className="text-sm text-gray-400">Execution log</span>
+                <p className="text-[11px] text-gray-500">
+                  Imperative lines mapped to this node via <code className="text-gray-400">attributes.debugLog</code>.
+                </p>
+                <pre
+                  className="max-h-52 overflow-auto rounded border border-amber-900/45 bg-amber-950/25 p-3 font-mono text-[11px] leading-relaxed text-amber-100/90"
+                  tabIndex={0}
+                >
+                  {selectedNode.debugLog.join('\n')}
+                </pre>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="mt-12 flex flex-col items-center gap-4 text-center text-gray-500">
             <Network size={48} className="text-gray-700 opacity-50" aria-hidden />
             <p className="text-sm">
-              Click a node in the graph to inspect id, kind, state, and details from{' '}
+              Click a node to inspect fields and optional <code className="text-gray-400">debugLog</code> lines from{' '}
               <code className="text-gray-400">omnigraph/graph/v1</code>.
             </p>
           </div>

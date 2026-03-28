@@ -15,6 +15,46 @@ import (
 	"github.com/kennetholsenatm-gif/omnigraph/internal/identity"
 )
 
+func TestGetWorkspaceStreamSSE(t *testing.T) {
+	dir := t.TempDir()
+	_ = os.MkdirAll(filepath.Join(dir, "mod"), 0o755)
+	stateJSON := []byte(`{"version":4,"values":{"outputs":{"x":{"value":"10.0.0.1"}},"root_module":{"resources":[]}}}`)
+	_ = os.WriteFile(filepath.Join(dir, "mod", "terraform.tfstate"), stateJSON, 0o600)
+
+	s := &server{root: dir}
+	ts := httptest.NewServer(http.HandlerFunc(s.cors(s.getWorkspaceStream)))
+	t.Cleanup(ts.Close)
+
+	req, err := http.NewRequest(http.MethodGet, ts.URL+"?path=.", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("status %d", res.StatusCode)
+	}
+	if ct := res.Header.Get("Content-Type"); ct != "text/event-stream" {
+		t.Fatalf("content-type %q", ct)
+	}
+	// Read one chunk only — the handler keeps the connection open for periodic pushes.
+	buf := make([]byte, 16384)
+	n, err := res.Body.Read(buf)
+	if err != nil && err != io.EOF {
+		t.Fatal(err)
+	}
+	body := string(buf[:n])
+	if !bytes.Contains([]byte(body), []byte("event: workspace_summary")) {
+		t.Fatalf("missing workspace_summary event in %q", body)
+	}
+	if !bytes.Contains([]byte(body), []byte(`"root"`)) {
+		t.Fatalf("missing json payload in %q", body)
+	}
+}
+
 func TestPostWorkspaceSummary(t *testing.T) {
 	dir := t.TempDir()
 	_ = os.MkdirAll(filepath.Join(dir, "mod"), 0o755)

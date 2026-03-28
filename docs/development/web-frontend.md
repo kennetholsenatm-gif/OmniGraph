@@ -11,14 +11,14 @@ Implemented in [`packages/web/src/mvp/OmniGraphMVP.tsx`](../../packages/web/src/
 
 | Tab | Role |
 |-----|------|
-| **Visualizer** | `omnigraph/graph/v1` text editor + interactive canvas ([`GraphVisualizerTab`](../../packages/web/src/mvp/GraphVisualizerTab.tsx)). |
+| **Topology** | `omnigraph/graph/v1` text editor + interactive canvas; Inspector + `attributes.debugLog` ([`GraphVisualizerTab`](../../packages/web/src/mvp/GraphVisualizerTab.tsx)). |
 | **Schema Contract** | `.omnigraph.schema` editing and validation ([`SchemaTab`](../../packages/web/src/mvp/SchemaTab.tsx)). |
 | **Web IDE** | HCL scratch + WASM diagnostics when available ([`WebIDETab`](../../packages/web/src/mvp/WebIDETab.tsx)). |
-| **Inventory** | State/plan/INI paste, folder scan, optional `serve` summary ([`InventoryTab`](../../packages/web/src/mvp/InventoryTab.tsx)). |
-| **GitOps Pipeline** | `orchestrate` command builder ([`PipelineTab`](../../packages/web/src/mvp/PipelineTab.tsx)). |
+| **Inventory** | State/plan/INI paste, folder scan, `serve` summary, SSE `GET /api/v1/workspace/stream` ([`InventoryTab`](../../packages/web/src/mvp/InventoryTab.tsx), [`useWorkspaceSummaryStream`](../../packages/web/src/mvp/useWorkspaceSummaryStream.ts)). |
+| **Pipeline** | `orchestrate` command builder ([`PipelineTab`](../../packages/web/src/mvp/PipelineTab.tsx)). |
 | **Posture** | `omnigraph/security/v1` JSON ([`PostureTab`](../../packages/web/src/mvp/PostureTab.tsx)). |
 
-Workspace state persists as **v1** in `localStorage` ([`workspaceStorage.ts`](../../packages/web/src/mvp/workspaceStorage.ts)). End-user-oriented walkthrough: [using-the-web.md](../using-the-web.md).
+Workspace state persists as **v1** in `localStorage` ([`workspaceStorage.ts`](../../packages/web/src/mvp/workspaceStorage.ts)). End-user-oriented walkthrough: [using-the-web.md](../using-the-web.md). UX narrative (Topology / Reconciliation / Posture): [Understanding the UI modes](../guides/ui-modes.md), [UX architecture](../core-concepts/ux-architecture.md).
 
 ## Start development server
 

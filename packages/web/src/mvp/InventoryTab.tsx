@@ -36,6 +36,9 @@ export type InventoryTabProps = {
   onLoadServer: () => Promise<void>
   serverLoading: boolean
   serverError: string | null
+  /** SSE workspace stream (GET /api/v1/workspace/stream); summary updates only from events. */
+  workspaceStreamConnected: boolean
+  workspaceStreamError: string | null
 }
 
 type SourceTab = 'state' | 'plan' | 'ini'
@@ -294,6 +297,18 @@ export function InventoryTab(p: InventoryTabProps) {
                 <code className="font-mono text-gray-500">VITE_OMNIGRAPH_API</code>
               ) : null}
               {!omnigraphApiBase() ? <span className="text-gray-600"> for Vite dev against a local server.</span> : null}
+            </p>
+            <p className="text-[10px] text-gray-600">
+              Workspace SSE{' '}
+              <span className="font-mono text-gray-500">/api/v1/workspace/stream</span>:{' '}
+              {p.workspaceStreamConnected ? (
+                <span className="text-emerald-500/90">connected</span>
+              ) : (
+                <span className="text-gray-600">not connected</span>
+              )}
+              {p.workspaceStreamError ? (
+                <span className="mt-0.5 block text-rose-400/90">{p.workspaceStreamError}</span>
+              ) : null}
             </p>
             {p.serverError ? <p className="text-[11px] text-rose-400/90">{p.serverError}</p> : null}
             {p.serverSummary ? (

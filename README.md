@@ -6,6 +6,8 @@ If your stack mixes OpenTofu/Terraform and Ansible, the real deployment story is
 
 **OmniGraph** is a **web-first workspace for infrastructure as a graph**. It keeps your existing tools, but puts intent, topology, pipeline context, inventory, and security posture in one browser canvas so teams can reason about changes before and after they run.
 
+The workspace is organized into three **operational contexts**—**Topology** (the declarative graph and node-scoped inspector), **Reconciliation** (state, plan, inventory, and pipeline handoff), and **Posture** (security and compliance shape)—so you are not staring at a single overloaded dashboard. See **[docs/guides/ui-modes.md](docs/guides/ui-modes.md)**. The **Go** control plane owns discovery, orchestration, and aggregation; the UI is built as a **reactive** surface, with authoritative live updates designed to arrive over **Server-Sent Events** rather than optimistic guesses—**[docs/core-concepts/ux-architecture.md](docs/core-concepts/ux-architecture.md)**.
+
 ```mermaid
 flowchart TB
   subgraph og [Your_OmniGraph_browser]
@@ -84,7 +86,7 @@ Result: Ansible remains your execution engine, but the control plane becomes dec
 
 Open **`packages/web`** and you land in a **workspace** with a sidebar of tools around the same canvas mindset:
 
-- **Visualizer** — Paste or load **`omnigraph/graph/v1`** and explore it as an **interactive graph** (nodes, edges, relationships—not log lines).
+- **Topology** — Paste or load **`omnigraph/graph/v1`** and explore it as an **interactive graph** (nodes, edges, optional **`attributes.debugLog`** in the Inspector—not log walls).
 - **Schema Contract** — Work on your **`.omnigraph.schema`** project document **in the UI** with checks that meet you where you edit.
 - **GitOps Pipeline** — See how **plan → apply → Ansible handoff** maps to paths and options, as **context for the map**, not a black-box script you memorize.
 - **Inventory** — Bring in **state**, **plan JSON**, **Ansible inventory**, optional **folder scans**, or (when you add a backend) **workspace summary** from the same app.
@@ -116,6 +118,8 @@ Optional: same-origin **API + static build** for Inventory/server features is do
 - **[docs/product-philosophy.md](docs/product-philosophy.md)** — graph-first product intent (not a CI CLI pitch)  
 - **[docs/README.md](docs/README.md)** — full documentation map  
 - **[docs/overview.md](docs/overview.md)** — who / what / where  
+- **[docs/core-concepts/ux-architecture.md](docs/core-concepts/ux-architecture.md)** — progressive disclosure, backend truth, contextual debugging  
+- **[docs/guides/ui-modes.md](docs/guides/ui-modes.md)** — Topology, Reconciliation, Posture  
 
 Everything else—including anything **terminal-shaped** for teams that want it—is purposefully **not** on this page: **[docs/cli-and-ci.md](docs/cli-and-ci.md)**.
 

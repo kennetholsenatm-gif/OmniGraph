@@ -2,6 +2,8 @@
 
 The React app under [`packages/web`](../packages/web) is the **primary human interface** for OmniGraph today: a single-page **workspace** with a sidebar of tools around the same persisted state (localStorage as **workspace v1**).
 
+For the **Topology / Reconciliation / Posture** mental model and how it maps to these tabs, read [Understanding the UI modes](guides/ui-modes.md).
+
 ## Run locally
 
 Requires **Node.js 20+**.
@@ -16,18 +18,18 @@ Open the dev URL Vite prints. No Go binary is required to explore the UI with bu
 
 ## Sidebar: what each tab does
 
-These labels match [`packages/web/src/mvp/OmniGraphMVP.tsx`](../packages/web/src/mvp/OmniGraphMVP.tsx).
+Sidebar structure matches [`packages/web/src/mvp/OmniGraphMVP.tsx`](../packages/web/src/mvp/OmniGraphMVP.tsx): **operational contexts** (Topology, Reconciliation: Inventory + Pipeline, Posture) and **supporting editors** (Schema Contract, Web IDE).
 
-| Tab | Purpose |
-|-----|---------|
-| **Visualizer** | Edit or paste **`omnigraph/graph/v1`** JSON; interactive graph (React Flow). Optional filename hint for export discipline. |
+| Tab (sidebar label) | Purpose |
+|---------------------|---------|
+| **Topology** | Edit or paste **`omnigraph/graph/v1`** JSON; interactive graph (React Flow). Inspector shows node fields and optional **`attributes.debugLog`** (imperative lines mapped to the node). Optional filename hint for export discipline. |
 | **Schema Contract** | Edit **`.omnigraph.schema`** YAML/JSON; validate against the bundled schema; configure path to the **`omnigraph`** binary for CLI-backed validation when needed. |
 | **Web IDE** | HCL scratchpad with **WASM-backed diagnostics** when `hcldiag.wasm` is available (`HCL Wasm ready` in the footer). |
-| **Inventory** | Paste **Terraform/OpenTofu JSON state**, **plan JSON**, **Ansible INI**; optionally **scan a repository folder** for `.omnigraph.schema` files; or call **`omnigraph serve`** **workspace summary** when the API is reachable (set **Git repository root** in the header first). |
-| **GitOps Pipeline** | Form for **`omnigraph orchestrate`** fields (workdir, playbook, runner, images, graph output path, etc.); generates a copy-paste shell command—useful for seeing how CLI flags map to your repo layout. |
+| **Inventory** | Paste **Terraform/OpenTofu JSON state**, **plan JSON**, **Ansible INI**; optionally **scan a repository folder** for `.omnigraph.schema` files; or call **`omnigraph serve`** **workspace summary** when the API is reachable. Shows **SSE** status for **`GET /api/v1/workspace/stream`** (live `workspace_summary` events—no optimistic summary updates). |
+| **Pipeline** | Form for **`omnigraph orchestrate`** fields (workdir, playbook, runner, images, graph output path, etc.); generates a copy-paste shell command—useful for seeing how CLI flags map to your repo layout. |
 | **Posture** | Edit **`omnigraph/security/v1`** JSON that can be merged into graph views or downstream tooling. |
 
-Default tab is **Visualizer** (`visualizer`). The header shows **workspace / {project label} / {active tab}**; **Sync name from schema** reads `metadata.name` from the current schema text.
+Default tab is **Topology** (`visualizer` in persisted state). The header shows **workspace / {project label} / {display name}**; **Sync name from schema** reads `metadata.name` from the current schema text.
 
 ## Git repository root and export
 
@@ -51,5 +53,5 @@ Lint, build, and Wasm rebuild steps: [web-frontend.md](development/web-frontend.
 ## See also
 
 - [Product philosophy](product-philosophy.md)
-- [CLI and CI](cli-and-ci.md) — emit graph JSON from the terminal for paste into Visualizer or CI artifacts
+- [CLI and CI](cli-and-ci.md) — emit graph JSON from the terminal for paste into Topology or CI artifacts
 - [Overview](overview.md)

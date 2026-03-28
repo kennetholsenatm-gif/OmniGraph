@@ -2,6 +2,16 @@
 
 This page orients you in one pass: **who** typically uses OmniGraph, **what** it does (and does not do), **where** the important pieces live in the repository, and how major artifacts relate.
 
+## Why OmniGraph
+
+Infrastructure work rarely fails because people lack tools—it fails because **too much truth arrives at once**. Dashboards become cockpits covered in dials. Declarative intent lives in one pane, imperative failure in another, and neither pane agrees with what actually ran. OmniGraph exists to **compress that chaos into a single declarative graph** you can trust: Terraform and Ansible (and the contracts around them) visualized as one web-native model, with an interface disciplined enough to respect human attention.
+
+The workspace is deliberately **quiet until it needs to speak**. Instead of mirroring every metric your platform knows, OmniGraph asks: *what matters for the decision in front of you right now?* It separates **topology** (what exists and how it connects), **reconciliation** (what the world claims versus what you declared), and **posture** (how safe and compliant that shape is). You move between those contexts the way you move between mental models—without carrying the entire cockpit into each step. See [Understanding the UI modes](guides/ui-modes.md) for how this maps to sidebar tools.
+
+Behind that calm surface sits a stricter rule: **the browser does not get to invent reality**. A **Go control plane** performs discovery, validation, orchestration, and aggregation; the **TypeScript frontend** renders what the backend has already proven. Live updates for authoritative state are designed to flow through a **unidirectional stream of Server-Sent Events (SSE)**, so the canvas does not “guess” that a connection succeeded or a run finished. When the UI changes, it is because **authoritative state changed**—not because a spinner raced ahead of the truth. Read [UX architecture](core-concepts/ux-architecture.md) for the full model.
+
+OmniGraph also refuses the false choice between **elegant declarative graphs** and **messy imperative logs**. Failures from Ansible and similar runners are **anchored to the graph node they belong to**, highlighted in context instead of buried in a wall of monospace. You debug **where the model broke**, not only where the terminal stopped scrolling.
+
 ## Who this is for
 
 - **Operators, reviewers, and platform engineers** who want **graph-level visibility** into intent, topology, pipeline context, and posture without living in raw logs.
@@ -13,7 +23,7 @@ OmniGraph is not a replacement for Terraform, OpenTofu, Ansible, or your cloud A
 
 ## What OmniGraph does
 
-- **Interactive web workspace** ([`packages/web`](../packages/web)): Visualizer (graph JSON), schema validation, pipeline command builder, inventory and server-backed summary, posture JSON, optional WASM HCL IDE—see [using-the-web.md](using-the-web.md).
+- **Interactive web workspace** ([`packages/web`](../packages/web)): Topology (graph JSON + Inspector), schema validation, pipeline command builder, inventory with optional `serve` summary and SSE stream, posture JSON, optional WASM HCL IDE—see [using-the-web.md](using-the-web.md).
 - **Versioned graph artifacts** (`omnigraph/graph/v1`) merged with optional `omnigraph/telemetry/v1` and `omnigraph/security/v1` for what you **see** in the UI and in CI consumers.
 - **HTTP API** (`omnigraph serve`) for repository/workspace discovery and serving the built UI with `--web-dist`.
 - **Schema-first project documents** (`.omnigraph.schema` and related JSON Schema) validated in the UI and CLI.
@@ -49,7 +59,7 @@ flowchart TB
 
 ## Artifact relationships
 
-A common path: validate a project document, emit a graph for the **Visualizer** or pipelines, and enrich it with telemetry and security scans produced separately.
+A common path: validate a project document, emit a graph for the **Topology** view or pipelines, and enrich it with telemetry and security scans produced separately.
 
 ```mermaid
 flowchart LR
@@ -78,6 +88,8 @@ flowchart LR
 
 ## Related reading
 
+- [UX architecture](core-concepts/ux-architecture.md)
+- [Understanding the UI modes](guides/ui-modes.md)
 - [Using the web workspace](using-the-web.md)
 - [CLI and CI](cli-and-ci.md)
 - [Architecture (layers)](core-concepts/architecture.md)

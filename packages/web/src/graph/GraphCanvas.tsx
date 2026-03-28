@@ -26,6 +26,8 @@ export type GraphNodeSelection = {
   kind: string
   state: string
   subtitle: string
+  /** Imperative runner lines from graph attributes.debugLog (contextual debugging). */
+  debugLog: string[]
 }
 
 function OmniNode({ data }: NodeProps) {
@@ -188,12 +190,18 @@ function GraphCanvasInner({
         nodeTypes={nodeTypes}
         onNodeClick={(_, n) => {
           const d = n.data as Record<string, unknown>
+          const rawLog = d.debugLog
+          let debugLog: string[] = []
+          if (Array.isArray(rawLog)) {
+            debugLog = rawLog.filter((x): x is string => typeof x === 'string')
+          }
           onSelectRef.current?.({
             id: n.id,
             label: String(d.label ?? ''),
             kind: String(d.kind ?? ''),
             state: String(d.state ?? ''),
             subtitle: String(d.subtitle ?? ''),
+            debugLog,
           })
         }}
         onPaneClick={() => onSelectRef.current?.(null)}

@@ -25,6 +25,7 @@ func newServeCmd() *cobra.Command {
 
 API:
   GET  /api/v1/health
+  GET  /api/v1/workspace/stream  query: path=.  — SSE stream; event workspace_summary (JSON) + periodic ping
   POST /api/v1/repo/scan         body: {"path":"."}  — same discovery as omnigraph repo scan
   POST /api/v1/workspace/summary body: {"path":"."}  — discovery + aggregated state inventory + omnigraph INI
 

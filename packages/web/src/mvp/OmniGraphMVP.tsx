@@ -1,5 +1,5 @@
-import { Eye, FolderGit2, Layers, RotateCcw, Server, Settings, Shield, TerminalSquare, Workflow } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { FolderGit2, Layers, Network, RotateCcw, Server, Settings, Shield, TerminalSquare, Workflow } from 'lucide-react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 
 import { initHclWasm } from '../hclWasm'
 import { wasmSpikeAdd, wasmSpikeEnabled } from '../wasmSpike'
@@ -7,7 +7,7 @@ import type { GraphNodeSelection } from '../graph/GraphCanvas'
 import { defaultWorkspaceSnapshot, loadWorkspace, persistWorkspace, clearWorkspaceStorage, type WorkspaceSnapshotV1 } from './workspaceStorage'
 import { buildWorkspaceManifest, manifestToJson } from './gitWorkspace'
 import { tryParseMetadataName } from './parseMetadataName'
-import { defaultPostureSecurityJson, type MvpTab } from './constants'
+import { defaultPostureSecurityJson, mvpTabDisplayName, type MvpTab } from './constants'
 import { GraphVisualizerTab } from './GraphVisualizerTab'
 import { InventoryTab } from './InventoryTab'
 import { fetchWorkspaceSummary, type WorkspaceSummary } from './omnigraphApi'
@@ -17,8 +17,17 @@ import { PipelineTab } from './PipelineTab'
 import { SchemaTab } from './SchemaTab'
 import { PostureTab } from './PostureTab'
 import { WebIDETab } from './WebIDETab'
+import { useWorkspaceSummaryStream } from './useWorkspaceSummaryStream'
 
 const webVersion = __OMNIGRAPH_WEB_VERSION__
+
+function NavSectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <div className="hidden px-2 pb-0.5 pt-3 text-[10px] font-semibold uppercase tracking-wider text-gray-600 first:pt-1 md:block">
+      {children}
+    </div>
+  )
+}
 
 function wasmStatusLabel(s: 'loading' | 'ok' | 'err'): string {
   switch (s) {
@@ -157,6 +166,15 @@ export default function OmniGraphMVP() {
   const [selectedGraphNode, setSelectedGraphNode] = useState<GraphNodeSelection | null>(null)
   const [hclWasm, setHclWasm] = useState<'loading' | 'ok' | 'err'>('loading')
   const [wasmNote, setWasmNote] = useState<string | null>(null)
+
+  const workspaceStreamPath = gitRepoRoot.trim() || '.'
+  const { connected: workspaceStreamConnected, error: workspaceStreamError } = useWorkspaceSummaryStream(
+    workspaceStreamPath,
+    useCallback((s: WorkspaceSummary) => {
+      setServerSummary(s)
+      setServerError(null)
+    }, []),
+  )
 
   useEffect(() => {
     initHclWasm()
@@ -367,13 +385,36 @@ export default function OmniGraphMVP() {
           </span>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-2 px-2 py-6">
+        <nav className="flex flex-1 flex-col gap-1 px-2 py-6">
+          <NavSectionLabel>Operational contexts</NavSectionLabel>
           <NavItem
-            icon={<Eye size={20} aria-hidden />}
-            label="Visualizer"
+            icon={<Network size={20} aria-hidden />}
+            label="Topology"
             active={activeTab === 'visualizer'}
             onClick={() => setActiveTab('visualizer')}
           />
+          <NavSectionLabel>Reconciliation</NavSectionLabel>
+          <NavItem
+            icon={<Server size={20} aria-hidden />}
+            label="Inventory"
+            active={activeTab === 'inventory'}
+            onClick={() => setActiveTab('inventory')}
+            indent
+          />
+          <NavItem
+            icon={<Workflow size={20} aria-hidden />}
+            label="Pipeline"
+            active={activeTab === 'pipeline'}
+            onClick={() => setActiveTab('pipeline')}
+            indent
+          />
+          <NavItem
+            icon={<Shield size={20} aria-hidden />}
+            label="Posture"
+            active={activeTab === 'posture'}
+            onClick={() => setActiveTab('posture')}
+          />
+          <NavSectionLabel>Supporting editors</NavSectionLabel>
           <NavItem
             icon={<Settings size={20} aria-hidden />}
             label="Schema Contract"
@@ -385,24 +426,6 @@ export default function OmniGraphMVP() {
             label="Web IDE"
             active={activeTab === 'ide'}
             onClick={() => setActiveTab('ide')}
-          />
-          <NavItem
-            icon={<Server size={20} aria-hidden />}
-            label="Inventory"
-            active={activeTab === 'inventory'}
-            onClick={() => setActiveTab('inventory')}
-          />
-          <NavItem
-            icon={<Workflow size={20} aria-hidden />}
-            label="GitOps Pipeline"
-            active={activeTab === 'pipeline'}
-            onClick={() => setActiveTab('pipeline')}
-          />
-          <NavItem
-            icon={<Shield size={20} aria-hidden />}
-            label="Posture"
-            active={activeTab === 'posture'}
-            onClick={() => setActiveTab('posture')}
           />
         </nav>
 
@@ -435,7 +458,7 @@ export default function OmniGraphMVP() {
                 aria-label="Project label"
               />
               <span className="shrink-0 text-gray-500">/</span>
-              <span className="truncate text-gray-400">{activeTab}</span>
+              <span className="truncate text-gray-400">{mvpTabDisplayName(activeTab)}</span>
             </h1>
             <button
               type="button"
@@ -520,6 +543,8 @@ export default function OmniGraphMVP() {
               onLoadServer={loadFromOmnigraphServer}
               serverLoading={serverLoading}
               serverError={serverError}
+              workspaceStreamConnected={workspaceStreamConnected}
+              workspaceStreamError={workspaceStreamError}
             />
           ) : null}
           {activeTab === 'posture' ? (
