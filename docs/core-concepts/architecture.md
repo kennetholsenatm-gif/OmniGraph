@@ -40,6 +40,8 @@ For the full narrative—**Reconciler Engine**, **Wasm hardening**, and the **`e
 
 ## Related Docs
 
+- [UX architecture](ux-architecture.md) (progressive disclosure, SSE-backed truth, contextual debugging)
+- [Understanding the UI modes](../guides/ui-modes.md)
 - [Overview](../overview.md) (who / what / where)
 - [Using the web workspace](../using-the-web.md)
 - [Platform architecture for contributors](../development/platform-architecture.md)

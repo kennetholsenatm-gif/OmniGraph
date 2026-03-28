@@ -47,7 +47,7 @@
               },
               "attributes": {
                 "type": "object",
-                "description": "Optional metadata; use attributes.source for netbox|prometheus on telemetry nodes"
+                "description": "Optional metadata; use attributes.source for netbox|prometheus on telemetry nodes. Use attributes.debugLog (string[] or newline-separated string) for imperative runner lines mapped to this node in the UI Inspector."
               }
             },
             "required": ["id", "kind", "label"]

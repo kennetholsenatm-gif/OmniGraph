@@ -17,7 +17,13 @@
         "kind": "host",
         "label": "aws_instance.web",
         "state": "planned",
-        "attributes": { "ansible_host": "10.0.5.99" }
+        "attributes": {
+          "ansible_host": "10.0.5.99",
+          "debugLog": [
+            "TASK [web : ensure nginx] ********************",
+            "fatal: [10.0.5.99]: FAILED! => {\"changed\": false, \"msg\": \"conflict\"}"
+          ]
+        }
       },
       {
         "id": "tel-nb-demo",

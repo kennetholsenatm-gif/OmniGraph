@@ -5,6 +5,20 @@ import type { GraphDocument } from './types'
 const nodeWidth = 200
 const nodeHeight = 52
 
+function debugLogFromAttributes(attr: Record<string, unknown> | undefined): string[] {
+  if (!attr) {
+    return []
+  }
+  const v = attr.debugLog
+  if (Array.isArray(v)) {
+    return v.filter((x): x is string => typeof x === 'string')
+  }
+  if (typeof v === 'string' && v.trim()) {
+    return v.split(/\n/).map((s) => s.replace(/\r$/, ''))
+  }
+  return []
+}
+
 function flowNodeType(kind: string): string {
   switch (kind) {
     case 'project':
@@ -38,6 +52,7 @@ export function mapGraphV1ToFlow(doc: GraphDocument): { nodes: Node[]; edges: Ed
     } else if (src != null) {
       subtitle = String(src)
     }
+    const dbg = debugLogFromAttributes(n.attributes as Record<string, unknown> | undefined)
     return {
       id: n.id,
       type: flowNodeType(n.kind),
@@ -48,6 +63,7 @@ export function mapGraphV1ToFlow(doc: GraphDocument): { nodes: Node[]; edges: Ed
         state: n.state ?? '',
         subtitle,
         source: src != null ? String(src) : '',
+        debugLog: dbg,
       },
     }
   })

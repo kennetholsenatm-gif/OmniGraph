@@ -112,6 +112,7 @@ func Run(ctx context.Context, opts Options) error {
 	mux.HandleFunc("GET /api/v1/health", s.cors(s.getHealth))
 	mux.HandleFunc("POST /api/v1/repo/scan", s.cors(s.postRepoScan))
 	mux.HandleFunc("POST /api/v1/workspace/summary", s.cors(s.postWorkspaceSummary))
+	mux.HandleFunc("GET /api/v1/workspace/stream", s.cors(s.getWorkspaceStream))
 	if opts.EnableSecurityScanAPI {
 		mux.HandleFunc("POST /api/v1/security/scan", s.cors(s.requirePermission(identity.PermServeSecurityScan, s.postSecurityScanAPI)))
 	}
@@ -334,25 +335,101 @@ func (s *server) postWorkspaceSummary(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	disc, err := repo.Discover(root)
+	sum, err := s.workspaceSummaryForRoot(root)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(sum)
+}
+
+func (s *server) workspaceSummaryForRoot(root string) (workspaceSummary, error) {
+	disc, err := repo.Discover(root)
+	if err != nil {
+		return workspaceSummary{}, err
 	}
 	rows, stateErrs, err := repo.AggregateStateHosts(root, 32, 0)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return workspaceSummary{}, err
 	}
-	sum := workspaceSummary{
+	return workspaceSummary{
 		Root:           disc.Root,
 		Discover:       disc,
 		StateInventory: rows,
 		StateErrors:    stateErrs,
 		OmnigraphINI:   MergedOmnigraphINI(rows),
+	}, nil
+}
+
+// getWorkspaceStream streams Server-Sent Events (SSE) with periodic workspace_summary payloads.
+// Query: path — same resolution rules as POST /api/v1/workspace/summary (default ".").
+func (s *server) getWorkspaceStream(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(sum)
+	q := strings.TrimSpace(r.URL.Query().Get("path"))
+	if q == "" {
+		q = "."
+	}
+	root, err := resolveWorkspacePath(s.root, q)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+	h := w.Header()
+	h.Set("Content-Type", "text/event-stream")
+	h.Set("Cache-Control", "no-cache")
+	h.Set("Connection", "keep-alive")
+	h.Set("X-Accel-Buffering", "no")
+
+	sendSummary := func() bool {
+		sum, err := s.workspaceSummaryForRoot(root)
+		if err != nil {
+			msg, _ := json.Marshal(err.Error())
+			_, _ = fmt.Fprintf(w, "event: workspace_error\ndata: %s\n\n", msg)
+			flusher.Flush()
+			return false
+		}
+		b, err := json.Marshal(sum)
+		if err != nil {
+			msg, _ := json.Marshal(err.Error())
+			_, _ = fmt.Fprintf(w, "event: workspace_error\ndata: %s\n\n", msg)
+			flusher.Flush()
+			return false
+		}
+		_, _ = fmt.Fprintf(w, "event: workspace_summary\ndata: %s\n\n", b)
+		flusher.Flush()
+		return true
+	}
+
+	if !sendSummary() {
+		return
+	}
+
+	ticker := time.NewTicker(20 * time.Second)
+	defer ticker.Stop()
+	heartbeat := time.NewTicker(25 * time.Second)
+	defer heartbeat.Stop()
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-heartbeat.C:
+			_, _ = fmt.Fprintf(w, ": ping\n\n")
+			flusher.Flush()
+		case <-ticker.C:
+			if !sendSummary() {
+				return
+			}
+		}
+	}
 }
 
 func (s *server) resolveBodyPath(r *http.Request) (string, error) {

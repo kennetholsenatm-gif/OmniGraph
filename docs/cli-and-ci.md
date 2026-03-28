@@ -34,7 +34,7 @@ flowchart TB
 ```
 
 - **Validate** proves the project document matches the JSON Schema (and optionally runs policy).
-- **`graph emit`** produces `omnigraph/graph/v1` for the **Visualizer** tab, CI, or other consumers, optionally folding in telemetry and security documents.
+- **`graph emit`** produces `omnigraph/graph/v1` for the **Topology** tab, CI, or other consumers, optionally folding in telemetry and security documents.
 
 ## Scenario 1: Validate schema only
 
@@ -62,7 +62,7 @@ Example policy sources: [`testdata/policies/security-baseline.yaml`](../testdata
 
 ## Scenario 3: Emit graph JSON for UI or CI
 
-**Goal.** Produce `omnigraph/graph/v1` on stdout, enriched with sample telemetry and security payloads (paste into the **Visualizer** or save as an artifact).
+**Goal.** Produce `omnigraph/graph/v1` on stdout, enriched with sample telemetry and security payloads (paste into the **Topology** view or save as an artifact).
 
 ```bash
 ./bin/omnigraph graph emit testdata/sample.omnigraph.schema \
