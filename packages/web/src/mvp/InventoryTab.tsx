@@ -199,7 +199,7 @@ export function InventoryTab(p: InventoryTabProps) {
   }, [statePathHint])
 
   const repoScanCmd = 'omnigraph repo scan --path .'
-  const serveCmd = 'omnigraph serve --listen 127.0.0.1:38671 --web-dist web/dist --root .'
+  const serveCmd = 'omnigraph serve --listen 127.0.0.1:38671 --web-dist packages/web/dist --root .'
 
   const copyIni = async () => {
     try {

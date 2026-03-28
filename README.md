@@ -55,7 +55,7 @@ Result: Ansible remains your execution engine, but the control plane becomes dec
 
 ## What you get in the web app
 
-Open **`web/`** and you land in a **workspace** with a sidebar of tools around the same canvas mindset:
+Open **`packages/web`** and you land in a **workspace** with a sidebar of tools around the same canvas mindset:
 
 - **Visualizer** — Paste or load **`omnigraph/graph/v1`** and explore it as an **interactive graph** (nodes, edges, relationships—not log lines).
 - **Schema Contract** — Work on your **`.omnigraph.schema`** project document **in the UI** with checks that meet you where you edit.
@@ -73,7 +73,7 @@ Tab-by-tab tour: **[docs/using-the-web.md](docs/using-the-web.md)**.
 **Node.js 20+**
 
 ```bash
-cd web
+cd packages/web
 npm ci
 npm run dev
 ```

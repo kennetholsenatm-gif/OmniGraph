@@ -20,30 +20,50 @@ type diagnostic struct {
 	Column   int    `json:"column,omitempty"`
 }
 
+const wasmPanicJSON = `[{"severity":"error","summary":"wasm runtime error","detail":"recovered panic; try again or reload the page"}]`
+
 func main() {
-	js.Global().Set("omnigraphHclValidate", js.FuncOf(func(this js.Value, args []js.Value) any {
+	js.Global().Set("omnigraphHclValidate", js.FuncOf(func(this js.Value, args []js.Value) (ret any) {
+		defer func() {
+			if recover() != nil {
+				ret = wasmPanicJSON
+			}
+		}()
 		if len(args) < 1 {
-			return "[]"
+			ret = "[]"
+			return
 		}
 		src := args[0].String()
-		out := validate([]byte(src))
-		return mustJSON(out)
+		ret = mustJSON(validate([]byte(src)))
+		return
 	}))
-	js.Global().Set("omnigraphHclStructureLint", js.FuncOf(func(this js.Value, args []js.Value) any {
+	js.Global().Set("omnigraphHclStructureLint", js.FuncOf(func(this js.Value, args []js.Value) (ret any) {
+		defer func() {
+			if recover() != nil {
+				ret = wasmPanicJSON
+			}
+		}()
 		if len(args) < 1 {
-			return "[]"
+			ret = "[]"
+			return
 		}
 		src := args[0].String()
-		out := structureLint([]byte(src))
-		return mustJSON(out)
+		ret = mustJSON(structureLint([]byte(src)))
+		return
 	}))
-	js.Global().Set("omnigraphTfPatternLint", js.FuncOf(func(this js.Value, args []js.Value) any {
+	js.Global().Set("omnigraphTfPatternLint", js.FuncOf(func(this js.Value, args []js.Value) (ret any) {
+		defer func() {
+			if recover() != nil {
+				ret = wasmPanicJSON
+			}
+		}()
 		if len(args) < 1 {
-			return "[]"
+			ret = "[]"
+			return
 		}
 		src := args[0].String()
-		out := patternFindingsToDiag(tfpattern.Scan([]byte(src)))
-		return mustJSON(out)
+		ret = mustJSON(patternFindingsToDiag(tfpattern.Scan([]byte(src))))
+		return
 	}))
 	<-make(chan bool)
 }

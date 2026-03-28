@@ -148,13 +148,24 @@ Minimal API-only:
 ./bin/omnigraph serve
 ```
 
-With static UI (after `cd web && npm run build`):
+With static UI (after `cd packages/web && npm run build`):
 
 ```bash
-./bin/omnigraph serve --web-dist web/dist
+./bin/omnigraph serve --web-dist packages/web/dist
 ```
 
+
 Experimental endpoints (`POST /api/v1/security/scan`, inventory, host-ops, etc.) stay **off** unless you pass the matching `--enable-*` flags **and** `--auth-token` (or set `OMNIGRAPH_SERVE_TOKEN`). Read `omnigraph serve --help` before enabling them.
+
+## End-to-end (E2E) suite
+
+The **`e2e/`** harness drives the **built CLI** against **simulated Ansible endpoints** and **fixture IR/graph/state**, including **failure injection** (non-zero exits, timeouts, malformed responses). It complements package-scoped `go test` by proving the **whole pipeline** under stress.
+
+```bash
+go test ./e2e/...
+```
+
+Details, philosophy, and when to add a scenario: [E2E testing](development/e2e-testing.md).
 
 ## Where to go next
 
@@ -162,3 +173,4 @@ Experimental endpoints (`POST /api/v1/security/scan`, inventory, host-ops, etc.)
 - [Overview](overview.md)
 - [Security posture](security/posture.md)
 - [Execution matrix](core-concepts/execution-matrix.md)
+- [E2E testing](development/e2e-testing.md)

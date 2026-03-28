@@ -63,11 +63,22 @@ export function initHclWasm(): Promise<void> {
 }
 
 export function validateHclText(src: string): HclDiagnostic[] {
-  const fn = (globalThis as unknown as { omnigraphHclValidate?: (s: string) => string }).omnigraphHclValidate
-  if (typeof fn !== 'function') {
-    throw new Error('omnigraphHclValidate not registered; call initHclWasm() first')
+  try {
+    const fn = (globalThis as unknown as { omnigraphHclValidate?: (s: string) => string }).omnigraphHclValidate
+    if (typeof fn !== 'function') {
+      throw new Error('omnigraphHclValidate not registered; call initHclWasm() first')
+    }
+    const raw = fn(src)
+    return JSON.parse(raw) as HclDiagnostic[]
+  } catch (e) {
+    return [
+      {
+        severity: 'error',
+        summary: 'HCL Wasm bridge error',
+        detail: e instanceof Error ? e.message : String(e),
+      },
+    ]
   }
-  return JSON.parse(fn(src)) as HclDiagnostic[]
 }
 
 export function formatHclDiagnostics(ds: HclDiagnostic[]): string {
@@ -84,11 +95,22 @@ export function formatHclDiagnostics(ds: HclDiagnostic[]): string {
 
 /** Policy-style pattern scan (same Wasm binary as HCL parse; checkov-style subset). */
 export function lintTfPatterns(src: string): HclDiagnostic[] {
-  const fn = (globalThis as unknown as { omnigraphTfPatternLint?: (s: string) => string }).omnigraphTfPatternLint
-  if (typeof fn !== 'function') {
-    throw new Error('omnigraphTfPatternLint not registered; call initHclWasm() first')
+  try {
+    const fn = (globalThis as unknown as { omnigraphTfPatternLint?: (s: string) => string }).omnigraphTfPatternLint
+    if (typeof fn !== 'function') {
+      throw new Error('omnigraphTfPatternLint not registered; call initHclWasm() first')
+    }
+    const raw = fn(src)
+    return JSON.parse(raw) as HclDiagnostic[]
+  } catch (e) {
+    return [
+      {
+        severity: 'error',
+        summary: 'pattern lint bridge error',
+        detail: e instanceof Error ? e.message : String(e),
+      },
+    ]
   }
-  return JSON.parse(fn(src)) as HclDiagnostic[]
 }
 
 export function formatPatternDiagnostics(ds: HclDiagnostic[]): string {

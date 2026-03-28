@@ -7,6 +7,8 @@ Canonical **`docs/`** on `main`:
 - [Overview](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/overview.md)
 - [CLI and CI](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/cli-and-ci.md)
 - [Architecture](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/core-concepts/architecture.md)
+- [Platform architecture for contributors](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/development/platform-architecture.md)
+- [Reconciler Engine](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/core-concepts/reconciler-engine.md)
 - [OmniGraph IR](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/core-concepts/omnigraph-ir.md)
 - [Enclave as Code](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/core-concepts/enclave-as-code.md)
 - [State management](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/core-concepts/state-management.md)

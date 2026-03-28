@@ -13,7 +13,7 @@ OmniGraph is not a replacement for Terraform, OpenTofu, Ansible, or your cloud A
 
 ## What OmniGraph does
 
-- **Interactive web workspace** ([`web/`](../web/)): Visualizer (graph JSON), schema validation, pipeline command builder, inventory and server-backed summary, posture JSON, optional WASM HCL IDE—see [using-the-web.md](using-the-web.md).
+- **Interactive web workspace** ([`packages/web`](../packages/web)): Visualizer (graph JSON), schema validation, pipeline command builder, inventory and server-backed summary, posture JSON, optional WASM HCL IDE—see [using-the-web.md](using-the-web.md).
 - **Versioned graph artifacts** (`omnigraph/graph/v1`) merged with optional `omnigraph/telemetry/v1` and `omnigraph/security/v1` for what you **see** in the UI and in CI consumers.
 - **HTTP API** (`omnigraph serve`) for repository/workspace discovery and serving the built UI with `--web-dist`.
 - **Schema-first project documents** (`.omnigraph.schema` and related JSON Schema) validated in the UI and CLI.
@@ -69,7 +69,7 @@ flowchart LR
 
 | Path | Role |
 |------|------|
-| [`web/`](../web/) | React workspace (graph, schema, pipeline, inventory, posture). |
+| [`packages/web`](../packages/web) | React workspace (graph, schema, pipeline, inventory, posture). |
 | [`wasm/`](../wasm/) | WASM used by the UI. |
 | [`cmd/`](../cmd/), [`internal/`](../internal/) | CLI and control plane (orchestration, graph emit, serve, policy, security). |
 | [`schemas/`](../schemas/) | Versioned JSON Schema and contract sources. |

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kennetholsenatm-gif/omnigraph/internal/ir"
+	"github.com/kennetholsenatm-gif/omnigraph/pkg/reconciler"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +33,7 @@ func newIRValidateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			doc, err := ir.ParseDocument(raw)
+			doc, err := reconciler.ParseDocument(raw)
 			if err != nil {
 				return err
 			}
@@ -51,7 +51,7 @@ func newIRFormatsCmd() *cobra.Command {
 		Use:   "formats",
 		Short: "List registered IaC backend format ids (emitters phased)",
 		Run: func(cmd *cobra.Command, args []string) {
-			for _, f := range ir.AllFormats() {
+			for _, f := range reconciler.AllFormats() {
 				fmt.Fprintln(cmd.OutOrStdout(), f)
 			}
 		},
@@ -71,12 +71,12 @@ func newIREmitCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			doc, err := ir.ParseDocument(raw)
+			doc, err := reconciler.ParseDocument(raw)
 			if err != nil {
 				return err
 			}
 			ctx := context.Background()
-			arts, err := ir.DefaultRegistry().Emit(ctx, format, doc)
+			arts, err := reconciler.DefaultRegistry().Emit(ctx, format, doc)
 			if err != nil {
 				return err
 			}

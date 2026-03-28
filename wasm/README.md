@@ -4,7 +4,7 @@ Browser-side tooling aligned with [ADR 001](../docs/core-concepts/adr/001-wasm-l
 
 ## Shipped: HCL parse diagnostics (`hcldiag.wasm`)
 
-A **Go `js/wasm`** build ([`wasm/hcldiag`](./hcldiag)) uses `github.com/hashicorp/hcl/v2` to return parse diagnostics for Terraform-style HCL pasted in the web UI. The UI loads `web/public/wasm/hcldiag.wasm` plus `wasm_exec.js` from the Go toolchain (vendored under `web/public/wasm/`; same BSD license as Go).
+A **Go `js/wasm`** build ([`wasm/hcldiag`](./hcldiag)) uses `github.com/hashicorp/hcl/v2` to return parse diagnostics for Terraform-style HCL pasted in the web UI. The UI loads `packages/web/public/wasm/hcldiag.wasm` plus `wasm_exec.js` from the Go toolchain (vendored under `packages/web/public/wasm/`; same BSD license as Go).
 
 **Build locally** (requires Go 1.22+):
 

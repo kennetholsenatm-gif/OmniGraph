@@ -1,0 +1,10 @@
+{
+  "apiVersion": "not-a-real-version",
+  "kind": "InfrastructureIntent",
+  "metadata": { "name": "bad" },
+  "spec": {
+    "targets": [],
+    "components": [],
+    "relations": []
+  }
+}

@@ -1,6 +1,6 @@
 # Architecture Overview
 
-The **presentation layer** (React web workspace in `web/`) is the **primary human interface**: users explore `omnigraph/graph/v1` and related context interactively. The Go control plane, CLI, and runners exist to validate intent, run optional pipelines, and **emit or refresh** the artifacts that layer consumes—alongside headless CI use cases.
+The **presentation layer** (React web workspace in `packages/web`) is the **primary human interface**: users explore `omnigraph/graph/v1` and related context interactively. The Go control plane, CLI, and runners exist to validate intent, run optional pipelines, and **emit or refresh** the artifacts that layer consumes—alongside headless CI use cases.
 
 OmniGraph separates infrastructure intent, orchestration, and runtime execution into
 clear layers so teams can integrate their own providers and delivery workflows.
@@ -32,11 +32,19 @@ Each layer consumes the one below: the UI and validation UX sit on the Go contro
 - Versioned data formats (`omnigraph/*/v1`) for compatibility
 - Explicit boundaries between core behavior and environment-specific examples
 
+## Repository layout (workspaces)
+
+The **presentation layer** ships as an **isolated npm package** under **`packages/web`**. The **Go control plane**, **Wasm tool modules** (`wasm/*`), and shared libraries are wired together with a root **`go.work`** file so backend module graphs stay independent of Node—`go work sync` keeps the workspace coherent, and a Go refactor cannot accidentally rewrite frontend lockfiles.
+
+For the full narrative—**Reconciler Engine**, **Wasm hardening**, and the **`e2e/`** harness—read [Platform architecture for contributors](../development/platform-architecture.md).
+
 ## Related Docs
 
 - [Overview](../overview.md) (who / what / where)
 - [Using the web workspace](../using-the-web.md)
+- [Platform architecture for contributors](../development/platform-architecture.md)
 - `omnigraph-ir.md`
+- [Reconciler Engine](reconciler-engine.md)
 - `state-management.md`
 - `execution-matrix.md`
 - [Reference architectures overview](../reference-architectures/overview.md)

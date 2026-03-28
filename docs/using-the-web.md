@@ -1,13 +1,13 @@
 # Using the web workspace
 
-The React app under [`web/`](../web/) is the **primary human interface** for OmniGraph today: a single-page **workspace** with a sidebar of tools around the same persisted state (localStorage as **workspace v1**).
+The React app under [`packages/web`](../packages/web) is the **primary human interface** for OmniGraph today: a single-page **workspace** with a sidebar of tools around the same persisted state (localStorage as **workspace v1**).
 
 ## Run locally
 
 Requires **Node.js 20+**.
 
 ```bash
-cd web
+cd packages/web
 npm ci
 npm run dev
 ```
@@ -16,7 +16,7 @@ Open the dev URL Vite prints. No Go binary is required to explore the UI with bu
 
 ## Sidebar: what each tab does
 
-These labels match [`web/src/mvp/OmniGraphMVP.tsx`](../web/src/mvp/OmniGraphMVP.tsx).
+These labels match [`packages/web/src/mvp/OmniGraphMVP.tsx`](../packages/web/src/mvp/OmniGraphMVP.tsx).
 
 | Tab | Purpose |
 |-----|---------|
@@ -31,7 +31,7 @@ Default tab is **Visualizer** (`visualizer`). The header shows **workspace / {pr
 
 ## Git repository root and export
 
-The **Git repository root** field drives inventory scanning, manifest export, and server-backed summary paths. **Export omnigraph.workspace.json** downloads a manifest built from current pipeline + schema CLI settings ([`gitWorkspace.ts`](../web/src/mvp/gitWorkspace.ts)).
+The **Git repository root** field drives inventory scanning, manifest export, and server-backed summary paths. **Export omnigraph.workspace.json** downloads a manifest built from current pipeline + schema CLI settings ([`gitWorkspace.ts`](../packages/web/src/mvp/gitWorkspace.ts)).
 
 **Reset workspace** clears persisted state and reloads defaults.
 
@@ -39,8 +39,8 @@ The **Git repository root** field drives inventory scanning, manifest export, an
 
 For same-origin API calls from the browser (no CORS setup):
 
-1. `cd web && npm run build`
-2. From repo root: `omnigraph serve --web-dist web/dist`
+1. `cd packages/web && npm run build`
+2. From repo root: `omnigraph serve --web-dist packages/web/dist`
 
 Then open the URL **`serve`** prints (loopback by default). **Inventory → Load from OmniGraph server** can fill summary data when `/api/v1/workspace/summary` is available. See **`omnigraph serve --help`** for authentication and experimental endpoints.
 
