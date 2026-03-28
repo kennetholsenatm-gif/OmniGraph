@@ -55,6 +55,33 @@ Result: Ansible remains your execution engine, but the control plane becomes dec
 
 ## What you get in the web app
 
+- **Graph-first truth model** - Infra relationships are first-class nodes and edges, not implicit script order.
+- **Web workspace, not CLI sprawl** - Visualizer, schema, pipeline context, inventory, and posture live together.
+- **Declarative handoff to Ansible** - Desired state and graph context drive execution decisions.
+- **Pipeline observability by default** - Plan/apply/handoff context is visible in the same place as topology.
+- **Toolchain-compatible** - Keep OpenTofu/Terraform/Ansible; OmniGraph adds coordination and clarity.
+
+## How OmniGraph makes Ansible declarative
+
+OmniGraph shifts Ansible usage from "run these imperative steps in this order" toward "converge this graph-backed desired state":
+
+- **State + intent are explicit**: graph/schema/inventory context define what should exist and how it relates.
+- **Diffable desired outcomes**: plan and state artifacts are mapped back onto graph entities, so changes are reviewed as intent deltas, not only task logs.
+- **Guided handoff**: CI plan/apply output and inventory context are attached to the same model Ansible acts on, reducing ad-hoc variable passing and brittle glue scripts.
+- **Consistent reconciliation loop**: operators evaluate whether actual state matches declared graph intent, then run convergence actions with shared context.
+
+Result: Ansible remains your execution engine, but the control plane becomes declarative and inspectable.
+
+## How OmniGraph fixes common CI/CD frustrations
+
+- **Pipeline opacity -> shared visibility**: job stages, infra changes, and handoffs are visible in one workspace.
+- **Brittle IaC-to-Ansible glue -> model-based handoff**: fewer one-off scripts and fewer hidden assumptions between stages.
+- **Environment drift surprises -> earlier detection**: state/plan/inventory context is compared against desired graph intent.
+- **Slow incident triage -> faster root cause**: topology, change context, and posture are co-located instead of split across tools.
+- **Context switching fatigue -> single workspace**: less hopping between CI UI, terminals, state files, and docs.
+
+## What you get in the web app
+
 Open **`packages/web`** and you land in a **workspace** with a sidebar of tools around the same canvas mindset:
 
 - **Visualizer** — Paste or load **`omnigraph/graph/v1`** and explore it as an **interactive graph** (nodes, edges, relationships—not log lines).
