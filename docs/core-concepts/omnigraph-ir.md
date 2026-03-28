@@ -28,8 +28,10 @@ architecture examples.
 
 ## Related docs
 
+- [Reconciler Engine](reconciler-engine.md) — how IR is translated into execution artifacts
 - [Overview](../overview.md)
 - [Using the web workspace](../using-the-web.md)
 - [CLI and CI](../cli-and-ci.md)
 - [IR contracts reference](../schemas/ir-contracts.md)
 - [Security posture](../security/posture.md)
+- [Platform architecture for contributors](../development/platform-architecture.md)

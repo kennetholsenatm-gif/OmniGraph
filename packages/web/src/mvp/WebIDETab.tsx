@@ -98,7 +98,7 @@ export function WebIDETab({ hclWasm, hclText, onHclChange }: WebIDETabProps) {
     if (hclWasm === 'err') {
       return {
         tone: 'muted' as const,
-        text: 'HCL Wasm unavailable (run `make wasm-hcldiag` and ensure web/public/wasm/hcldiag.wasm exists).',
+        text: 'HCL Wasm unavailable (run `make wasm-hcldiag` and ensure packages/web/public/wasm/hcldiag.wasm exists).',
       }
     }
     try {

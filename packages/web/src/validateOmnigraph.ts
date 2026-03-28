@@ -1,6 +1,6 @@
 import Ajv2020 from 'ajv/dist/2020'
 import { parse as parseYaml } from 'yaml'
-import schemaRaw from '../../schemas/omnigraph.schema.json?raw'
+import schemaRaw from '../../../schemas/omnigraph.schema.json?raw'
 
 const ajv = new Ajv2020({ allErrors: true, strict: false })
 const validate = ajv.compile(JSON.parse(schemaRaw) as object)

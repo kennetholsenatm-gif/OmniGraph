@@ -1,4 +1,4 @@
-package ir
+package reconciler
 
 // Document is omnigraph/ir/v1 InfrastructureIntent (JSON-serializable).
 type Document struct {

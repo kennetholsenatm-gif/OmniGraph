@@ -50,27 +50,34 @@ export function PolicyDashboard({ apiEndpoint = '/api/v1/policy' }: PolicyDashbo
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchPolicyReport = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      const response = await fetch(`${apiEndpoint}/report`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch policy report')
+  const fetchPolicyReport = useCallback(
+    async (mode: 'initial' | 'refresh' = 'initial') => {
+      if (mode === 'refresh') {
+        setLoading(true)
+        setError(null)
       }
 
-      const data = (await response.json()) as PolicyReport
-      setReport(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-    } finally {
-      setLoading(false)
-    }
-  }, [apiEndpoint])
+      try {
+        const response = await fetch(`${apiEndpoint}/report`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch policy report')
+        }
+
+        const data = (await response.json()) as PolicyReport
+        setReport(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [apiEndpoint],
+  )
 
   useEffect(() => {
-    void fetchPolicyReport()
+    queueMicrotask(() => {
+      void fetchPolicyReport('initial')
+    })
   }, [fetchPolicyReport])
 
   const getStatusIcon = (passed: number, failed: number) => {
@@ -115,7 +122,7 @@ export function PolicyDashboard({ apiEndpoint = '/api/v1/policy' }: PolicyDashbo
         </div>
         <button
           type="button"
-          onClick={() => void fetchPolicyReport()}
+          onClick={() => void fetchPolicyReport('refresh')}
           className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-gray-50"
         >
           <RefreshCw className="w-4 h-4" />

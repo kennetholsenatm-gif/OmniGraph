@@ -2,7 +2,7 @@
 
 Canonical sources on `main`:
 
-- **[README](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/README.md)** — **web-only** landing: graph workspace story and `web/` quickstart (no CLI on that page).
+- **[README](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/README.md)** — **web-only** landing: graph workspace story and `packages/web` quickstart (no CLI on that page).
 - [Using the web workspace](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/using-the-web.md)
 - [Overview](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/overview.md)
 - [Product philosophy](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/product-philosophy.md)
@@ -12,7 +12,7 @@ Canonical sources on `main`:
 ## Quick start (web)
 
 ```bash
-cd web
+cd packages/web
 npm ci
 npm run dev
 ```

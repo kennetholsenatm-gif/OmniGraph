@@ -28,7 +28,7 @@ API:
   POST /api/v1/repo/scan         body: {"path":"."}  — same discovery as omnigraph repo scan
   POST /api/v1/workspace/summary body: {"path":"."}  — discovery + aggregated state inventory + omnigraph INI
 
-With --web-dist pointing at a Vite build (e.g. web/dist after npm run build), static assets are served at /
+With --web-dist pointing at a Vite build (e.g. packages/web/dist after npm run build), static assets are served at /
 and the UI can call the API same-origin without CORS setup.
 
 Without --web-dist, only /api/v1/* is available; opening / in a browser will 404.
@@ -89,7 +89,7 @@ Experimental APIs (require --auth-token or OMNIGRAPH_SERVE_TOKEN):
 	}
 	cmd.Flags().StringVar(&listen, "listen", "127.0.0.1:38671", "listen address (use 127.0.0.1 for local only)")
 	cmd.Flags().StringVar(&root, "root", "", "default filesystem root for relative {\"path\"} in API requests (empty = process cwd)")
-	cmd.Flags().StringVar(&webDist, "web-dist", "", "path to built web app directory (e.g. web/dist) to serve at /")
+	cmd.Flags().StringVar(&webDist, "web-dist", "", "path to built web app directory (e.g. packages/web/dist) to serve at /")
 	cmd.Flags().BoolVar(&enableSecurityScan, "enable-security-scan", false, "register POST /api/v1/security/scan (local scans; requires --auth-token)")
 	cmd.Flags().BoolVar(&enableHostOps, "enable-host-ops", false, "register SSH host-ops endpoints (requires --auth-token)")
 	cmd.Flags().BoolVar(&enableInventoryAPI, "enable-inventory-api", false, "register GET /api/v1/inventory (requires --auth-token)")

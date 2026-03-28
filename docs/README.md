@@ -1,19 +1,20 @@
 # OmniGraph documentation
 
-OmniGraph is a **graph-forward web workspace** backed by schema-first contracts (`.omnigraph.schema`, `omnigraph/*/v1`). The React UI in [`web/`](../web/) is the primary place people **see** intent, topology, pipeline context, and posture. The Go **`omnigraph`** CLI validates, orchestrates, scans, and **emits** the JSON that feeds that view and CI—it is essential automation, not the elevator pitch. See [product-philosophy.md](product-philosophy.md).
+OmniGraph is a **graph-forward web workspace** backed by schema-first contracts (`.omnigraph.schema`, `omnigraph/*/v1`). The React UI lives in the isolated npm package [`packages/web`](../packages/web). The Go **`omnigraph`** CLI validates, orchestrates, scans, and **emits** the JSON that feeds that view and CI—it is essential automation, not the elevator pitch. See [product-philosophy.md](product-philosophy.md).
 
 **Canonical copy lives here.** The GitHub wiki under `wiki/` links back to these paths.
 
 ## 15-minute reading order
 
 1. [Product philosophy](product-philosophy.md) — visualization-first positioning; what the CLI is for.
-2. [Using the web workspace](using-the-web.md) — run the UI; what each tab does.
-3. [Overview](overview.md) — who / what / where, diagrams, artifacts.
-4. [Architecture](core-concepts/architecture.md) — layers (presentation first).
-5. [Execution matrix](core-concepts/execution-matrix.md) — runners; how orchestration feeds artifacts the UI consumes.
-6. [Security posture](security/posture.md) — policy, scans, `serve` hardening.
+2. [Platform architecture for contributors](development/platform-architecture.md) — narrative: workspaces, Reconciler Engine, Wasm safety, E2E (start here if you ship code).
+3. [Using the web workspace](using-the-web.md) — run the UI; what each tab does.
+4. [Overview](overview.md) — who / what / where, diagrams, artifacts.
+5. [Architecture](core-concepts/architecture.md) — layers (presentation first).
+6. [Execution matrix](core-concepts/execution-matrix.md) — runners; how orchestration feeds artifacts the UI consumes.
+7. [Security posture](security/posture.md) — policy, scans, `serve` hardening, Wasm boundary.
 
-Then: [CLI and CI](cli-and-ci.md) (headless commands and `testdata/`), [IR model](core-concepts/omnigraph-ir.md), [schemas](schemas/), [reference architectures](reference-architectures/overview.md) (non-normative).
+Then: [CLI and CI](cli-and-ci.md) (headless commands and `testdata/`), [IR model](core-concepts/omnigraph-ir.md), [Reconciler Engine](core-concepts/reconciler-engine.md), [E2E testing](development/e2e-testing.md), [schemas](schemas/), [reference architectures](reference-architectures/overview.md) (non-normative).
 
 ## Find documentation by intent
 
@@ -33,7 +34,7 @@ Then: [CLI and CI](cli-and-ci.md) (headless commands and `testdata/`), [IR model
 ## Section map
 
 - **core-concepts/** — architecture, IR, state, integrations, execution, ADRs, inventory.
-- **development/** — local builds, web frontend, contributing pointers.
+- **development/** — platform architecture narrative, local builds, web frontend, E2E, contributing pointers.
 - **reference-architectures/** — example topologies; adapt to your standards.
 - **schemas/** — contract references for IR, run, and related formats.
 - **security/** — policy, scans, operational hardening for `serve`.

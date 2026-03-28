@@ -141,7 +141,7 @@ func Run(ctx context.Context, opts Options) error {
 		}
 		indexPath := filepath.Join(abs, "index.html")
 		if _, err := os.Stat(indexPath); err != nil {
-			return fmt.Errorf("serve: %q has no index.html — run npm run build in web/ and point --web-dist at web/dist", abs)
+			return fmt.Errorf("serve: %q has no index.html — run npm run build in packages/web and point --web-dist at packages/web/dist", abs)
 		}
 		mux.HandleFunc("GET /", s.cors(s.staticSPA(abs)))
 	} else {
@@ -241,9 +241,9 @@ func (s *server) getRootLanding(w http.ResponseWriter, r *http.Request) {
 <h1>OmniGraph</h1>
 <p>API only — no static UI was configured. Use the health link below or serve the built web app.</p>
 <p><a href="/api/v1/health">GET /api/v1/health</a></p>
-<p>To load the React UI from this same port, build it and restart with <code>--web-dist</code> pointing at <code>web/dist</code>:</p>
-<pre>cd web &amp;&amp; npm run build
-omnigraph serve --web-dist web/dist</pre>
+<p>To load the React UI from this same port, build it and restart with <code>--web-dist</code> pointing at <code>packages/web/dist</code>:</p>
+<pre>cd packages/web &amp;&amp; npm run build
+omnigraph serve --web-dist packages/web/dist</pre>
 </body>
 </html>`
 	_, _ = w.Write([]byte(page))
