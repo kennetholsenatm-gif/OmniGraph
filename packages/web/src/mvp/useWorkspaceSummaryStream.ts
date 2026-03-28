@@ -13,7 +13,10 @@ export function useWorkspaceSummaryStream(
   const [connected, setConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const onSummaryRef = useRef(onSummary)
-  onSummaryRef.current = onSummary
+
+  useEffect(() => {
+    onSummaryRef.current = onSummary
+  }, [onSummary])
 
   useEffect(() => {
     const base = omnigraphApiBase()
