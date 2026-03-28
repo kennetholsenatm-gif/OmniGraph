@@ -1,3 +1,4 @@
+import { Bot, Radio } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import {
   Background,
@@ -7,15 +8,18 @@ import {
   Panel,
   Position,
   ReactFlow,
+  ViewportPortal,
   type Edge,
   type Node,
   type NodeProps,
   ReactFlowProvider,
   useEdgesState,
   useNodesState,
+  useStore,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
+import { clusterPaletteClass, computeEnclaveClusters } from './graphConventions'
 import { mapGraphV1ToFlow } from './mapGraphV1ToFlow'
 import type { GraphDocument } from './types'
 
@@ -28,6 +32,28 @@ export type GraphNodeSelection = {
   subtitle: string
   /** Imperative runner lines from graph attributes.debugLog (contextual debugging). */
   debugLog: string[]
+  /** Enclave / trust zone label when `attributes.enclave` or `trustZone` is set. */
+  enclave: string
+  /** Copy of graph node attributes for mesh telemetry and future fields. */
+  attributes: Record<string, unknown>
+}
+
+function statusRingClass(state: string): string {
+  switch (state) {
+    case 'active':
+    case 'live':
+      return 'ring-2 ring-emerald-500/75'
+    case 'degraded':
+    case 'partial':
+      return 'ring-2 ring-amber-500/75'
+    case 'gray':
+      return 'ring-1 ring-slate-500/45 border-dashed'
+    case 'pending':
+    case 'planned':
+      return 'ring-2 ring-blue-500/55 animate-pulse'
+    default:
+      return 'ring-1 ring-violet-500/40'
+  }
 }
 
 function OmniNode({ data }: NodeProps) {
@@ -104,11 +130,63 @@ function TelemetryNode({ data }: NodeProps) {
   )
 }
 
+function MeshBrokerNode({ data }: NodeProps) {
+  const state = String(data.state ?? '')
+  const ring = statusRingClass(state)
+  return (
+    <div
+      className={`relative min-w-[180px] rounded-lg border border-violet-500/45 bg-slate-900/95 px-3 py-2 pl-10 text-left text-xs text-slate-100 shadow-md ${ring}`}
+    >
+      <Radio
+        className="pointer-events-none absolute left-2.5 top-1/2 h-5 w-5 -translate-y-1/2 text-violet-400/90"
+        aria-hidden
+      />
+      <Handle type="target" position={Position.Top} className="!h-2 !w-2 !bg-violet-400" />
+      <div className="font-medium text-violet-100">{String(data.label)}</div>
+      {data.subtitle ? (
+        <div className="mt-0.5 font-mono text-[10px] text-violet-200/65">{String(data.subtitle)}</div>
+      ) : null}
+      <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px] uppercase tracking-wide text-violet-300/55">
+        <span className="rounded bg-violet-950/55 px-1 text-[9px] font-semibold text-violet-200/90">broker</span>
+        {state ? <span className="font-normal normal-case text-violet-200/80">{state}</span> : null}
+      </div>
+      <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !bg-violet-400" />
+    </div>
+  )
+}
+
+function MeshAgentNode({ data }: NodeProps) {
+  const state = String(data.state ?? '')
+  const ring = statusRingClass(state)
+  return (
+    <div
+      className={`relative min-w-[180px] rounded-lg border border-indigo-500/45 bg-slate-900/95 px-3 py-2 pl-10 text-left text-xs text-slate-100 shadow-md ${ring}`}
+    >
+      <Bot
+        className="pointer-events-none absolute left-2.5 top-1/2 h-5 w-5 -translate-y-1/2 text-indigo-400/90"
+        aria-hidden
+      />
+      <Handle type="target" position={Position.Top} className="!h-2 !w-2 !bg-indigo-400" />
+      <div className="font-medium text-indigo-100">{String(data.label)}</div>
+      {data.subtitle ? (
+        <div className="mt-0.5 font-mono text-[10px] text-indigo-200/65">{String(data.subtitle)}</div>
+      ) : null}
+      <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px] uppercase tracking-wide text-indigo-300/55">
+        <span className="rounded bg-indigo-950/55 px-1 text-[9px] font-semibold text-indigo-200/90">agent</span>
+        {state ? <span className="font-normal normal-case text-indigo-200/80">{state}</span> : null}
+      </div>
+      <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !bg-indigo-400" />
+    </div>
+  )
+}
+
 const nodeTypes = {
   project: OmniNode,
   tool: OmniNode,
   host: OmniNode,
   telemetry: TelemetryNode,
+  broker: MeshBrokerNode,
+  agent: MeshAgentNode,
   default: OmniNode,
 }
 
@@ -129,6 +207,83 @@ function parseGraph(text: string): { ok: true; doc: GraphDocument } | { ok: fals
   } catch (e) {
     const m = e instanceof Error ? e.message : String(e)
     return { ok: false, error: m }
+  }
+}
+
+function EnclaveClusterLayer() {
+  const nodes = useStore((s) => s.nodes)
+  const clusters = useMemo(() => computeEnclaveClusters(nodes), [nodes])
+
+  return (
+    <ViewportPortal>
+      <svg
+        className="pointer-events-none"
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: '100%',
+          height: '100%',
+          overflow: 'visible',
+          zIndex: -1,
+        }}
+        aria-hidden
+      >
+        {clusters.map((c, i) => {
+          const p = clusterPaletteClass(i)
+          const w = c.maxX - c.minX
+          const h = c.maxY - c.minY
+          return (
+            <g key={c.id}>
+              <rect
+                x={c.minX}
+                y={c.minY}
+                width={w}
+                height={h}
+                rx={14}
+                fill={p.fill}
+                stroke={p.stroke}
+                strokeWidth={1}
+              />
+              <text
+                x={c.minX + 10}
+                y={c.minY + 15}
+                fill={p.text}
+                fontSize={11}
+                fontFamily="ui-sans-serif, system-ui, sans-serif"
+                fontWeight={600}
+              >
+                {c.label}
+              </text>
+            </g>
+          )
+        })}
+      </svg>
+    </ViewportPortal>
+  )
+}
+
+function selectionFromNodeData(n: Node): GraphNodeSelection {
+  const d = n.data as Record<string, unknown>
+  const rawLog = d.debugLog
+  let debugLog: string[] = []
+  if (Array.isArray(rawLog)) {
+    debugLog = rawLog.filter((x): x is string => typeof x === 'string')
+  }
+  const rawAttr = d.attributes
+  const attributes =
+    rawAttr && typeof rawAttr === 'object' && !Array.isArray(rawAttr)
+      ? (rawAttr as Record<string, unknown>)
+      : {}
+  return {
+    id: n.id,
+    label: String(d.label ?? ''),
+    kind: String(d.kind ?? ''),
+    state: String(d.state ?? ''),
+    subtitle: String(d.subtitle ?? ''),
+    debugLog,
+    enclave: String(d.enclave ?? ''),
+    attributes,
   }
 }
 
@@ -189,26 +344,14 @@ function GraphCanvasInner({
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
         onNodeClick={(_, n) => {
-          const d = n.data as Record<string, unknown>
-          const rawLog = d.debugLog
-          let debugLog: string[] = []
-          if (Array.isArray(rawLog)) {
-            debugLog = rawLog.filter((x): x is string => typeof x === 'string')
-          }
-          onSelectRef.current?.({
-            id: n.id,
-            label: String(d.label ?? ''),
-            kind: String(d.kind ?? ''),
-            state: String(d.state ?? ''),
-            subtitle: String(d.subtitle ?? ''),
-            debugLog,
-          })
+          onSelectRef.current?.(selectionFromNodeData(n))
         }}
         onPaneClick={() => onSelectRef.current?.(null)}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         proOptions={{ hideAttribution: true }}
       >
+        <EnclaveClusterLayer />
         <Background gap={16} color="#334155" />
         <Controls className="!bg-slate-800 !border-slate-600" />
         <MiniMap
@@ -216,9 +359,15 @@ function GraphCanvasInner({
           nodeStrokeWidth={2}
           maskColor="rgb(15 23 42 / 0.7)"
         />
-        <Panel position="top-left" className="rounded bg-slate-900/90 px-2 py-1 text-xs text-slate-400">
-          phase: {parsed.doc.spec.phase}
-          {parsed.doc.metadata.project ? ` · ${parsed.doc.metadata.project}` : ''}
+        <Panel position="top-left" className="max-w-[min(100%,280px)] rounded bg-slate-900/90 px-2 py-1.5 text-xs text-slate-400">
+          <div>
+            phase: {parsed.doc.spec.phase}
+            {parsed.doc.metadata.project ? ` · ${parsed.doc.metadata.project}` : ''}
+          </div>
+          <div className="mt-0.5 text-[10px] leading-snug text-slate-500">
+            Shaded regions = enclave / trust zone (<code className="text-slate-500">attributes.enclave</code> or{' '}
+            <code className="text-slate-500">trustZone</code>). Unlabeled group = Unscoped.
+          </div>
         </Panel>
       </ReactFlow>
     </div>

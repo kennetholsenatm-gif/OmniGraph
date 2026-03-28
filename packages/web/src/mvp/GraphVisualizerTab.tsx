@@ -2,6 +2,29 @@ import { Download, Eye, Network, Upload } from 'lucide-react'
 import { useRef, type ChangeEvent } from 'react'
 
 import { GraphCanvas, type GraphNodeSelection } from '../graph/GraphCanvas'
+import { GRAPH_V1_ATTR } from '../graph/graphConventions'
+
+function formatAttrSnippet(value: unknown): string {
+  if (value === undefined || value === null) {
+    return ''
+  }
+  if (typeof value === 'string') {
+    return value
+  }
+  try {
+    return JSON.stringify(value, null, 2)
+  } catch {
+    return String(value)
+  }
+}
+
+function isAgentMeshNode(kind: string, attr: Record<string, unknown>): boolean {
+  if (kind === 'broker' || kind === 'agent') {
+    return true
+  }
+  const r = attr[GRAPH_V1_ATTR.meshRole]
+  return r === 'broker' || r === 'agent'
+}
 
 export type GraphVisualizerTabProps = {
   graphText: string
@@ -132,6 +155,53 @@ export function GraphVisualizerTab({
               <span className="text-sm text-gray-400">State</span>
               <span className="rounded bg-gray-800 px-2 py-1 text-xs text-gray-300">{selectedNode.state || '—'}</span>
             </div>
+            {selectedNode.enclave ? (
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm text-gray-400">Enclave</span>
+                <span className="max-w-[160px] truncate rounded bg-indigo-950/50 px-2 py-1 font-mono text-xs text-indigo-200">
+                  {selectedNode.enclave}
+                </span>
+              </div>
+            ) : null}
+            {isAgentMeshNode(selectedNode.kind, selectedNode.attributes) ? (
+              <div className="space-y-3 border-t border-gray-800 pt-4">
+                <span className="text-sm text-gray-400">AgentMesh</span>
+                <p className="text-[11px] text-gray-500">
+                  Telemetry and routing from <code className="text-gray-400">attributes.meshTelemetry</code>,{' '}
+                  <code className="text-gray-400">routes</code>, <code className="text-gray-400">connectivity</code>.
+                </p>
+                {selectedNode.attributes[GRAPH_V1_ATTR.connectivity] != null ? (
+                  <div>
+                    <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">Connectivity</div>
+                    <div className="rounded border border-violet-900/40 bg-violet-950/20 p-2 font-mono text-xs text-violet-100/90">
+                      {formatAttrSnippet(selectedNode.attributes[GRAPH_V1_ATTR.connectivity])}
+                    </div>
+                  </div>
+                ) : null}
+                {selectedNode.attributes[GRAPH_V1_ATTR.routes] != null ? (
+                  <div>
+                    <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">Routes</div>
+                    <pre
+                      className="max-h-36 overflow-auto rounded border border-violet-900/40 bg-violet-950/20 p-2 font-mono text-[11px] text-violet-100/85"
+                      tabIndex={0}
+                    >
+                      {formatAttrSnippet(selectedNode.attributes[GRAPH_V1_ATTR.routes])}
+                    </pre>
+                  </div>
+                ) : null}
+                {selectedNode.attributes[GRAPH_V1_ATTR.meshTelemetry] != null ? (
+                  <div>
+                    <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">Telemetry</div>
+                    <pre
+                      className="max-h-44 overflow-auto rounded border border-violet-900/40 bg-violet-950/20 p-2 font-mono text-[11px] text-violet-100/85"
+                      tabIndex={0}
+                    >
+                      {formatAttrSnippet(selectedNode.attributes[GRAPH_V1_ATTR.meshTelemetry])}
+                    </pre>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             {selectedNode.subtitle ? (
               <div className="space-y-2 border-t border-gray-800 pt-4">
                 <span className="text-sm text-gray-400">Detail</span>

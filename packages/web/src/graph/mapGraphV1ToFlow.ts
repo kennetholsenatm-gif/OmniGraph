@@ -1,9 +1,14 @@
 import dagre from 'dagre'
 import type { Edge, Node } from '@xyflow/react'
 import type { GraphDocument } from './types'
+import {
+  FLOW_NODE_HEIGHT,
+  FLOW_NODE_WIDTH,
+  enclaveLabelFromAttributes,
+  flowTypeForMeshOrKind,
+} from './graphConventions'
 
-const nodeWidth = 200
-const nodeHeight = 52
+export { FLOW_NODE_WIDTH, FLOW_NODE_HEIGHT } from './graphConventions'
 
 function debugLogFromAttributes(attr: Record<string, unknown> | undefined): string[] {
   if (!attr) {
@@ -19,19 +24,11 @@ function debugLogFromAttributes(attr: Record<string, unknown> | undefined): stri
   return []
 }
 
-function flowNodeType(kind: string): string {
-  switch (kind) {
-    case 'project':
-      return 'project'
-    case 'tool':
-      return 'tool'
-    case 'host':
-      return 'host'
-    case 'telemetry':
-      return 'telemetry'
-    default:
-      return 'default'
+function cloneAttributes(attr: Record<string, unknown> | undefined): Record<string, unknown> {
+  if (!attr) {
+    return {}
   }
+  return { ...attr }
 }
 
 /** Maps omnigraph/graph/v1 nodes and edges into React Flow models with Dagre layout. */
@@ -41,9 +38,10 @@ export function mapGraphV1ToFlow(doc: GraphDocument): { nodes: Node[]; edges: Ed
   g.setGraph({ rankdir: 'TB', nodesep: 48, ranksep: 64, marginx: 24, marginy: 24 })
 
   const rawNodes: Node[] = doc.spec.nodes.map((n) => {
-    const ansibleHost = n.attributes?.ansible_host
-    const src = n.attributes?.source
-    const ip = n.attributes?.ip
+    const attr = n.attributes as Record<string, unknown> | undefined
+    const ansibleHost = attr?.ansible_host
+    const src = attr?.source
+    const ip = attr?.ip
     let subtitle = ''
     if (ansibleHost != null) {
       subtitle = String(ansibleHost)
@@ -52,10 +50,12 @@ export function mapGraphV1ToFlow(doc: GraphDocument): { nodes: Node[]; edges: Ed
     } else if (src != null) {
       subtitle = String(src)
     }
-    const dbg = debugLogFromAttributes(n.attributes as Record<string, unknown> | undefined)
+    const dbg = debugLogFromAttributes(attr)
+    const enclave = enclaveLabelFromAttributes(attr)
+    const flowType = flowTypeForMeshOrKind(n.kind, attr)
     return {
       id: n.id,
-      type: flowNodeType(n.kind),
+      type: flowType,
       position: { x: 0, y: 0 },
       data: {
         label: n.label,
@@ -64,12 +64,14 @@ export function mapGraphV1ToFlow(doc: GraphDocument): { nodes: Node[]; edges: Ed
         subtitle,
         source: src != null ? String(src) : '',
         debugLog: dbg,
+        enclave: enclave ?? '',
+        attributes: cloneAttributes(attr),
       },
     }
   })
 
   for (const n of rawNodes) {
-    g.setNode(n.id, { width: nodeWidth, height: nodeHeight })
+    g.setNode(n.id, { width: FLOW_NODE_WIDTH, height: FLOW_NODE_HEIGHT })
   }
 
   const edges: Edge[] = doc.spec.edges.map((e, i) => {
@@ -91,7 +93,7 @@ export function mapGraphV1ToFlow(doc: GraphDocument): { nodes: Node[]; edges: Ed
     }
     return {
       ...n,
-      position: { x: pos.x - nodeWidth / 2, y: pos.y - nodeHeight / 2 },
+      position: { x: pos.x - FLOW_NODE_WIDTH / 2, y: pos.y - FLOW_NODE_HEIGHT / 2 },
     }
   })
 

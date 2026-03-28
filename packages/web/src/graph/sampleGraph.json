@@ -9,15 +9,58 @@
   "spec": {
     "phase": "plan",
     "nodes": [
-      { "id": "project", "kind": "project", "label": "demo", "state": "active" },
-      { "id": "tf", "kind": "tool", "label": "OpenTofu", "state": "pending" },
-      { "id": "ansible", "kind": "tool", "label": "Ansible", "state": "pending" },
+      {
+        "id": "project",
+        "kind": "project",
+        "label": "demo",
+        "state": "active",
+        "attributes": { "enclave": "control-plane" }
+      },
+      {
+        "id": "tf",
+        "kind": "tool",
+        "label": "OpenTofu",
+        "state": "pending",
+        "attributes": { "enclave": "control-plane" }
+      },
+      {
+        "id": "ansible",
+        "kind": "tool",
+        "label": "Ansible",
+        "state": "pending",
+        "attributes": { "enclave": "control-plane" }
+      },
+      {
+        "id": "mesh-broker-1",
+        "kind": "broker",
+        "label": "AgentMesh broker",
+        "state": "active",
+        "attributes": {
+          "enclave": "edge",
+          "meshTelemetry": { "lastHeartbeatMs": 120, "peers": 4 },
+          "routes": ["agent/edge-a", "agent/edge-b"],
+          "connectivity": "ok"
+        }
+      },
+      {
+        "id": "mesh-agent-1",
+        "kind": "agent",
+        "label": "edge collector",
+        "state": "degraded",
+        "attributes": {
+          "enclave": "edge",
+          "meshTelemetry": { "queueDepth": 12, "dropped": 1 },
+          "routes": ["broker:mesh-broker-1"],
+          "connectivity": "partial"
+        }
+      },
       {
         "id": "planned-aws_instance_web",
         "kind": "host",
         "label": "aws_instance.web",
         "state": "planned",
         "attributes": {
+          "enclave": "workload",
           "ansible_host": "10.0.5.99",
           "debugLog": [
             "TASK [web : ensure nginx] ********************",
@@ -37,12 +80,15 @@
       { "from": "project", "to": "tf", "kind": "provisions" },
       { "from": "tf", "to": "ansible", "kind": "configures" },
       { "from": "tf", "to": "planned-aws_instance_web", "kind": "creates" },
+      { "from": "mesh-broker-1", "to": "mesh-agent-1", "kind": "routes" },
+      { "from": "mesh-agent-1", "to": "planned-aws_instance_web", "kind": "observes" },
       { "from": "tel-nb-demo", "to": "tf", "kind": "context" }
     ],
     "phases": [
       { "name": "validate", "status": "ok" },
       { "name": "coerce", "status": "ok" },
-      { "name": "plan", "status": "pending" }
+      { "name": "plan", "status": "pending" },
+      { "name": "apply", "status": "pending" }
     ],
     "summary": { "validateOk": true, "coerceOk": true }
   }
