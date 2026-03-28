@@ -22,12 +22,12 @@ func newApplyCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "apply",
-		Short: "Apply a declarative infrastructure manifest",
+		Short: "Reconcile desired manifest state with actual provider state",
 		Long: `Apply a declarative infrastructure manifest to create or update resources.
 
-The apply command reads a YAML or JSON manifest file and reconciles the desired state
-with the actual state of the infrastructure. This is similar to 'kubectl apply' but
-for infrastructure resources like Incus containers, networks, and storage pools.
+The apply command reads a YAML or JSON manifest and reconciles desired manifest state
+with the provider's actual state (Kubernetes-style control loop). This is similar to
+'kubectl apply' but for infrastructure resources like Incus containers, networks, and storage pools.
 
 Examples:
   # Apply a manifest

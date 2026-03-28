@@ -6,7 +6,7 @@ Thank you for your interest in contributing to OmniGraph. The product is **graph
 
 
 
-For the **architectural story** (Go workspaces, Reconciler Engine, Wasm hardening, E2E), read [docs/development/platform-architecture.md](docs/development/platform-architecture.md).
+For the **architectural story** (Go workspaces, Emitter Engine, Wasm hardening, E2E), read [docs/development/platform-architecture.md](docs/development/platform-architecture.md).
 
 
 
@@ -310,7 +310,7 @@ go build -o bin/omnigraph ./cmd/omnigraph
 
 ├── pkg/
 
-│   └── reconciler/         # Reconciler Engine: IR → emitted artifacts (public package)
+│   └── emitter/            # Emitter Engine: IR → emitted artifacts (public package)
 
 ├── cmd/omnigraph/          # CLI entry point
 
@@ -458,7 +458,7 @@ Start with these resources:
 
 - [Architecture Overview](docs/core-concepts/architecture.md)
 
-- [Reconciler Engine](docs/core-concepts/reconciler-engine.md)
+- [Emitter Engine](docs/core-concepts/emitter-engine.md)
 
 - [Architecture Decision Records](docs/core-concepts/adr/)
 

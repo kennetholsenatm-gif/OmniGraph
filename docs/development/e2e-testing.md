@@ -9,7 +9,7 @@ OmniGraph’s **unit and integration tests** prove that individual packages beha
 - **Drivers** — Go tests that `go build` the CLI (`e2e/cli_test.go`), run `omnigraph ir` against fixtures, and assert exit codes and stdout.
 - **HTTP simulation** — `e2e/ansible_simulation_test.go` uses `httptest` to model failure responses from Ansible-adjacent endpoints (extend with real orchestration wiring over time).
 
-The exact layout follows the harness implementation; the **contract** for contributors is: **if it spans CLI + Reconciler + external tool boundaries and you care about failure modes, it belongs in E2E**.
+The exact layout follows the harness implementation; the **contract** for contributors is: **if it spans CLI + Emitter Engine + external tool boundaries and you care about failure modes, it belongs in E2E**.
 
 ## Static integration tests versus E2E
 

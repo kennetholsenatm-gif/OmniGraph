@@ -112,7 +112,7 @@ func runDiff(cmd *cobra.Command) error {
 	if !hasDifferences {
 		fmt.Println("\nNo differences found. All resources are in desired state.")
 	} else {
-		fmt.Println("\nDifferences found. Run 'omnigraph apply' to reconcile.")
+		fmt.Println("\nDifferences found. Run 'omnigraph apply' to reconcile desired manifest state with the provider.")
 	}
 
 	return nil

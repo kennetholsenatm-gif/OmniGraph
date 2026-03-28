@@ -1,12 +1,12 @@
-# Reconciler Engine
+# Emitter Engine
 
-The **Reconciler Engine** is OmniGraph’s **first-class translation layer**: it reads versioned **declarative intent** (`omnigraph/ir/v1`) and **emits concrete artifacts** that execution tools understand—**Ansible INI inventory** from `spec.targets` today, with additional formats registered over time. It is the architectural heart between “what the graph says” and “what Ansible (and siblings) can run.”
+The **Emitter Engine** is OmniGraph’s **first-class translation layer**: it reads versioned **declarative intent** (`omnigraph/ir/v1`) and **emits concrete artifacts** that execution tools understand—**Ansible INI inventory** from `spec.targets` today, with additional formats registered over time. It is the architectural heart between “what the graph says” and “what Ansible (and siblings) can run.”
 
-This is **not** the same as **manifest reconciliation** (desired vs actual cloud resources in `omnigraph apply`). For that pattern, see [Declarative reconciliation (reference architecture)](../reference-architectures/declarative-reconciliation.md). It is also **not** **orchestration** (`orchestrate` / pipeline), which chains OpenTofu and Ansible against a workspace. The Reconciler Engine **materializes files and blobs from IR**; orchestration **invokes external programs** with those artifacts and other inputs.
+For **manifest reconciliation** (desired vs actual infrastructure in `omnigraph apply`), see [Declarative reconciliation (reference architecture)](../reference-architectures/declarative-reconciliation.md). **Orchestration** (`orchestrate` / pipeline) chains OpenTofu and Ansible against a workspace. The Emitter Engine **materializes files and blobs from IR**; orchestration **invokes external programs** with those artifacts and other inputs.
 
 ## Why it deserves its own name
 
-Previously, emitters could feel like **hidden implementation detail** buried under `internal/`. Treating them as the **Reconciler Engine** makes three things obvious to contributors:
+Previously, emitters could feel like **hidden implementation detail** buried under `internal/`. Treating them as the **Emitter Engine** makes three things obvious to contributors:
 
 1. **Extension is expected**—new output shapes should land as new backends, not one-off scripts.
 2. **The contract is narrow**—inputs are `omnigraph/ir/v1`; outputs are typed **artifacts** with paths and media types.
@@ -14,7 +14,7 @@ Previously, emitters could feel like **hidden implementation detail** buried und
 
 ## Implementation home
 
-The engine is implemented in Go as the **public** package [`pkg/reconciler`](../../pkg/reconciler/). Normative JSON Schema for the input document: [`schemas/ir.v1.schema.json`](../../schemas/ir.v1.schema.json). Conceptual IR fields are summarized in [OmniGraph IR](omnigraph-ir.md).
+The engine is implemented in Go as the **public** package [`pkg/emitter`](../../pkg/emitter/). Normative JSON Schema for the input document: [`schemas/ir.v1.schema.json`](../../schemas/ir.v1.schema.json). Conceptual IR fields are summarized in [OmniGraph IR](omnigraph-ir.md).
 
 ## Core interfaces
 
@@ -33,10 +33,10 @@ The default registry wires **real emitters** where implemented and **stub backen
 
 ## Extending safely
 
-1. **Define or reuse a format constant** aligned with [`AllFormats`](../../pkg/reconciler/format.go) (add a new constant there if you introduce a new id).
+1. **Define or reuse a format constant** aligned with [`AllFormats`](../../pkg/emitter/format.go) (add a new constant there if you introduce a new id).
 2. **Implement `Backend`** with deterministic `Emit` behavior; validate inputs and return wrapped errors with context.
 3. **Register** your backend in the default registry constructor (alongside existing implementations).
-4. **Add tests** in the style of [`emit_ansible_test.go`](../../pkg/reconciler/emit_ansible_test.go): table-driven cases, golden or string-stable expectations, and explicit error paths.
+4. **Add tests** in the style of [`emit_ansible_test.go`](../../pkg/emitter/emit_ansible_test.go): table-driven cases, golden or string-stable expectations, and explicit error paths.
 
 Selection of which backends run for a given workflow may use **`spec.emitHints`** (ordering hints) or CLI flags, depending on the command; keep registration in one place so discovery stays centralized.
 
@@ -44,5 +44,5 @@ Selection of which backends run for a given workflow may use **`spec.emitHints`*
 
 - [OmniGraph IR](omnigraph-ir.md) — document shape and purpose
 - [Platform architecture for contributors](../development/platform-architecture.md) — narrative context and glossary
-- [Declarative reconciliation (reference)](../reference-architectures/declarative-reconciliation.md) — **different** meaning of “reconciliation”
+- [Declarative reconciliation (reference)](../reference-architectures/declarative-reconciliation.md) — desired-vs-actual manifest control (`apply`)
 - [Execution matrix](execution-matrix.md) — how runners consume emitted artifacts in broader flows

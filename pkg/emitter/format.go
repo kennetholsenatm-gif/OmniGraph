@@ -1,4 +1,4 @@
-package reconciler
+package emitter
 
 // BackendFormat identifies an emitter target. All major IaC/packaging shapes are in scope;
 // individual emitters are implemented incrementally.

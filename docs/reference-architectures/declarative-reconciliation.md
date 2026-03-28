@@ -2,8 +2,6 @@
 
 This document captures a reference pattern for **Kubernetes-style reconciliation** in OmniGraph-oriented environments: **manifest desired state** compared to **provider actual state** in a control loop.
 
-**Not to be confused with** the **Reconciler Engine**, which translates **`omnigraph/ir/v1`** into **emitted artifacts** (Ansible inventory, future formats). That translation layer is documented in [Reconciler Engine](../core-concepts/reconciler-engine.md).
-
 ## Model
 
 - Desired state is defined in versioned manifests
@@ -32,5 +30,5 @@ spec:
 
 ## See also
 
-- [Reconciler Engine](../core-concepts/reconciler-engine.md) — IR → artifacts (different meaning of “reconciliation”)
+- [Emitter Engine](../core-concepts/emitter-engine.md) — compiles `omnigraph/ir/v1` into execution artifacts (inventory, etc.); distinct from manifest reconciliation.
 - [Platform architecture for contributors](../development/platform-architecture.md) — glossary of terms

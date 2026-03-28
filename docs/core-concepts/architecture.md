@@ -36,7 +36,7 @@ Each layer consumes the one below: the UI and validation UX sit on the Go contro
 
 The **presentation layer** ships as an **isolated npm package** under **`packages/web`**. The **Go control plane**, **Wasm tool modules** (`wasm/*`), and shared libraries are wired together with a root **`go.work`** file so backend module graphs stay independent of Node—`go work sync` keeps the workspace coherent, and a Go refactor cannot accidentally rewrite frontend lockfiles.
 
-For the full narrative—**Reconciler Engine**, **Wasm hardening**, and the **`e2e/`** harness—read [Platform architecture for contributors](../development/platform-architecture.md).
+For the full narrative—**Emitter Engine**, **Wasm hardening**, and the **`e2e/`** harness—read [Platform architecture for contributors](../development/platform-architecture.md).
 
 ## Related Docs
 
@@ -46,7 +46,7 @@ For the full narrative—**Reconciler Engine**, **Wasm hardening**, and the **`e
 - [Using the web workspace](../using-the-web.md)
 - [Platform architecture for contributors](../development/platform-architecture.md)
 - `omnigraph-ir.md`
-- [Reconciler Engine](reconciler-engine.md)
+- [Emitter Engine](emitter-engine.md)
 - `state-management.md`
 - `execution-matrix.md`
 - [Reference architectures overview](../reference-architectures/overview.md)
