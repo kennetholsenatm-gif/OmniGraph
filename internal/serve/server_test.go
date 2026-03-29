@@ -357,6 +357,135 @@ func TestSyncWebSocketPingAndStateDelta(t *testing.T) {
 	}
 }
 
+func TestPostWorkspaceDrift(t *testing.T) {
+	intended := omnistate.OmniGraphState{
+		APIVersion: omnistate.APIVersion,
+		Nodes: []omnistate.StateNode{
+			{ID: "want-host", Kind: "ansible_host", Label: "want-host"},
+		},
+		Edges: nil,
+	}
+	runtime := omnistate.OmniGraphState{
+		APIVersion: omnistate.APIVersion,
+		Nodes: []omnistate.StateNode{
+			{ID: "want-host", Kind: "ansible_host", Label: "want-host", Attributes: map[string]any{"ansible_host": "10.0.0.2"}},
+		},
+	}
+	body, err := json.Marshal(map[string]any{"intended": intended, "runtime": runtime})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &server{
+		authToken: "tok",
+		authz:     &identity.ExperimentalAuthorizer{StaticTokenConfigured: true},
+	}
+	h := s.cors(s.requirePermission(identity.PermServeWorkspaceDrift, s.postWorkspaceDrift))
+	ts := httptest.NewServer(http.HandlerFunc(h))
+	t.Cleanup(ts.Close)
+
+	req, err := http.NewRequest(http.MethodPost, ts.URL, bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer tok")
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("status %d", res.StatusCode)
+	}
+	var rep omnistate.DriftReport
+	if err := json.NewDecoder(res.Body).Decode(&rep); err != nil {
+		t.Fatal(err)
+	}
+	if len(rep.DegradedNodes) != 1 || rep.DegradedNodes[0].NodeID != "want-host" {
+		t.Fatalf("degraded %+v", rep.DegradedNodes)
+	}
+}
+
+func TestPostWorkspaceDriftUsesHubSnapshot(t *testing.T) {
+	hub := newSyncHub()
+	hub.replaceState(omnistate.OmniGraphState{
+		APIVersion: omnistate.APIVersion,
+		Nodes: []omnistate.StateNode{
+			{ID: "rt-only", Kind: "synthetic", Label: "rt"},
+		},
+	})
+	intended := omnistate.OmniGraphState{
+		APIVersion: omnistate.APIVersion,
+		Nodes: []omnistate.StateNode{
+			{ID: "missing", Kind: "ansible_host", Label: "missing"},
+		},
+	}
+	body, err := json.Marshal(map[string]any{"intended": intended})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &server{
+		authToken: "tok",
+		authz:     &identity.ExperimentalAuthorizer{StaticTokenConfigured: true},
+		syncHub:   hub,
+	}
+	h := s.cors(s.requirePermission(identity.PermServeWorkspaceDrift, s.postWorkspaceDrift))
+	ts := httptest.NewServer(http.HandlerFunc(h))
+	t.Cleanup(ts.Close)
+
+	req, err := http.NewRequest(http.MethodPost, ts.URL, bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer tok")
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("status %d", res.StatusCode)
+	}
+	var rep omnistate.DriftReport
+	if err := json.NewDecoder(res.Body).Decode(&rep); err != nil {
+		t.Fatal(err)
+	}
+	if len(rep.DegradedNodes) != 1 || rep.DegradedNodes[0].NodeID != "missing" {
+		t.Fatalf("degraded %+v", rep.DegradedNodes)
+	}
+}
+
+func TestPostWorkspaceDriftRequiresRuntimeWithoutHub(t *testing.T) {
+	intended := omnistate.OmniGraphState{APIVersion: omnistate.APIVersion, Nodes: []omnistate.StateNode{{ID: "a", Kind: "k"}}}
+	body, err := json.Marshal(map[string]any{"intended": intended})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &server{
+		authToken: "tok",
+		authz:     &identity.ExperimentalAuthorizer{StaticTokenConfigured: true},
+	}
+	h := s.cors(s.requirePermission(identity.PermServeWorkspaceDrift, s.postWorkspaceDrift))
+	ts := httptest.NewServer(http.HandlerFunc(h))
+	t.Cleanup(ts.Close)
+
+	req, err := http.NewRequest(http.MethodPost, ts.URL, bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer tok")
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status %d", res.StatusCode)
+	}
+}
+
 func TestPostIngestLocalEmptyFiles(t *testing.T) {
 	s := &server{
 		authToken: "tok",

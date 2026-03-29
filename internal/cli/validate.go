@@ -21,8 +21,8 @@ func newValidateCmd() *cobra.Command {
 	var enforcePolicy bool
 	cmd := &cobra.Command{
 		Use:   "validate [path]",
-		Short: "Validate an .omnigraph.schema document against the JSON Schema",
-		Long: `Validate an .omnigraph.schema document against the JSON Schema.
+		Short: "Validate .omnigraph.schema (same contract the web Schema tab uses)",
+		Long: `Validate an .omnigraph.schema document against the JSON Schema—the same spine the browser workspace relies on.
 
 By default, validates only the schema syntax. Use --policy-dir to also
 validate against policy-as-code rules.

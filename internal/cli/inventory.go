@@ -21,7 +21,7 @@ func newInventoryCmd() *cobra.Command {
 			return err
 		},
 	}
-	root := &cobra.Command{Use: "inventory", Short: "Generate Ansible inventory snippets"}
+	root := &cobra.Command{Use: "inventory", Short: "Generate Ansible inventory snippets for pipelines (workspace has its own Inventory tab)"}
 	root.AddCommand(fromState)
 	return root
 }

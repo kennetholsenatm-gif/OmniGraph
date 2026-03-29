@@ -6,7 +6,24 @@ These scenarios use the real CLI and files under [`testdata/`](../testdata/). Fo
 
 **Prerequisites:** Go 1.23+, Node.js 20+ (only if you also run the web app), Git.
 
-**Optional Python agent:** The repo includes an optional **`omnigraph-agent`** package under [`python/`](../python/) (install with `pip install ./python` from the repo root, or `pip install -e ".[dev]"` from `python/`). It scans directories for Terraform state and Ansible inventories and prints discovery JSON (`omnigraph-agent discover --root . --json`). Use it for local onboarding helpers and connector IR experiments; **`omnigraph graph emit`**, **`serve`**, and headless CI flows stay on the Go binary above.
+**Discovery and manifests (Go):** Use **`omnigraph repo scan --path .`** for a flat file listing, or **`omnigraph repo scan --manifest --path .`** for Terraform state and Ansible inventory-derived **graph manifests**. **`omnigraph auth oidc-device --issuer <url> --client-id <id>`** runs an OIDC **device authorization** flow and prints access/id/refresh tokens as JSON (e.g. for AWS `sts:AssumeRoleWithWebIdentity`), without embedding long-lived static keys in scripts.
+
+## Quick paths from the repository (CLI)
+
+These replace the old README “B / C” quickstart blocks: all **command examples** for graph emission, inventory, discovery, and OIDC live here.
+
+### Graph emit + inventory from `examples/quickstart/`
+
+Minimal fixtures: tiny `.tfstate.json` + `.omnigraph.schema` (see **[examples/quickstart/README.md](../examples/quickstart/README.md)**).
+
+```bash
+./bin/omnigraph graph emit examples/quickstart/.omnigraph.schema \
+  --tfstate examples/quickstart/minimal.tfstate.json > graph.json
+
+./bin/omnigraph inventory from-state examples/quickstart/minimal.tfstate.json
+```
+
+Optional: **`--plan-json`** with output from **`terraform show -json tfplan`** (or OpenTofu equivalent).
 
 **Build once:**
 

@@ -83,6 +83,7 @@ function snapshotFromState(args: {
   inventoryPlanJsonText: string
   inventoryAnsibleIniText: string
   postureSecurityJson: string
+  serveApiToken: string
 }): WorkspaceSnapshotV1 {
   return {
     v: 1,
@@ -117,6 +118,7 @@ function snapshotFromState(args: {
     inventoryPlanJsonText: args.inventoryPlanJsonText,
     inventoryAnsibleIniText: args.inventoryAnsibleIniText,
     postureSecurityJson: args.postureSecurityJson,
+    serveApiToken: args.serveApiToken.trim() ? args.serveApiToken : undefined,
   }
 }
 
@@ -157,6 +159,7 @@ export default function OmniGraphMVP() {
   const [inventoryPlanJsonText, setInventoryPlanJsonText] = useState(initial.inventoryPlanJsonText ?? '')
   const [inventoryAnsibleIniText, setInventoryAnsibleIniText] = useState(initial.inventoryAnsibleIniText ?? '')
   const [postureSecurityJson, setPostureSecurityJson] = useState(initial.postureSecurityJson ?? defaultPostureSecurityJson)
+  const [serveApiToken, setServeApiToken] = useState(initial.serveApiToken ?? '')
 
   const [repoScanSession, setRepoScanSession] = useState<RepoScanSession | null>(null)
   const [serverSummary, setServerSummary] = useState<WorkspaceSummary | null>(null)
@@ -239,6 +242,7 @@ export default function OmniGraphMVP() {
           inventoryPlanJsonText,
           inventoryAnsibleIniText,
           postureSecurityJson,
+          serveApiToken,
         }),
       )
     }, 400)
@@ -275,6 +279,7 @@ export default function OmniGraphMVP() {
     inventoryPlanJsonText,
     inventoryAnsibleIniText,
     postureSecurityJson,
+    serveApiToken,
   ])
 
   const resetWorkspace = () => {
@@ -545,10 +550,17 @@ export default function OmniGraphMVP() {
               serverError={serverError}
               workspaceStreamConnected={workspaceStreamConnected}
               workspaceStreamError={workspaceStreamError}
+              serveApiToken={serveApiToken}
+              onServeApiTokenChange={setServeApiToken}
             />
           ) : null}
           {activeTab === 'posture' ? (
-            <PostureTab securityJsonText={postureSecurityJson} onSecurityJsonTextChange={setPostureSecurityJson} />
+            <PostureTab
+              securityJsonText={postureSecurityJson}
+              onSecurityJsonTextChange={setPostureSecurityJson}
+              serveApiToken={serveApiToken}
+              onServeApiTokenChange={setServeApiToken}
+            />
           ) : null}
           {activeTab === 'pipeline' ? (
             <PipelineTab

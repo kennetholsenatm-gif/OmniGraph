@@ -1,19 +1,20 @@
-import { Check, Cloud, Copy, Download, FileJson, FileText, FolderSync, LayoutGrid, Server, Upload } from 'lucide-react'
+import { Check, Cloud, Copy, Download, FileJson, FileText, FolderSync, HardDrive, LayoutGrid, Server, Upload } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
 
 import { joinDisplayPath } from './gitWorkspace'
-import { shellQuote } from './shellQuote'
 import {
   buildOmnigraphIni,
   extractHostsFromPlanJson,
   extractHostsFromTfStateJson,
   mergeInventoryRows,
   parseAnsibleIni,
+  rowsFromIngestOmniState,
   sourceLabel,
   type InventoryRow,
   type InventorySourceKind,
 } from './inventorySources'
-import { omnigraphApiBase, type WorkspaceSummary } from './omnigraphApi'
+import { isFileSystemAccessSupported, pickInfrastructureFiles, readFilesForIngest } from './localFilePick'
+import { omnigraphApiBase, postLocalIngest, type WorkspaceSummary } from './omnigraphApi'
 import { isRepoFolderPickerSupported, type RepoScanSession } from './repoFolderScan'
 
 export type InventoryTabProps = {
@@ -39,6 +40,8 @@ export type InventoryTabProps = {
   /** SSE workspace stream (GET /api/v1/workspace/stream); summary updates only from events. */
   workspaceStreamConnected: boolean
   workspaceStreamError: string | null
+  serveApiToken: string
+  onServeApiTokenChange: (s: string) => void
 }
 
 type SourceTab = 'state' | 'plan' | 'ini'
@@ -89,8 +92,11 @@ export function InventoryTab(p: InventoryTabProps) {
   const [filterSource, setFilterSource] = useState<InventorySourceKind | 'all'>('all')
   const [search, setSearch] = useState('')
   const [iniCopied, setIniCopied] = useState(false)
-  const [cliCopied, setCliCopied] = useState(false)
   const [overridesOpen, setOverridesOpen] = useState(false)
+  const [ingestBusy, setIngestBusy] = useState(false)
+  const [ingestErr, setIngestErr] = useState<string | null>(null)
+  const [ingestNote, setIngestNote] = useState<string | null>(null)
+  const [ingestRows, setIngestRows] = useState<InventoryRow[]>([])
 
   const parsed = useMemo(() => {
     const stateRows: InventoryRow[] = []
@@ -148,13 +154,14 @@ export function InventoryTab(p: InventoryTabProps) {
       }
     }
 
-    const merged = mergeInventoryRows(stateRows, planRows, iniRows)
+    const ingestMerged = ingestRows.length ? withOrigin(ingestRows, 'POST /ingest/local') : []
+    const merged = mergeInventoryRows(stateRows, planRows, [...iniRows, ...ingestMerged])
     return {
       stateErr: stateErrs.join(' · ') || undefined,
       planErr: planErrs.join(' · ') || undefined,
       merged,
     }
-  }, [p.repoSession, p.tfStateText, p.planJsonText, p.ansibleIniText, p.serverSummary])
+  }, [p.repoSession, p.tfStateText, p.planJsonText, p.ansibleIniText, p.serverSummary, ingestRows])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -196,13 +203,42 @@ export function InventoryTab(p: InventoryTabProps) {
     return ar ? joinDisplayPath(ar, 'inventory') : 'inventory/ under Ansible root'
   }, [p.pipelineAnsibleRoot])
 
-  const inventoryFromStateCmd = useMemo(() => {
-    const target = statePathHint.includes(' ') ? shellQuote(statePathHint) : statePathHint
-    return `omnigraph inventory from-state ${target}`
-  }, [statePathHint])
-
-  const repoScanCmd = 'omnigraph repo scan --path .'
-  const serveCmd = 'omnigraph serve --listen 127.0.0.1:38671 --web-dist packages/web/dist --root .'
+  const onPickLocalForIngest = useCallback(async () => {
+    setIngestErr(null)
+    setIngestNote(null)
+    const tok = p.serveApiToken.trim()
+    if (!tok) {
+      setIngestErr('Set the Bearer token below (same value as serve --auth-token) before ingesting.')
+      return
+    }
+    let files: File[]
+    try {
+      files = await pickInfrastructureFiles()
+    } catch (e) {
+      setIngestErr(e instanceof Error ? e.message : String(e))
+      return
+    }
+    if (files.length === 0) {
+      return
+    }
+    setIngestBusy(true)
+    try {
+      const payloads = await readFilesForIngest(files)
+      const res = await postLocalIngest(tok, { files: payloads })
+      const rows = rowsFromIngestOmniState(res.state)
+      setIngestRows(rows)
+      const pe = res.state.partialErrors as { message?: string }[] | undefined
+      const errCount = (res.errors?.length ?? 0) + (pe?.length ?? 0)
+      setIngestNote(
+        `Normalized ${res.state.nodes?.length ?? 0} node(s) from ${files.length} file(s)` +
+          (errCount ? ` (${errCount} partial issue(s); check server response for detail)` : ''),
+      )
+    } catch (e) {
+      setIngestErr(e instanceof Error ? e.message : String(e))
+    } finally {
+      setIngestBusy(false)
+    }
+  }, [p.serveApiToken])
 
   const copyIni = async () => {
     try {
@@ -211,24 +247,6 @@ export function InventoryTab(p: InventoryTabProps) {
       window.setTimeout(() => setIniCopied(false), 2000)
     } catch {
       setIniCopied(false)
-    }
-  }
-
-  const copyCli = async () => {
-    try {
-      await navigator.clipboard.writeText(inventoryFromStateCmd)
-      setCliCopied(true)
-      window.setTimeout(() => setCliCopied(false), 2000)
-    } catch {
-      setCliCopied(false)
-    }
-  }
-
-  const copyRepoScan = async () => {
-    try {
-      await navigator.clipboard.writeText(repoScanCmd)
-    } catch {
-      /* ignore */
     }
   }
 
@@ -271,9 +289,11 @@ export function InventoryTab(p: InventoryTabProps) {
             <h2 className="text-base font-semibold tracking-tight">Infrastructure inventory</h2>
           </div>
           <p className="text-[13px] leading-relaxed text-gray-500">
-            The <span className="text-gray-400">repository</span> is the unit of management. Prefer{' '}
-            <span className="text-gray-400">omnigraph serve</span> so the control plane reads the whole tree from disk;
-            the browser picker is a fallback. Overrides are for edge cases only.
+            Bring <span className="text-gray-400">Terraform/OpenTofu state</span>, <span className="text-gray-400">plan JSON</span>, and{' '}
+            <span className="text-gray-400">Ansible inventory</span> into one table. Use <strong className="text-gray-400">Load from server</strong> when
+            the control plane runs same-origin, <strong className="text-gray-400">Pick files for server ingest</strong> to read local files in the browser
+            and normalize on the API, or <strong className="text-gray-400">Browser folder scan</strong> for an offline pass. Automation-focused commands
+            live in <span className="text-gray-400">docs/cli-and-ci.md</span>.
           </p>
         </div>
 
@@ -327,6 +347,57 @@ export function InventoryTab(p: InventoryTabProps) {
             ) : null}
           </div>
 
+          <div className="mb-4 rounded-xl border border-gray-800 bg-gray-900/40 p-3">
+            <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+              <HardDrive size={14} className="text-gray-500" aria-hidden />
+              Local files → server normalize
+            </div>
+            <p className="mb-2 text-[10px] leading-relaxed text-gray-600">
+              Pick state or inventory files with the{' '}
+              <span className="text-gray-500">File System Access API</span> when supported; otherwise a multi-file dialog.
+              Requires <span className="font-mono text-gray-500">POST /api/v1/ingest/local</span> enabled on serve.
+            </p>
+            <label className="mb-2 flex flex-col gap-1 text-[10px] text-gray-500">
+              Bearer token (shared with Posture tab)
+              <input
+                type="password"
+                autoComplete="off"
+                value={p.serveApiToken}
+                onChange={(e) => p.onServeApiTokenChange(e.target.value)}
+                placeholder="OMNIGRAPH_SERVE_TOKEN"
+                className="rounded-lg border border-gray-800 bg-gray-950 px-2 py-1.5 font-mono text-[11px] text-gray-200 placeholder:text-gray-600"
+              />
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={ingestBusy}
+                onClick={() => void onPickLocalForIngest()}
+                className="flex items-center gap-2 rounded-lg bg-teal-700/80 px-3 py-2 text-xs font-medium text-white hover:bg-teal-600 disabled:opacity-50"
+              >
+                <Upload size={14} aria-hidden />
+                {ingestBusy ? 'Ingesting…' : 'Pick files for server ingest'}
+              </button>
+              {ingestRows.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIngestRows([])
+                    setIngestNote(null)
+                  }}
+                  className="rounded-lg border border-gray-700 px-3 py-2 text-xs text-gray-400 hover:bg-gray-900"
+                >
+                  Clear ingest rows
+                </button>
+              ) : null}
+            </div>
+            {isFileSystemAccessSupported() ? (
+              <p className="mt-2 text-[10px] text-gray-600">Native multi-file picker available in this browser.</p>
+            ) : null}
+            {ingestErr ? <p className="mt-2 text-[11px] text-rose-400">{ingestErr}</p> : null}
+            {ingestNote ? <p className="mt-2 text-[11px] text-emerald-500/90">{ingestNote}</p> : null}
+          </div>
+
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -349,11 +420,10 @@ export function InventoryTab(p: InventoryTabProps) {
           </div>
           {!pickerOk ? (
             <p className="text-[11px] text-amber-600/90">
-              Folder picker needs Chromium, or use the server and{' '}
-              <code className="font-mono text-gray-500">{repoScanCmd}</code>.
+              Folder scan needs a Chromium-family browser, or use Load from server / Pick files for server ingest.
             </p>
           ) : (
-            <p className="text-[11px] text-gray-600">Browser scan never uploads files; everything stays local.</p>
+            <p className="text-[11px] text-gray-600">Folder scan reads files only in your browser unless you use server ingest.</p>
           )}
           {p.repoSession || p.serverSummary ? (
             <div className="mt-4 rounded-xl bg-gray-900/50 p-3 ring-1 ring-gray-800/80">
@@ -463,35 +533,10 @@ export function InventoryTab(p: InventoryTabProps) {
         </div>
 
         <div className="mt-auto space-y-3 border-t border-gray-800/90 p-4">
-          <div className="rounded-lg bg-gray-900/50 p-3 ring-1 ring-gray-800/80">
-            <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-gray-500">Local server (recommended)</div>
-            <code className="block whitespace-pre-wrap break-all font-mono text-[10px] leading-snug text-gray-300">
-              {serveCmd}
-            </code>
-          </div>
-          <div className="rounded-lg bg-gray-900/50 p-3 ring-1 ring-gray-800/80">
-            <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-gray-500">Repo scan (CLI)</div>
-            <code className="block font-mono text-[11px] text-gray-300">{repoScanCmd}</code>
-            <button
-              type="button"
-              onClick={() => void copyRepoScan()}
-              className="mt-2 text-[11px] font-medium text-blue-400 hover:text-blue-300"
-            >
-              Copy
-            </button>
-          </div>
-          <div className="rounded-lg bg-gray-900/50 p-3 ring-1 ring-gray-800/80">
-            <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-gray-500">Inventory from state file</div>
-            <code className="block break-all font-mono text-[11px] text-gray-300">{inventoryFromStateCmd}</code>
-            <button
-              type="button"
-              onClick={() => void copyCli()}
-              className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-blue-400 hover:text-blue-300"
-            >
-              {cliCopied ? <Check size={12} className="text-emerald-400" aria-hidden /> : <Copy size={12} aria-hidden />}
-              {cliCopied ? 'Copied' : 'Copy'}
-            </button>
-          </div>
+          <p className="text-[11px] leading-relaxed text-gray-600">
+            Headless validation, graph emission, and orchestration for CI are documented in{' '}
+            <span className="text-gray-400">docs/cli-and-ci.md</span> (repository root).
+          </p>
         </div>
       </aside>
 

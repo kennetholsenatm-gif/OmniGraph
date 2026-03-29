@@ -55,6 +55,8 @@ type Options struct {
 	EnableIngestLocalAPI bool
 	// EnableSyncWSAPI registers GET /api/v1/sync/ws (bi-directional WebSocket sync hub).
 	EnableSyncWSAPI bool
+	// EnableWorkspaceDriftAPI registers POST /api/v1/workspace/drift (CompareIntendedVsRuntime).
+	EnableWorkspaceDriftAPI bool
 	// MaxIngestBodyBytes caps JSON body size for ingest (default 64 MiB when zero).
 	MaxIngestBodyBytes int64
 }
@@ -74,7 +76,7 @@ type workspaceSummary struct {
 // Run starts the HTTP server and blocks until the context is cancelled.
 func Run(ctx context.Context, opts Options) error {
 	privilegedAPI := opts.EnableSecurityScanAPI || opts.EnableHostOpsAPI || opts.EnableInventoryAPI ||
-		opts.EnableIngestLocalAPI || opts.EnableSyncWSAPI
+		opts.EnableIngestLocalAPI || opts.EnableSyncWSAPI || opts.EnableWorkspaceDriftAPI
 	hasStatic := strings.TrimSpace(opts.AuthToken) != ""
 	hasOIDC := strings.TrimSpace(opts.OIDCIssuerURL) != "" && strings.TrimSpace(opts.OIDCClientID) != ""
 	if privilegedAPI && !hasStatic && !hasOIDC {
@@ -146,6 +148,9 @@ func Run(ctx context.Context, opts Options) error {
 	}
 	if opts.EnableSyncWSAPI {
 		mux.HandleFunc("GET /api/v1/sync/ws", s.cors(s.requirePermission(identity.PermServeSyncWS, s.getSyncWebSocket)))
+	}
+	if opts.EnableWorkspaceDriftAPI {
+		mux.HandleFunc("POST /api/v1/workspace/drift", s.cors(s.requirePermission(identity.PermServeWorkspaceDrift, s.postWorkspaceDrift)))
 	}
 	if expAPI {
 		mux.HandleFunc("GET /api/v1/audit", s.cors(s.requirePermission(identity.PermServeAuditRead, s.getAudit)))
@@ -438,7 +443,34 @@ func (s *server) getWorkspaceStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ticker := time.NewTicker(20 * time.Second)
+	// Debounced fsnotify pushes (500ms after last write) keep the UI fresh without flooding during terraform apply.
+	redraw := make(chan struct{}, 1)
+	pokeRedraw := func() {
+		select {
+		case redraw <- struct{}{}:
+		default:
+		}
+	}
+	watchCtx, cancelWatch := context.WithCancel(r.Context())
+	defer cancelWatch()
+	idx, wErr := buildWorkspaceWatchIndex(root)
+	var watchStop func()
+	if wErr == nil && len(idx) > 0 {
+		var err error
+		watchStop, err = runWorkspaceWatch(watchCtx, idx, pokeRedraw)
+		if err != nil {
+			watchStop = nil
+		}
+	}
+	if watchStop != nil {
+		defer watchStop()
+	}
+
+	tickEvery := 20 * time.Second
+	if watchStop != nil {
+		tickEvery = 2 * time.Minute
+	}
+	ticker := time.NewTicker(tickEvery)
 	defer ticker.Stop()
 	heartbeat := time.NewTicker(25 * time.Second)
 	defer heartbeat.Stop()
@@ -446,6 +478,10 @@ func (s *server) getWorkspaceStream(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-r.Context().Done():
 			return
+		case <-redraw:
+			if !sendSummary() {
+				return
+			}
 		case <-heartbeat.C:
 			_, _ = fmt.Fprintf(w, ": ping\n\n")
 			flusher.Flush()

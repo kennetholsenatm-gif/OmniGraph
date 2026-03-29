@@ -45,6 +45,8 @@ export type WorkspaceSnapshotV1 = {
   inventoryAnsibleIniText?: string
   /** Posture / security JSON for the Posture tab */
   postureSecurityJson?: string
+  /** Bearer token for privileged same-origin APIs (ingest, security scan, etc.) */
+  serveApiToken?: string
 }
 
 export function defaultWorkspaceSnapshot(): WorkspaceSnapshotV1 {
@@ -117,6 +119,7 @@ export function loadWorkspace(): WorkspaceSnapshotV1 | null {
       inventoryPlanJsonText: optStr('inventoryPlanJsonText'),
       inventoryAnsibleIniText: optStr('inventoryAnsibleIniText'),
       postureSecurityJson: optStr('postureSecurityJson'),
+      serveApiToken: optStr('serveApiToken'),
     }
   } catch {
     return null

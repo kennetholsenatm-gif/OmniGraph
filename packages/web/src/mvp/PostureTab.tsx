@@ -74,12 +74,14 @@ function severityClass(s: string): string {
 export type PostureTabProps = {
   securityJsonText: string
   onSecurityJsonTextChange: (s: string) => void
+  /** Shared with Inventory ingest; same Bearer as `serve --auth-token`. */
+  serveApiToken: string
+  onServeApiTokenChange: (s: string) => void
 }
 
 export function PostureTab(p: PostureTabProps) {
   const [tacticFilter, setTacticFilter] = useState('')
   const [severityFilter, setSeverityFilter] = useState('')
-  const [apiToken, setApiToken] = useState('')
   const [apiBusy, setApiBusy] = useState(false)
   const [apiErr, setApiErr] = useState<string | null>(null)
 
@@ -133,14 +135,14 @@ export function PostureTab(p: PostureTabProps) {
     setApiErr(null)
     setApiBusy(true)
     try {
-      const doc = await fetchLocalSecurityScan(apiToken, { mode: 'local', profile: 'web-ui' })
+      const doc = await fetchLocalSecurityScan(p.serveApiToken, { mode: 'local', profile: 'web-ui' })
       p.onSecurityJsonTextChange(JSON.stringify(doc, null, 2))
     } catch (e: unknown) {
       setApiErr(e instanceof Error ? e.message : String(e))
     } finally {
       setApiBusy(false)
     }
-  }, [apiToken, p])
+  }, [p])
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-auto p-4 md:p-6">
@@ -175,8 +177,8 @@ export function PostureTab(p: PostureTabProps) {
             <input
               type="password"
               autoComplete="off"
-              value={apiToken}
-              onChange={(e) => setApiToken(e.target.value)}
+              value={p.serveApiToken}
+              onChange={(e) => p.onServeApiTokenChange(e.target.value)}
               placeholder="Same as --auth-token / OMNIGRAPH_SERVE_TOKEN"
               className="rounded-lg border border-gray-800 bg-gray-950 px-3 py-2 font-mono text-sm text-gray-100 placeholder:text-gray-600"
             />

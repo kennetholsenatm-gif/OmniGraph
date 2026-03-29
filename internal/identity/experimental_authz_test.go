@@ -7,6 +7,9 @@ func TestExperimentalAuthorizerBootstrap(t *testing.T) {
 	if !a.Can(Subject{ID: BootstrapSubjectID}, PermServeInventoryRead, "") {
 		t.Fatal("bootstrap inventory")
 	}
+	if !a.Can(Subject{ID: BootstrapSubjectID}, PermServeWorkspaceDrift, "") {
+		t.Fatal("bootstrap workspace drift")
+	}
 	if a.Can(Subject{ID: BootstrapSubjectID}, PermServeHealth, "") {
 		t.Fatal("health not experimental")
 	}

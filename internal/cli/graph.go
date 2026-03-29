@@ -18,7 +18,7 @@ func newParseCmd() *cobra.Command {
 	var path string
 	parse := &cobra.Command{
 		Use:   "parse [path]",
-		Short: "Parse omnigraph/graph/v1 JSON and construct graph structure",
+		Short: "Parse omnigraph/graph/v1 JSON into an analysis structure (automation / tooling)",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			p := path
@@ -60,7 +60,7 @@ func newGraphCmd() *cobra.Command {
 	var path, planJSON, tfState, telemetryFile, securityFile string
 	emit := &cobra.Command{
 		Use:   "emit [path]",
-		Short: "Emit omnigraph/graph/v1 JSON for UI and CI artifacts",
+		Short: "Emit omnigraph/graph/v1 JSON for the workspace Topology tab and CI artifacts",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			p := path
@@ -121,7 +121,7 @@ func newGraphCmd() *cobra.Command {
 	emit.Flags().StringVar(&tfState, "tfstate", "", "path to Terraform/OpenTofu JSON state after apply")
 	emit.Flags().StringVar(&telemetryFile, "telemetry-file", "", "path to omnigraph/telemetry/v1 JSON to merge into the graph")
 	emit.Flags().StringVar(&securityFile, "security-file", "", "path to omnigraph/security/v1 JSON to merge securityPosture into host nodes")
-	root := &cobra.Command{Use: "graph", Short: "Build and parse graph documents"}
+	root := &cobra.Command{Use: "graph", Short: "Emit and parse graph/v1 documents (feeds the web UI and pipelines)"}
 	root.AddCommand(emit)
 	root.AddCommand(newParseCmd())
 	return root

@@ -15,9 +15,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/kennetholsenatm-gif/omnigraph/internal/omnistate"
+)
+
+const (
+	scanPollInterval = 10 * time.Second
+	// maxMutationPayloadBytes caps decoded apply_mutation payloads (utf-8 or base64).
+	maxMutationPayloadBytes = 32 << 20
 )
 
 // Config is loaded from the environment by LoadConfigFromEnv.
@@ -75,8 +79,9 @@ func Run(ctx context.Context, cfg Config) error {
 		readErr <- readLoop(conn, cfg)
 	}()
 
-	tick := time.NewTicker(20 * time.Second)
+	tick := time.NewTicker(scanPollInterval)
 	defer tick.Stop()
+	var track *scanTrack
 	for {
 		select {
 		case <-ctx.Done():
@@ -90,20 +95,18 @@ func Run(ctx context.Context, cfg Config) error {
 			}
 			return nil
 		case <-tick.C:
+			patch, next, changed, err := buildPatchFromRoots(ctx, cfg.WritableRoots, track)
+			if err != nil {
+				continue
+			}
+			if !changed {
+				continue
+			}
+			track = next
 			delta, err := json.Marshal(map[string]any{
 				"type":   "state_delta",
 				"source": "syncdaemon",
-				"patch": omnistate.StatePatch{
-					UpsertNodes: []omnistate.StateNode{
-						{
-							ID:         "agent:heartbeat:" + uuid.NewString(),
-							Kind:       "sync_agent",
-							Label:      "heartbeat",
-							Attributes: map[string]any{"ts": time.Now().UTC().Format(time.RFC3339Nano)},
-							Provenance: omnistate.SourceRef{Type: omnistate.SourceAgentLocal, Name: "syncdaemon"},
-						},
-					},
-				},
+				"patch":  patch,
 			})
 			if err != nil {
 				continue
@@ -197,6 +200,9 @@ func writeMutationTarget(cfg Config, rel, encoding, data string) (ok bool, msg s
 		}
 	default:
 		return false, "unsupported encoding"
+	}
+	if int64(len(raw)) > maxMutationPayloadBytes {
+		return false, "payload too large"
 	}
 	if err := os.MkdirAll(filepath.Dir(absTarget), 0o755); err != nil {
 		return false, err.Error()
