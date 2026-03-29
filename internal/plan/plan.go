@@ -10,8 +10,8 @@ import (
 
 // JSON is a subset of `terraform show -json` / OpenTofu plan JSON.
 type JSON struct {
-	PlannedValues    *PlannedValues    `json:"planned_values,omitempty"`
-	ResourceChanges  []ResourceChange  `json:"resource_changes,omitempty"`
+	PlannedValues   *PlannedValues   `json:"planned_values,omitempty"`
+	ResourceChanges []ResourceChange `json:"resource_changes,omitempty"`
 }
 
 // ResourceChange mirrors the plan file resource_changes[] entry (fields used for blast seeds).
