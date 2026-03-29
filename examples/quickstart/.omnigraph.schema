@@ -1,0 +1,19 @@
+# Valid OmniGraph Project document (see schemas/omnigraph.schema.json).
+# YAML comments are for humans only; the CLI and UI validate the structured fields below.
+#
+# Typical layout next to this file (not stored in spec—use Pipeline / omnigraph orchestrate for paths):
+#   ansible/site.yml          — playbook entry
+#   inventory/hosts.ini       — or generate from state via: omnigraph inventory from-state <tfstate.json>
+
+apiVersion: omnigraph/v1alpha1
+kind: Project
+metadata:
+  name: quickstart-demo
+  environment: local
+spec:
+  network:
+    vpcCidr: 10.0.0.0/16
+    publicPorts: [80, 443]
+  tags:
+    app: web
+    role: app-server

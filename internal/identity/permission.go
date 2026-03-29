@@ -9,6 +9,8 @@ const (
 	PermServeHostOpsRead   = "serve:host-ops:read"
 	PermServeHostOpsWrite  = "serve:host-ops:write"
 	PermServeAuditRead     = "serve:audit:read"
+	PermServeIngestLocal   = "serve:ingest:local"
+	PermServeSyncWS        = "serve:sync:ws"
 	PermIRValidate         = "ir:validate"
 	PermIREmit             = "ir:emit"
 	PermLockAcquire        = "lock:acquire"

@@ -18,6 +18,8 @@ func newServeCmd() *cobra.Command {
 	var oidcIssuer, oidcClientID, oidcRequiredRoles string
 	var oidcSkipTLS bool
 	var enableSecurityScan, enableHostOps, enableInventoryAPI, hostOpsAllowWrites, enableMetrics bool
+	var enableIngestLocal, enableSyncWS bool
+	var maxIngestBodyMB int64
 	cmd := &cobra.Command{
 		Use:   "serve",
 		Short: "Run local HTTP API and optional web UI for repository-wide IaC views",
@@ -55,6 +57,10 @@ Experimental APIs (require --auth-token or OMNIGRAPH_SERVE_TOKEN):
 			}
 
 			fmt.Fprintln(cmd.ErrOrStderr(), "omnigraph serve: starting (leave this running; Ctrl+C to stop)")
+			var maxIngestBytes int64
+			if maxIngestBodyMB > 0 {
+				maxIngestBytes = maxIngestBodyMB << 20
+			}
 			return serve.Run(ctx, serve.Options{
 				Listen:                listen,
 				Root:                  root,
@@ -63,6 +69,10 @@ Experimental APIs (require --auth-token or OMNIGRAPH_SERVE_TOKEN):
 				EnableHostOpsAPI:      enableHostOps,
 				EnableInventoryAPI:    enableInventoryAPI,
 				HostOpsAllowWrites:    hostOpsAllowWrites,
+				EnableMetrics:         enableMetrics,
+				EnableIngestLocalAPI:  enableIngestLocal,
+				EnableSyncWSAPI:       enableSyncWS,
+				MaxIngestBodyBytes:    maxIngestBytes,
 				AuthToken:             tok,
 				OIDCIssuerURL:         strings.TrimSpace(oidcIssuer),
 				OIDCClientID:          strings.TrimSpace(oidcClientID),
@@ -97,6 +107,9 @@ Experimental APIs (require --auth-token or OMNIGRAPH_SERVE_TOKEN):
 	cmd.Flags().BoolVar(&hostOpsAllowWrites, "host-ops-allow-writes", false, "allow systemd restart API (requires --enable-host-ops)")
 	cmd.Flags().StringVar(&authToken, "auth-token", "", "Bearer token for experimental APIs (or env OMNIGRAPH_SERVE_TOKEN)")
 	cmd.Flags().BoolVar(&enableMetrics, "enable-metrics", false, "enable Prometheus metrics endpoint at /metrics")
+	cmd.Flags().BoolVar(&enableIngestLocal, "enable-ingest-local-api", false, "register POST /api/v1/ingest/local (requires --auth-token)")
+	cmd.Flags().BoolVar(&enableSyncWS, "enable-sync-ws-api", false, "register GET /api/v1/sync/ws (requires --auth-token)")
+	cmd.Flags().Int64Var(&maxIngestBodyMB, "max-ingest-body-mb", 0, "max ingest JSON body in MiB (0 = default 64)")
 	return cmd
 }
 

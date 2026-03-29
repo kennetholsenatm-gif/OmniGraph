@@ -374,7 +374,7 @@ export default function OmniGraphMVP() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-950 font-sans text-gray-100 selection:bg-blue-500/30">
+    <div className="flex h-dvh min-h-dvh overflow-hidden bg-gray-950 font-sans text-gray-100 selection:bg-blue-500/30">
       <div className="flex w-16 shrink-0 flex-col border-r border-gray-800 bg-gray-900 transition-all duration-300 md:w-64">
         <div className="flex items-center justify-center gap-3 border-b border-gray-800 p-4 md:justify-start">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/20">

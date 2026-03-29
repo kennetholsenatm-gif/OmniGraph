@@ -51,6 +51,12 @@ type Options struct {
 	Authorizer identity.Authorizer
 	// EnableMetrics registers GET /metrics (Prometheus format).
 	EnableMetrics bool
+	// EnableIngestLocalAPI registers POST /api/v1/ingest/local (browser-uploaded file payloads → omnistate).
+	EnableIngestLocalAPI bool
+	// EnableSyncWSAPI registers GET /api/v1/sync/ws (bi-directional WebSocket sync hub).
+	EnableSyncWSAPI bool
+	// MaxIngestBodyBytes caps JSON body size for ingest (default 64 MiB when zero).
+	MaxIngestBodyBytes int64
 }
 
 type scanRequest struct {
@@ -67,7 +73,8 @@ type workspaceSummary struct {
 
 // Run starts the HTTP server and blocks until the context is cancelled.
 func Run(ctx context.Context, opts Options) error {
-	privilegedAPI := opts.EnableSecurityScanAPI || opts.EnableHostOpsAPI || opts.EnableInventoryAPI
+	privilegedAPI := opts.EnableSecurityScanAPI || opts.EnableHostOpsAPI || opts.EnableInventoryAPI ||
+		opts.EnableIngestLocalAPI || opts.EnableSyncWSAPI
 	hasStatic := strings.TrimSpace(opts.AuthToken) != ""
 	hasOIDC := strings.TrimSpace(opts.OIDCIssuerURL) != "" && strings.TrimSpace(opts.OIDCClientID) != ""
 	if privilegedAPI && !hasStatic && !hasOIDC {
@@ -98,6 +105,14 @@ func Run(ctx context.Context, opts Options) error {
 	if expAPI {
 		audit = NewAuditLog(200)
 	}
+	maxIngest := opts.MaxIngestBodyBytes
+	if maxIngest <= 0 {
+		maxIngest = 64 << 20
+	}
+	var hub *syncHub
+	if opts.EnableSyncWSAPI {
+		hub = newSyncHub()
+	}
 	s := &server{
 		root:               opts.Root,
 		authToken:          strings.TrimSpace(opts.AuthToken),
@@ -106,6 +121,8 @@ func Run(ctx context.Context, opts Options) error {
 		authz:              authInit.authz,
 		audit:              audit,
 		hostOpsAllowWrites: opts.HostOpsAllowWrites,
+		syncHub:            hub,
+		maxIngestBodyBytes: maxIngest,
 	}
 	mux := http.NewServeMux()
 
@@ -123,6 +140,12 @@ func Run(ctx context.Context, opts Options) error {
 	}
 	if opts.EnableInventoryAPI {
 		mux.HandleFunc("GET /api/v1/inventory", s.cors(s.requirePermission(identity.PermServeInventoryRead, s.getInventory)))
+	}
+	if opts.EnableIngestLocalAPI {
+		mux.HandleFunc("POST /api/v1/ingest/local", s.cors(s.requirePermission(identity.PermServeIngestLocal, s.postIngestLocal)))
+	}
+	if opts.EnableSyncWSAPI {
+		mux.HandleFunc("GET /api/v1/sync/ws", s.cors(s.requirePermission(identity.PermServeSyncWS, s.getSyncWebSocket)))
 	}
 	if expAPI {
 		mux.HandleFunc("GET /api/v1/audit", s.cors(s.requirePermission(identity.PermServeAuditRead, s.getAudit)))
@@ -227,6 +250,8 @@ type server struct {
 	authz              identity.Authorizer
 	audit              *AuditLog
 	hostOpsAllowWrites bool
+	syncHub            *syncHub
+	maxIngestBodyBytes int64
 }
 
 func (s *server) getRootLanding(w http.ResponseWriter, r *http.Request) {

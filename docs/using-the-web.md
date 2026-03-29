@@ -16,6 +16,8 @@ npm run dev
 
 Open the dev URL Vite prints. No Go binary is required to explore the UI with bundled samples.
 
+To paste **CLI-generated** `omnigraph/graph/v1` into **Topology**, emit JSON with the Go binary using the minimal fixtures in [`examples/quickstart/`](../examples/quickstart/README.md) (or follow [CLI and CI](cli-and-ci.md)).
+
 ## Sidebar: what each tab does
 
 Sidebar structure matches [`packages/web/src/mvp/OmniGraphMVP.tsx`](../packages/web/src/mvp/OmniGraphMVP.tsx): **operational contexts** (Topology, Reconciliation: Inventory + Pipeline, Posture) and **supporting editors** (Schema Contract, Web IDE).

@@ -1,5 +1,5 @@
-import { Bot, Radio } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { Bot, Maximize2, Minimize2, Radio } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import {
   Background,
   Controls,
@@ -15,6 +15,7 @@ import {
   ReactFlowProvider,
   useEdgesState,
   useNodesState,
+  useReactFlow,
   useStore,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
@@ -22,6 +23,7 @@ import '@xyflow/react/dist/style.css'
 import { clusterPaletteClass, computeEnclaveClusters } from './graphConventions'
 import { mapGraphV1ToFlow } from './mapGraphV1ToFlow'
 import type { GraphDocument } from './types'
+import { TopologyNodeFrame } from '../triage/TopologyNode'
 
 /** Selected React Flow node summary for parent inspectors. */
 export type GraphNodeSelection = {
@@ -56,7 +58,7 @@ function statusRingClass(state: string): string {
   }
 }
 
-function OmniNode({ data }: NodeProps) {
+function OmniNode({ data, id }: NodeProps) {
   const kind = String(data.kind ?? '')
   const state = String(data.state ?? '')
   const isGray = state === 'gray'
@@ -68,6 +70,7 @@ function OmniNode({ data }: NodeProps) {
         : 'border-slate-500/60'
   const grayRing = isGray ? 'ring-1 ring-slate-600/40 border-dashed opacity-90' : ''
   return (
+    <TopologyNodeFrame nodeId={id}>
     <div
       className={`min-w-[168px] rounded-lg border px-3 py-2 text-left text-xs ${border} ${grayRing} bg-slate-900/95 text-slate-100 shadow-md`}
     >
@@ -82,14 +85,16 @@ function OmniNode({ data }: NodeProps) {
       </div>
       <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !bg-slate-400" />
     </div>
+    </TopologyNodeFrame>
   )
 }
 
 /** Telemetry / CMDB context: SVG accent + muted chrome (React Flow depth; no parallel D3 engine). */
-function TelemetryNode({ data }: NodeProps) {
+function TelemetryNode({ data, id }: NodeProps) {
   const kind = String(data.kind ?? 'telemetry')
   const state = String(data.state ?? 'gray')
   return (
+    <TopologyNodeFrame nodeId={id}>
     <div className="relative min-w-[188px] rounded-lg border border-dashed border-sky-500/35 bg-slate-900/80 px-3 py-2 pl-11 text-left text-xs text-slate-100 shadow-md ring-1 ring-sky-500/15">
       <svg
         className="pointer-events-none absolute left-2 top-1/2 h-9 w-9 -translate-y-1/2 text-sky-400/85"
@@ -127,13 +132,15 @@ function TelemetryNode({ data }: NodeProps) {
       </div>
       <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !bg-sky-400/80" />
     </div>
+    </TopologyNodeFrame>
   )
 }
 
-function MeshBrokerNode({ data }: NodeProps) {
+function MeshBrokerNode({ data, id }: NodeProps) {
   const state = String(data.state ?? '')
   const ring = statusRingClass(state)
   return (
+    <TopologyNodeFrame nodeId={id}>
     <div
       className={`relative min-w-[180px] rounded-lg border border-violet-500/45 bg-slate-900/95 px-3 py-2 pl-10 text-left text-xs text-slate-100 shadow-md ${ring}`}
     >
@@ -152,13 +159,15 @@ function MeshBrokerNode({ data }: NodeProps) {
       </div>
       <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !bg-violet-400" />
     </div>
+    </TopologyNodeFrame>
   )
 }
 
-function MeshAgentNode({ data }: NodeProps) {
+function MeshAgentNode({ data, id }: NodeProps) {
   const state = String(data.state ?? '')
   const ring = statusRingClass(state)
   return (
+    <TopologyNodeFrame nodeId={id}>
     <div
       className={`relative min-w-[180px] rounded-lg border border-indigo-500/45 bg-slate-900/95 px-3 py-2 pl-10 text-left text-xs text-slate-100 shadow-md ${ring}`}
     >
@@ -177,6 +186,7 @@ function MeshAgentNode({ data }: NodeProps) {
       </div>
       <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !bg-indigo-400" />
     </div>
+    </TopologyNodeFrame>
   )
 }
 
@@ -263,6 +273,76 @@ function EnclaveClusterLayer() {
   )
 }
 
+function GraphViewportControls({ containerRef }: { containerRef: RefObject<HTMLDivElement | null> }) {
+  const rf = useReactFlow()
+  const [fullscreen, setFullscreen] = useState(false)
+
+  const scheduleFitView = useCallback(() => {
+    requestAnimationFrame(() => {
+      rf.fitView({ padding: 0.2, duration: 200 })
+    })
+  }, [rf])
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setFullscreen(document.fullscreenElement === containerRef.current)
+      scheduleFitView()
+    }
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange)
+  }, [containerRef, scheduleFitView])
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) {
+      return
+    }
+    let timeoutId = 0
+    const ro = new ResizeObserver(() => {
+      window.clearTimeout(timeoutId)
+      timeoutId = window.setTimeout(() => scheduleFitView(), 120)
+    })
+    ro.observe(el)
+    return () => {
+      window.clearTimeout(timeoutId)
+      ro.disconnect()
+    }
+  }, [containerRef, scheduleFitView])
+
+  const toggleFullscreen = () => {
+    const el = containerRef.current
+    if (!el) {
+      return
+    }
+    const fsApi = el.requestFullscreen?.bind(el)
+    if (!document.fullscreenElement) {
+      if (fsApi) {
+        void fsApi().catch(() => {})
+      }
+    } else {
+      void document.exitFullscreen?.().catch(() => {})
+    }
+  }
+
+  const fsSupported = typeof document !== 'undefined' && Boolean(document.documentElement.requestFullscreen)
+
+  return (
+    <Panel position="top-right" className="m-0 flex gap-1">
+      {fsSupported ? (
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          className="flex items-center gap-1.5 rounded border border-slate-600 bg-slate-800/95 px-2 py-1.5 text-[11px] text-slate-200 shadow-sm hover:bg-slate-700"
+          title={fullscreen ? 'Exit fullscreen' : 'Fullscreen graph on this display'}
+        >
+          {fullscreen ? <Minimize2 size={14} aria-hidden /> : <Maximize2 size={14} aria-hidden />}
+          <span className="hidden sm:inline">{fullscreen ? 'Exit' : 'Fullscreen'}</span>
+        </button>
+      ) : null}
+    </Panel>
+  )
+}
+
 function selectionFromNodeData(n: Node): GraphNodeSelection {
   const d = n.data as Record<string, unknown>
   const rawLog = d.debugLog
@@ -290,10 +370,13 @@ function selectionFromNodeData(n: Node): GraphNodeSelection {
 function GraphCanvasInner({
   graphText,
   onNodeSelect,
+  className,
 }: {
   graphText: string
   onNodeSelect?: (node: GraphNodeSelection | null) => void
+  className?: string
 }) {
+  const wrapRef = useRef<HTMLDivElement>(null)
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
   const onSelectRef = useRef(onNodeSelect)
@@ -329,15 +412,22 @@ function GraphCanvasInner({
 
   if (!parsed.ok) {
     return (
-      <div className="flex h-96 w-full items-center justify-center rounded-xl border border-rose-900/50 bg-rose-950/20 p-4 text-sm text-rose-200">
+      <div
+        className={`flex min-h-[280px] w-full flex-1 items-center justify-center rounded-xl border border-rose-900/50 bg-rose-950/20 p-4 text-sm text-rose-200 ${className ?? ''}`}
+      >
         {parsed.error}
       </div>
     )
   }
 
   return (
-    <div className="h-[420px] w-full rounded-xl border border-slate-700 bg-slate-950">
+    <div
+      ref={wrapRef}
+      className={`flex h-full min-h-[280px] w-full flex-col rounded-xl border border-slate-700 bg-slate-950 ${className ?? ''}`}
+    >
       <ReactFlow
+        className="!h-full min-h-0 flex-1"
+        style={{ height: '100%' }}
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
@@ -351,6 +441,7 @@ function GraphCanvasInner({
         fitViewOptions={{ padding: 0.2 }}
         proOptions={{ hideAttribution: true }}
       >
+        <GraphViewportControls containerRef={wrapRef} />
         <EnclaveClusterLayer />
         <Background gap={16} color="#334155" />
         <Controls className="!bg-slate-800 !border-slate-600" />
@@ -377,13 +468,16 @@ function GraphCanvasInner({
 export function GraphCanvas({
   graphText,
   onNodeSelect,
+  className,
 }: {
   graphText: string
   onNodeSelect?: (node: GraphNodeSelection | null) => void
+  /** Merged onto the graph container (e.g. `min-h-0 flex-1` in popout layout). */
+  className?: string
 }) {
   return (
     <ReactFlowProvider>
-      <GraphCanvasInner graphText={graphText} onNodeSelect={onNodeSelect} />
+      <GraphCanvasInner graphText={graphText} onNodeSelect={onNodeSelect} className={className} />
     </ReactFlowProvider>
   )
 }

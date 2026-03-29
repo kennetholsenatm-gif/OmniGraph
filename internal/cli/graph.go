@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/kennetholsenatm-gif/omnigraph/internal/coerce"
@@ -11,6 +13,48 @@ import (
 	"github.com/kennetholsenatm-gif/omnigraph/internal/state"
 	"github.com/spf13/cobra"
 )
+
+func newParseCmd() *cobra.Command {
+	var path string
+	parse := &cobra.Command{
+		Use:   "parse [path]",
+		Short: "Parse omnigraph/graph/v1 JSON and construct graph structure",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			p := path
+			if len(args) > 0 {
+				p = args[0]
+			}
+			if p == "" {
+				return fmt.Errorf("path to JSON file is required")
+			}
+			raw, err := os.ReadFile(p)
+			if err != nil {
+				return err
+			}
+			doc, err := graph.ParseDocument(raw)
+			if err != nil {
+				return err
+			}
+			graph, err := graph.ConstructFromDocument(doc)
+			if err != nil {
+				return err
+			}
+			b, err := json.MarshalIndent(graph, "", "  ")
+			if err != nil {
+				return err
+			}
+			_, err = cmd.OutOrStdout().Write(b)
+			if err != nil {
+				return err
+			}
+			_, err = cmd.OutOrStdout().Write([]byte("\n"))
+			return err
+		},
+	}
+	parse.Flags().StringVarP(&path, "file", "f", "", "path to JSON file (default stdin)")
+	return parse
+}
 
 func newGraphCmd() *cobra.Command {
 	var path, planJSON, tfState, telemetryFile, securityFile string
@@ -77,7 +121,8 @@ func newGraphCmd() *cobra.Command {
 	emit.Flags().StringVar(&tfState, "tfstate", "", "path to Terraform/OpenTofu JSON state after apply")
 	emit.Flags().StringVar(&telemetryFile, "telemetry-file", "", "path to omnigraph/telemetry/v1 JSON to merge into the graph")
 	emit.Flags().StringVar(&securityFile, "security-file", "", "path to omnigraph/security/v1 JSON to merge securityPosture into host nodes")
-	root := &cobra.Command{Use: "graph", Short: "Build graph documents for visualization"}
+root := &cobra.Command{Use: "graph", Short: "Build and parse graph documents"}
 	root.AddCommand(emit)
+	root.AddCommand(newParseCmd())
 	return root
 }
