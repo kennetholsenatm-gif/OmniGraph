@@ -110,6 +110,10 @@ type ingestFileItem struct {
 	ContentType string `json:"contentType"`
 	Encoding    string `json:"encoding"`
 	Data        string `json:"data"`
+	// ClientPathHint is optional display-only provenance from the File System Access API (not trusted as a server path).
+	ClientPathHint string `json:"clientPathHint,omitempty"`
+	// LastModifiedRFC3339 is optional metadata from the browser File object.
+	LastModifiedRFC3339 string `json:"lastModified,omitempty"`
 }
 
 type ingestResponseError struct {

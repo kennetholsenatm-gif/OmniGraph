@@ -1,8 +1,12 @@
+// Package graph defines omnigraph/graph/v1 documents and helpers. Document, Graph, and GraphSpec
+// are immutable snapshots for JSON; use ConcurrentGraph for goroutine-safe incremental mutation.
 package graph
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
 	"time"
 
@@ -11,6 +15,7 @@ import (
 	"github.com/kennetholsenatm-gif/omnigraph/internal/project"
 	"github.com/kennetholsenatm-gif/omnigraph/internal/state"
 	"github.com/kennetholsenatm-gif/omnigraph/internal/telemetry"
+	"golang.org/x/sync/errgroup"
 )
 
 const apiVersion = "omnigraph/graph/v1"
@@ -126,6 +131,8 @@ func Emit(doc *project.Document, art *coerce.Artifacts, opts EmitOptions) (*Docu
 			return nil, err
 		}
 		hosts := plan.ProjectedHosts(pj)
+		g.Spec.Nodes = slices.Grow(g.Spec.Nodes, len(hosts))
+		g.Spec.Edges = slices.Grow(g.Spec.Edges, len(hosts))
 		for _, addr := range sortedStringKeys(hosts) {
 			ip := hosts[addr]
 			id := "planned-" + slug(addr)
@@ -143,6 +150,8 @@ func Emit(doc *project.Document, art *coerce.Artifacts, opts EmitOptions) (*Docu
 	}
 	if opts.TerraformState != nil {
 		hosts := state.ExtractHosts(opts.TerraformState)
+		g.Spec.Nodes = slices.Grow(g.Spec.Nodes, len(hosts))
+		g.Spec.Edges = slices.Grow(g.Spec.Edges, len(hosts))
 		for _, addr := range sortedStringKeys(hosts) {
 			ip := hosts[addr]
 			id := "live-" + slug(addr)
@@ -176,6 +185,8 @@ func mergeTelemetry(d *Document, b *telemetry.Bundle) {
 	for _, n := range d.Spec.Nodes {
 		seen[n.ID] = struct{}{}
 	}
+	d.Spec.Nodes = slices.Grow(d.Spec.Nodes, len(b.Nodes))
+	d.Spec.Edges = slices.Grow(d.Spec.Edges, len(b.Edges))
 	for _, n := range b.Nodes {
 		if n.ID == "" {
 			continue
@@ -234,69 +245,273 @@ func slug(s string) string {
 
 // ParseDocument parses JSON bytes into a Document struct.
 func ParseDocument(data []byte) (*Document, error) {
+	return ParseDocumentWithContext(context.Background(), data, ValidateDocumentOptions{})
+}
+
+// ParseDocumentWithContext parses JSON and validates with opts. Context is passed to the errgroup
+// used for concurrent validation (deadline/cancel applies to sub-checks that observe ctx).
+func ParseDocumentWithContext(ctx context.Context, data []byte, opts ValidateDocumentOptions) (*Document, error) {
 	var doc Document
 	if err := json.Unmarshal(data, &doc); err != nil {
 		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
-	if err := validateDocument(&doc); err != nil {
+	if err := validateDocumentWithOptions(ctx, &doc, opts); err != nil {
 		return nil, err
 	}
 	return &doc, nil
 }
 
-// validateDocument validates the Document against the IaC schema.
+// ValidateDocumentOptions configures optional topology rules. Zero value matches historical
+// behavior (structural checks only); flags enable stricter validation.
+type ValidateDocumentOptions struct {
+	// RejectOrphanNodesWhenEdgesExist, when true and spec has at least one edge, rejects nodes
+	// with no incident edge (neither From nor To).
+	RejectOrphanNodesWhenEdgesExist bool
+	// RejectMultipleWeakComponents, when true and spec has at least one edge, rejects graphs
+	// with more than one weakly connected component (undirected view of edges).
+	RejectMultipleWeakComponents bool
+}
+
+// ValidateDocumentWithOptions runs validation (including optional topology checks) on an in-memory document.
+func ValidateDocumentWithOptions(ctx context.Context, doc *Document, opts ValidateDocumentOptions) error {
+	return validateDocumentWithOptions(ctx, doc, opts)
+}
+
+// validateDocument validates the Document with default options (parallel structural checks).
 func validateDocument(doc *Document) error {
+	return validateDocumentWithOptions(context.Background(), doc, ValidateDocumentOptions{})
+}
+
+func validateDocumentPreamble(doc *Document) error {
 	if doc == nil {
-		return fmt.Errorf("document is nil")
+		return fmt.Errorf("%w", ErrNilDocument)
 	}
 	if doc.APIVersion != apiVersion {
-		return fmt.Errorf("invalid apiVersion: expected %q, got %q", apiVersion, doc.APIVersion)
+		return fmt.Errorf("%w: expected %q, got %q", ErrWrongAPIVersion, apiVersion, doc.APIVersion)
 	}
 	if doc.Kind != kind {
-		return fmt.Errorf("invalid kind: expected %q, got %q", kind, doc.Kind)
+		return fmt.Errorf("%w: expected %q, got %q", ErrWrongKind, kind, doc.Kind)
 	}
 	if doc.Spec.Phase == "" {
-		return fmt.Errorf("spec.phase is required")
+		return fmt.Errorf("%w", ErrEmptyPhase)
 	}
 	if len(doc.Spec.Nodes) == 0 {
-		return fmt.Errorf("spec.nodes is required and cannot be empty")
+		return fmt.Errorf("%w", ErrEmptyNodes)
 	}
-	for _, node := range doc.Spec.Nodes {
-		if node.ID == "" {
-			return fmt.Errorf("node ID cannot be empty")
-		}
-		if node.Kind == "" {
-			return fmt.Errorf("node kind cannot be empty for node %q", node.ID)
-		}
-		if node.Label == "" {
-			return fmt.Errorf("node label cannot be empty for node %q", node.ID)
-		}
-	}
-	nodeIDs := make(map[string]struct{}, len(doc.Spec.Nodes))
-	for _, node := range doc.Spec.Nodes {
+	return nil
+}
+
+func buildNodeIDSet(nodes []Node) map[string]struct{} {
+	nodeIDs := make(map[string]struct{}, len(nodes))
+	for _, node := range nodes {
 		nodeIDs[node.ID] = struct{}{}
 	}
-	for _, edge := range doc.Spec.Edges {
-		if edge.From == "" {
-			return fmt.Errorf("edge from cannot be empty")
+	return nodeIDs
+}
+
+func validateNodeFields(nodes []Node) error {
+	for _, node := range nodes {
+		if node.ID == "" {
+			return fmt.Errorf("%w", ErrEmptyNodeID)
 		}
-		if edge.To == "" {
-			return fmt.Errorf("edge to cannot be empty")
+		if node.Kind == "" {
+			return fmt.Errorf("node %q: %w", node.ID, ErrEmptyNodeKind)
 		}
-		if _, ok := nodeIDs[edge.From]; !ok {
-			return fmt.Errorf("edge references unknown node %q", edge.From)
-		}
-		if _, ok := nodeIDs[edge.To]; !ok {
-			return fmt.Errorf("edge references unknown node %q", edge.To)
+		if node.Label == "" {
+			return fmt.Errorf("node %q: %w", node.ID, ErrEmptyNodeLabel)
 		}
 	}
 	return nil
 }
 
+func validateEdgeRefs(edges []Edge, nodeIDs map[string]struct{}) error {
+	for _, edge := range edges {
+		if edge.From == "" {
+			return fmt.Errorf("%w", ErrEmptyEdgeFrom)
+		}
+		if edge.To == "" {
+			return fmt.Errorf("%w", ErrEmptyEdgeTo)
+		}
+		if _, ok := nodeIDs[edge.From]; !ok {
+			return fmt.Errorf("%w", &UnknownNodeError{ID: edge.From})
+		}
+		if _, ok := nodeIDs[edge.To]; !ok {
+			return fmt.Errorf("%w", &UnknownNodeError{ID: edge.To})
+		}
+	}
+	return nil
+}
+
+// validationParallelChunkCount returns how many goroutines to use for scanning a slice of length n.
+func validationParallelChunkCount(n int) int {
+	if n <= 1024 {
+		return 1
+	}
+	k := n / 1024
+	if k > 8 {
+		return 8
+	}
+	if k < 1 {
+		return 1
+	}
+	return k
+}
+
+func nodeChunkValidator(nodes []Node, lo, hi int) func() error {
+	return func() error {
+		return validateNodeFields(nodes[lo:hi])
+	}
+}
+
+func edgeChunkValidator(edges []Edge, nodeIDs map[string]struct{}, lo, hi int) func() error {
+	return func() error {
+		return validateEdgeRefs(edges[lo:hi], nodeIDs)
+	}
+}
+
+func scheduleNodeValidation(g *errgroup.Group, nodes []Node) {
+	n := len(nodes)
+	if n == 0 {
+		return
+	}
+	chunks := validationParallelChunkCount(n)
+	if chunks <= 1 {
+		g.Go(func() error {
+			return validateNodeFields(nodes)
+		})
+		return
+	}
+	size := (n + chunks - 1) / chunks
+	for i := range chunks {
+		lo := i * size
+		if lo >= n {
+			break
+		}
+		hi := min(lo+size, n)
+		g.Go(nodeChunkValidator(nodes, lo, hi))
+	}
+}
+
+func scheduleEdgeValidation(g *errgroup.Group, edges []Edge, nodeIDs map[string]struct{}) {
+	n := len(edges)
+	if n == 0 {
+		return
+	}
+	chunks := validationParallelChunkCount(n)
+	if chunks <= 1 {
+		g.Go(func() error {
+			return validateEdgeRefs(edges, nodeIDs)
+		})
+		return
+	}
+	size := (n + chunks - 1) / chunks
+	for i := range chunks {
+		lo := i * size
+		if lo >= n {
+			break
+		}
+		hi := min(lo+size, n)
+		g.Go(edgeChunkValidator(edges, nodeIDs, lo, hi))
+	}
+}
+
+func validateOrphanNodesWhenEdgesExist(doc *Document) error {
+	if len(doc.Spec.Edges) == 0 {
+		return nil
+	}
+	incident := make(map[string]struct{})
+	for _, e := range doc.Spec.Edges {
+		if e.From == "" || e.To == "" {
+			continue
+		}
+		incident[e.From] = struct{}{}
+		incident[e.To] = struct{}{}
+	}
+	for _, n := range doc.Spec.Nodes {
+		if n.ID == "" {
+			continue
+		}
+		if _, ok := incident[n.ID]; !ok {
+			return fmt.Errorf("node %q: %w", n.ID, ErrOrphanNode)
+		}
+	}
+	return nil
+}
+
+func validateSingleWeakComponent(doc *Document, nodeIDs map[string]struct{}) error {
+	if len(doc.Spec.Edges) == 0 {
+		return nil
+	}
+	parent := make(map[string]string, len(nodeIDs))
+	for id := range nodeIDs {
+		parent[id] = id
+	}
+	var find func(string) string
+	find = func(x string) string {
+		p := parent[x]
+		if p == "" {
+			return x
+		}
+		if p != x {
+			parent[x] = find(p)
+		}
+		return parent[x]
+	}
+	union := func(a, b string) {
+		ra, rb := find(a), find(b)
+		if ra == rb {
+			return
+		}
+		if ra < rb {
+			parent[rb] = ra
+		} else {
+			parent[ra] = rb
+		}
+	}
+	for _, e := range doc.Spec.Edges {
+		if e.From == "" || e.To == "" {
+			continue
+		}
+		union(e.From, e.To)
+	}
+	roots := make(map[string]struct{})
+	for id := range nodeIDs {
+		roots[find(id)] = struct{}{}
+	}
+	if len(roots) > 1 {
+		return fmt.Errorf("%w: count=%d", ErrMultipleWeakComponents, len(roots))
+	}
+	return nil
+}
+
+func validateDocumentWithOptions(ctx context.Context, doc *Document, opts ValidateDocumentOptions) error {
+	if err := validateDocumentPreamble(doc); err != nil {
+		return err
+	}
+	nodeIDs := buildNodeIDSet(doc.Spec.Nodes)
+
+	g, _ := errgroup.WithContext(ctx)
+	scheduleNodeValidation(g, doc.Spec.Nodes)
+	scheduleEdgeValidation(g, doc.Spec.Edges, nodeIDs)
+
+	if opts.RejectOrphanNodesWhenEdgesExist {
+		g.Go(func() error {
+			return validateOrphanNodesWhenEdgesExist(doc)
+		})
+	}
+	if opts.RejectMultipleWeakComponents {
+		g.Go(func() error {
+			return validateSingleWeakComponent(doc, nodeIDs)
+		})
+	}
+
+	return g.Wait()
+}
+
 // ConstructFromDocument builds a graph structure from a parsed Document.
 func ConstructFromDocument(doc *Document) (*Graph, error) {
 	if doc == nil {
-		return nil, fmt.Errorf("document is nil")
+		return nil, fmt.Errorf("%w", ErrNilDocument)
 	}
 	if err := validateDocument(doc); err != nil {
 		return nil, err

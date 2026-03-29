@@ -79,3 +79,27 @@ flowchart LR
 | Layer diagram (short form) | [architecture.md](../core-concepts/architecture.md) |
 
 You now have a single thread from **repository shape** to **translation** to **browser safety** to **pipeline proof**. Follow the links when you are ready to change code; each page is written to reward that next step.
+
+## Architectural code map
+
+High-level paths in the monorepo (moved from the root README so the default reader stays product-focused).
+
+| Path | Role in the product |
+|------|---------------------|
+| [`cmd/omnigraph`](../../cmd/omnigraph) | CLI entry → [`internal/cli`](../../internal/cli) (validate, `graph emit`, `serve`, `orchestrate`, …). |
+| [`internal/`](../../internal/) | Go control plane: graph emission, HTTP **`serve`** (SSE, optional ingest/sync), orchestration, policy, [`internal/state`](../../internal/state) parsing, repo discovery, [`internal/omnistate`](../../internal/omnistate) normalization. |
+| [`packages/web`](../../packages/web) | React workspace: Topology, Inventory, SSE client [`useWorkspaceSummaryStream.ts`](../../packages/web/src/mvp/useWorkspaceSummaryStream.ts). |
+| [`schemas/`](../../schemas/) | JSON Schema sources for versioned contracts. |
+| [`wasm/`](../../wasm/) | Browser Wasm ([`wasm/hcldiag`](../../wasm/hcldiag)) plus optional **WASI** parser plugins under [`wasm/plugins/`](../../wasm/plugins/) ([`internal/runner`](../../internal/runner)). |
+| [`e2e/`](../../e2e/) | Contributor end-to-end harness. |
+| [`pkg/emitter`](../../pkg/emitter) | **IR → artifacts** (Emitter Engine): [`model.go`](../../pkg/emitter/model.go) carries `omnigraph/ir/v1`-shaped intent; backends compile into Ansible-oriented output. Manifest reconciliation lives in `internal/reconcile` / `omnigraph apply`. |
+
+**Live workspace stream (SSE):** `GET /api/v1/workspace/stream` — discovery-backed summaries with **fsnotify** debouncing when state or inventory files change; see [`internal/serve/server.go`](../../internal/serve/server.go).
+
+### Codebase tour: artifacts ↔ schema
+
+| Product artifact | Where it is defined |
+|------------------|---------------------|
+| `omnigraph/graph/v1` (Topology JSON) | [`schemas/graph.v1.schema.json`](../../schemas/graph.v1.schema.json) |
+| `.omnigraph.schema` (`Project`) | [`schemas/omnigraph.schema.json`](../../schemas/omnigraph.schema.json) |
+| IR-shaped intent | [`schemas/ir.v1.schema.json`](../../schemas/ir.v1.schema.json) + [`pkg/emitter`](../../pkg/emitter) |

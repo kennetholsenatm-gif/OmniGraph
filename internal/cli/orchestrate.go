@@ -15,9 +15,9 @@ func newOrchestrateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "orchestrate",
 		Aliases: []string{"pipeline"},
-		Short:   "Run plan → ansible check → approve → apply → ansible apply (magic handoff)",
-		Long: `Chains validation, OpenTofu/Terraform plan, projected inventory, ansible-playbook --check,
-human approval (TTY) or --auto-approve, tofu apply, live inventory, and ansible-playbook.
+		Short:   "Headless pipeline: plan → ansible check → approve → apply → ansible apply",
+		Long: `Automation path that chains validation, OpenTofu/Terraform plan, projected inventory, ansible-playbook --check,
+human approval (TTY) or --auto-approve, apply, live inventory, and ansible-playbook. The interactive workspace remains separate.
 
 Use --runner=container to execute tofu and Ansible inside Docker/Podman (see docs/execution-matrix.md).
 Secrets must be passed via environment variables only (ADR 003); use your shell or a secret resolver.`,

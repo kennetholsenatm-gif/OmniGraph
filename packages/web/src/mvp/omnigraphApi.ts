@@ -62,3 +62,42 @@ export async function fetchWorkspaceSummary(path: string): Promise<WorkspaceSumm
   }
   return r.json() as Promise<WorkspaceSummary>
 }
+
+export type IngestFileItem = {
+  name: string
+  contentType: string
+  encoding: string
+  data: string
+  clientPathHint?: string
+  lastModified?: string
+}
+
+import type { IngestOmniState } from './inventorySources'
+
+export type IngestLocalError = { path?: string; code: string; message: string }
+
+export type IngestLocalResponse = {
+  state: IngestOmniState
+  errors?: IngestLocalError[]
+}
+
+/** Requires `serve --enable-ingest-local-api` and `Authorization: Bearer` (same token as other privileged APIs). */
+export async function postLocalIngest(
+  bearerToken: string,
+  body: { clientSessionId?: string; files: IngestFileItem[] },
+): Promise<IngestLocalResponse> {
+  const base = omnigraphApiBase()
+  const r = await fetch(`${base}/api/v1/ingest/local`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${bearerToken.trim()}`,
+    },
+    body: JSON.stringify(body),
+  })
+  if (!r.ok) {
+    const t = await r.text()
+    throw new Error(t || r.statusText)
+  }
+  return r.json() as Promise<IngestLocalResponse>
+}

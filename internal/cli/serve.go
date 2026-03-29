@@ -18,16 +18,17 @@ func newServeCmd() *cobra.Command {
 	var oidcIssuer, oidcClientID, oidcRequiredRoles string
 	var oidcSkipTLS bool
 	var enableSecurityScan, enableHostOps, enableInventoryAPI, hostOpsAllowWrites, enableMetrics bool
-	var enableIngestLocal, enableSyncWS bool
+	var enableIngestLocal, enableSyncWS, enableWorkspaceDrift bool
 	var maxIngestBodyMB int64
 	cmd := &cobra.Command{
 		Use:   "serve",
-		Short: "Run local HTTP API and optional web UI for repository-wide IaC views",
-		Long: `Starts an HTTP server on loopback by default.
+		Short: "Local HTTP API for the web workspace (optional static UI via --web-dist)",
+		Long: `Serves the APIs the React workspace uses when run same-origin (SSE, ingest, optional WebSocket sync).
+Starts on loopback by default.
 
 API:
   GET  /api/v1/health
-  GET  /api/v1/workspace/stream  query: path=.  — SSE stream; event workspace_summary (JSON) + periodic ping
+  GET  /api/v1/workspace/stream  query: path=.  — SSE stream; workspace_summary on connect, on debounced fs changes (500ms), slow fallback poll, and periodic ping
   POST /api/v1/repo/scan         body: {"path":"."}  — same discovery as omnigraph repo scan
   POST /api/v1/workspace/summary body: {"path":"."}  — discovery + aggregated state inventory + omnigraph INI
 
@@ -46,6 +47,7 @@ Experimental APIs (require --auth-token or OMNIGRAPH_SERVE_TOKEN):
   POST /api/v1/host-ops/systemd/units
   POST /api/v1/host-ops/journal/tail
   POST /api/v1/host-ops/systemd/restart (with --host-ops-allow-writes)
+  POST /api/v1/workspace/drift (with --enable-workspace-drift-api)
   GET  /api/v1/audit`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -109,6 +111,7 @@ Experimental APIs (require --auth-token or OMNIGRAPH_SERVE_TOKEN):
 	cmd.Flags().BoolVar(&enableMetrics, "enable-metrics", false, "enable Prometheus metrics endpoint at /metrics")
 	cmd.Flags().BoolVar(&enableIngestLocal, "enable-ingest-local-api", false, "register POST /api/v1/ingest/local (requires --auth-token)")
 	cmd.Flags().BoolVar(&enableSyncWS, "enable-sync-ws-api", false, "register GET /api/v1/sync/ws (requires --auth-token)")
+	cmd.Flags().BoolVar(&enableWorkspaceDrift, "enable-workspace-drift-api", false, "register POST /api/v1/workspace/drift (requires --auth-token)")
 	cmd.Flags().Int64Var(&maxIngestBodyMB, "max-ingest-body-mb", 0, "max ingest JSON body in MiB (0 = default 64)")
 	return cmd
 }

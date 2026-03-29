@@ -1,159 +1,82 @@
 # OmniGraph
 
-**Infrastructure as a visible, declarative graph - not scattered pipeline glue.**
+**Infrastructure as a visible, declarative graph—not scattered pipeline glue.**
 
-If your stack mixes OpenTofu/Terraform and Ansible, the real deployment story is usually split across HCL, playbooks, CI YAML, and job logs. Teams spend time reconstructing intent, handoffs, and drift from terminal output instead of seeing one trustworthy view.
+**OmniGraph runs entirely on your machine:** a local Go control plane (when you use server-backed features) serves the React workspace to **your browser**. It is not a hosted SaaS unless you choose to deploy it that way—by default, data stays on your loopback and disk.
 
-**OmniGraph** is a **web-first workspace for infrastructure as a graph**. It keeps your existing tools, but puts intent, topology, pipeline context, inventory, and security posture in one browser canvas so teams can reason about changes before and after they run.
+If your stack mixes OpenTofu/Terraform and Ansible, intent and handoffs often live in HCL, playbooks, CI YAML, and logs. Teams reconstruct topology and drift from fragments instead of **shared understanding** in one place.
 
-The workspace is organized into three **operational contexts**—**Topology** (the declarative graph and node-scoped inspector), **Reconciliation** (state, plan, inventory, and pipeline handoff), and **Posture** (security and compliance shape)—so you are not staring at a single overloaded dashboard. See **[docs/guides/ui-modes.md](docs/guides/ui-modes.md)**. The **Go** control plane owns discovery, orchestration, and aggregation; the UI is built as a **reactive** surface, with authoritative live updates delivered over **Server-Sent Events**—**[docs/core-concepts/ux-architecture.md](docs/core-concepts/ux-architecture.md)**.
+**OmniGraph** is a **browser-based local workspace** for infrastructure as a graph: **schema-first intent** (`.omnigraph.schema` and versioned contracts), an **interactive topology**, and operational context—**reconciliation** (state, plan, inventory), **posture** (security shape)—without replacing OpenTofu, Terraform, or Ansible. Those tools remain your execution and provider layer; OmniGraph coordinates **visibility and handoff**. See **[docs/product-philosophy.md](docs/product-philosophy.md)** and **[docs/guides/ui-modes.md](docs/guides/ui-modes.md)**.
 
 ```mermaid
-flowchart TB
-  subgraph og [Your_OmniGraph_browser]
-    T[Topology_graph]
-    S[Schema_contract]
-    P[Pipeline_context]
-    I[Inventory_and_discovery]
-    U[Posture_and_policy]
+flowchart LR
+  subgraph browser [Browser_workspace]
+    Topo[Topology_canvas]
+    Insp[Node_Inspector]
+    Inv[Inventory_Reconciliation]
   end
-  subgraph stack [Your_IaC_world]
-    TF[OpenTofu_Terraform]
-    AN[Ansible]
+  subgraph local [Local_control_plane]
+    API[HTTP_API]
+    SSE[SSE_workspace_stream]
+    WS[WebSocket_sync_optional]
   end
-  T --> stack
-  S --> stack
-  P --> stack
-  I --> stack
-  U --> stack
+  Topo --> Insp
+  Inv --> API
+  API --> SSE
+  API --> WS
+  SSE --> Topo
+  WS --> Inv
 ```
 
 ## What makes OmniGraph special
 
-- **Graph-first truth model** — Infra relationships are first-class nodes and edges, not implicit script order.
-- **Web workspace, not CLI sprawl** — Topology, schema, pipeline, inventory, and posture live together.
-- **Declarative handoff to Ansible** — Desired state and graph context drive execution decisions.
-- **Pipeline observability by default** — Plan/apply/handoff context is visible in the same place as topology.
-- **Toolchain-compatible** — Keep OpenTofu/Terraform/Ansible; OmniGraph adds coordination and clarity.
+- **Graph-first shared understanding** — Relationships are nodes and edges you can explore, not only implicit script order.
+- **Schema-first intent** — Contracts anchor what the workspace shows; the UI reflects the same shapes as automation outputs.
+- **Browser workspace** — Topology, schema, pipeline context, inventory, and posture live together in one canvas.
+- **Honest boundaries** — OpenTofu/Terraform/Ansible stay your engines; OmniGraph does not replace your provider layer.
+- **Live backend truth** — When you use same-origin **serve**, **Server-Sent Events** and optional **WebSocket** sync keep the view aligned with normalized state (see **[docs/core-concepts/ux-architecture.md](docs/core-concepts/ux-architecture.md)**).
 
-## How OmniGraph makes Ansible declarative
+## How OmniGraph supports declarative Ansible handoff
 
-OmniGraph shifts Ansible usage from "run these imperative steps in this order" toward "converge this graph-backed desired state":
+- **Intent is visible** — Graph and schema context sit beside inventory and plan-shaped data so handoffs are inspectable.
+- **Diffable outcomes** — Plan and state artifacts map onto graph entities; you review **intent deltas** in the workspace, not only task logs.
+- **Reconciliation context** — The workspace supports comparing declared graph intent against inventory and state views; Ansible remains the runtime you run.
 
-- **State + intent are explicit**: graph/schema/inventory context define what should exist and how it relates.
-- **Diffable desired outcomes**: plan and state artifacts are mapped back onto graph entities, so changes are reviewed as intent deltas, not only task logs.
-- **Guided handoff**: CI plan/apply output and inventory context are attached to the same model Ansible acts on, reducing ad-hoc variable passing and brittle glue scripts.
-- **Consistent reconciliation loop**: operators evaluate whether actual state matches declared graph intent, then run convergence actions with shared context.
+## What you see in the web app
 
-Result: Ansible remains your execution engine, but the control plane becomes declarative and inspectable.
+The sidebar groups **Topology** (interactive **`omnigraph/graph/v1`** and per-node **Inspector**), **Schema Contract**, **Pipeline** context, **Inventory** (including optional **File System Access** uploads when the API is enabled), **Posture**, and **Web IDE** (WASM-backed HCL hints). Full tab tour: **[docs/using-the-web.md](docs/using-the-web.md)**.
 
-## How OmniGraph fixes common CI/CD frustrations
-
-- **Pipeline opacity → shared visibility**: job stages, infra changes, and handoffs are visible in one workspace.
-- **Brittle IaC-to-Ansible glue → model-based handoff**: fewer one-off scripts and fewer hidden assumptions between stages.
-- **Environment drift surprises → earlier detection**: state/plan/inventory context is compared against desired graph intent.
-- **Slow incident triage → faster root cause**: topology, change context, and posture are co-located instead of split across tools.
-- **Context switching fatigue → single workspace**: less hopping between CI UI, terminals, state files, and docs.
-
-## What you get in the web app
-
-Open **`packages/web`** for a **workspace** with a sidebar grouped into operational contexts:
-
-- **Topology** — Paste or load **`omnigraph/graph/v1`** and explore it as an **interactive graph** (nodes, edges, optional **`attributes.debugLog`** in the Inspector).
-- **Schema Contract** — Edit **`.omnigraph.schema`** with validation in the UI.
-- **Pipeline** — Map **plan → apply → Ansible handoff** to paths and `omnigraph orchestrate` options.
-- **Inventory** — Paste **state**, **plan JSON**, **Ansible INI**, optional **folder scans**, or **`omnigraph serve`** workspace summary / **SSE** stream when same-origin.
-- **Posture** — **`omnigraph/security/v1`**-shaped data next to the graph story.
-- **Web IDE** — Optional **WASM-backed HCL** feedback (browser-only; see [docs/core-concepts/ux-architecture.md](docs/core-concepts/ux-architecture.md)).
-
-Tab-by-tab tour: **[docs/using-the-web.md](docs/using-the-web.md)**.
-
-## Architectural code map
-
-| Path | Role in the product |
-|------|---------------------|
-| [`cmd/omnigraph`](cmd/omnigraph) | CLI entry → [`internal/cli`](internal/cli) (validate, `graph emit`, `serve`, `orchestrate`, …). |
-| [`internal/`](internal/) | Go control plane: graph emission, HTTP **`serve`** (including SSE), orchestration, policy, [`internal/state`](internal/state) parsing, repo discovery. |
-| [`packages/web`](packages/web) | React workspace: Topology, Inventory, SSE client [`useWorkspaceSummaryStream.ts`](packages/web/src/mvp/useWorkspaceSummaryStream.ts). |
-| [`schemas/`](schemas/) | JSON Schema sources for versioned contracts (see **Codebase tour** below). |
-| [`wasm/`](wasm/) | Browser Wasm (e.g. [`wasm/hcldiag`](wasm/hcldiag)) for editor-side HCL diagnostics—not Terraform state I/O. |
-| [`e2e/`](e2e/) | Contributor end-to-end harness. |
-| [`pkg/emitter`](pkg/emitter) | **IR → artifacts** (Emitter Engine): [`model.go`](pkg/emitter/model.go) carries `omnigraph/ir/v1`-shaped intent; backends such as [`emit_ansible.go`](pkg/emitter/emit_ansible.go) compile that into Ansible-oriented output. Manifest **reconciliation** (desired vs actual) lives in `internal/reconcile` / `omnigraph apply`, not here. |
-| [`python/`](python/) | **Optional** Python agent (`pip install ./python`): discovery (Terraform state / Ansible inventory), connector IR and drift scaffold; CLI `omnigraph-agent`. See [`python/README.md`](python/README.md). |
-
-**Live workspace stream (SSE):** implemented in Go as **`getWorkspaceStream`** on **`GET /api/v1/workspace/stream`** — see [`internal/serve/server.go`](internal/serve/server.go) (handler and route registration).
-
-```mermaid
-flowchart LR
-  schemas[schemas_dir]
-  ig[internal_graph]
-  emit[graph_emit_CLI]
-  ui[Topology_tab]
-  schemas --> ig
-  ig --> emit
-  emit --> ui
-```
-
-### Codebase tour: artifacts ↔ schema
-
-| Product artifact | Where it is defined |
-|------------------|---------------------|
-| `omnigraph/graph/v1` (Topology JSON) | [`schemas/graph.v1.schema.json`](schemas/graph.v1.schema.json) |
-| `.omnigraph.schema` (`Project`) | [`schemas/omnigraph.schema.json`](schemas/omnigraph.schema.json) |
-| IR-shaped intent | [`schemas/ir.v1.schema.json`](schemas/ir.v1.schema.json) + [`pkg/emitter`](pkg/emitter) |
+**New here?** Start with **[docs/getting-started.md](docs/getting-started.md)** (graph-first, no terminal steps).
 
 ---
 
-## Quickstart
+## Quickstart (browser experience)
 
-### A — Browser (sample graph in under a minute)
+Open the workspace and land on **Topology**. You start with a **sample graph**—nodes and edges you can pan, select, and zoom. Click a node to open the **Inspector**: labels, kind, state, and optional debug lines attached to that vertex. Switch to **Reconciliation**-oriented tabs (**Inventory**) to see how state and inventory attach to the same story; use **Posture** when you are working security-shaped JSON alongside the graph. The UI stays **quiet until it needs to speak**: explore the sample graph first, then bring your own artifacts when you are ready.
 
-**Node.js 20+**
+To **run the dev server** or a **production build** locally, follow **[docs/development/local-dev.md](docs/development/local-dev.md)**. For **automation, CI, and the `omnigraph` binary** (validate, `graph emit`, `serve`, discovery), use **[docs/cli-and-ci.md](docs/cli-and-ci.md)**. Background **sync agent** (WebSocket, writable roots): **[agent/README.md](agent/README.md)**.
 
-```bash
-cd packages/web
-npm ci
-npm run dev
-```
-
-Open the URL Vite prints (typically `http://localhost:5173`). The app ships with a **sample graph** in **Topology** and a default schema—then use **Inventory** to paste real **Terraform/OpenTofu JSON state**, **plan JSON**, or **Ansible INI** when you are ready.
-
-Same-origin **`omnigraph serve`** + built UI (Inventory, SSE) is described in **[docs/using-the-web.md](docs/using-the-web.md)**.
-
-### B — Go CLI + real state (copy-paste)
-
-Minimal fixtures live under **[examples/quickstart/](examples/quickstart/)** (tiny `.tfstate.json` + `.omnigraph.schema` with YAML comments for a playbook-oriented repo layout).
-
-```bash
-go build -o bin/omnigraph ./cmd/omnigraph
-
-./bin/omnigraph graph emit examples/quickstart/.omnigraph.schema \
-  --tfstate examples/quickstart/minimal.tfstate.json > graph.json
-
-./bin/omnigraph inventory from-state examples/quickstart/minimal.tfstate.json
-```
-
-Optional: add **`--plan-json`** to `graph emit` with output from **`terraform show -json tfplan`** (or OpenTofu equivalent). Full automation scenarios: **[docs/cli-and-ci.md](docs/cli-and-ci.md)**.
-
-### C — Optional Python agent (discovery)
-
-If you want **local file discovery** without pasting JSON into the UI, install the optional package from [`python/`](python/): `cd python && pip install -e .`, then run **`omnigraph-agent discover --root . --json`** to emit manifests for Terraform state and Ansible inventories. The Go **`omnigraph`** CLI remains the canonical path for **`graph emit`**, **`serve`**, and CI; details in **[python/README.md](python/README.md)**.
+Same-origin **serve** with Inventory and SSE is described in **[docs/using-the-web.md](docs/using-the-web.md)**.
 
 ---
 
 ## Why we built it / deeper reading
 
-- **[docs/product-philosophy.md](docs/product-philosophy.md)** — graph-first product intent (not a CI CLI pitch)
+- **[docs/product-philosophy.md](docs/product-philosophy.md)** — graph-first intent; automation supports the workspace
+- **[docs/getting-started.md](docs/getting-started.md)** — first session in the UI only
 - **[docs/README.md](docs/README.md)** — full documentation map
 - **[docs/overview.md](docs/overview.md)** — who / what / where
-- **[docs/core-concepts/ux-architecture.md](docs/core-concepts/ux-architecture.md)** — progressive disclosure, backend truth, WASM boundary
+- **[docs/core-concepts/ux-architecture.md](docs/core-concepts/ux-architecture.md)** — progressive disclosure, backend truth
 - **[docs/guides/ui-modes.md](docs/guides/ui-modes.md)** — Topology, Reconciliation, Posture
-- **[examples/quickstart/README.md](examples/quickstart/README.md)** — CLI quickstart detail
-
-Terminal-oriented workflows: **[docs/cli-and-ci.md](docs/cli-and-ci.md)**.
 
 ---
 
 ## License
 
 [MIT](LICENSE) · [Contributing](CONTRIBUTING.md)
+
+---
+
+## For contributors
+
+Repository layout, emitter vs orchestration, Wasm, and E2E: **[docs/development/platform-architecture.md](docs/development/platform-architecture.md)** (includes the **architectural code map** and artifact ↔ schema tour). Clone, build, and test: **[CONTRIBUTING.md](CONTRIBUTING.md)**, **[docs/development/local-dev.md](docs/development/local-dev.md)**.

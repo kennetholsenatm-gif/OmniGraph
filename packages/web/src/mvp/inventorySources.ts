@@ -246,3 +246,62 @@ export function sourceLabel(s: InventorySourceKind): string {
       return s
   }
 }
+
+type IngestStateNode = {
+  id: string
+  kind: string
+  label: string
+  attributes?: Record<string, unknown>
+  provenance?: { pathHint?: string; name?: string }
+}
+
+/** Shape of `state` from POST /api/v1/ingest/local (nodes only required for inventory mapping). */
+export type IngestOmniState = {
+  apiVersion?: string
+  nodes?: IngestStateNode[]
+  edges?: unknown[]
+  partialErrors?: unknown[]
+}
+
+/** Maps POST /api/v1/ingest/local omnistate into inventory rows for the merged table. */
+export function rowsFromIngestOmniState(state: IngestOmniState): InventoryRow[] {
+  const nodes = state.nodes ?? []
+  const rows: InventoryRow[] = []
+  let i = 0
+  for (const n of nodes) {
+    const origin = n.provenance?.pathHint ?? n.provenance?.name ?? 'ingest'
+    if (n.kind === 'ansible_host') {
+      const ah =
+        stringifyValue(n.attributes?.ansible_host) ??
+        stringifyValue(n.attributes?.ansible_ssh_host) ??
+        n.label
+      rows.push({
+        id: `ingest:ansible:${n.id}:${i}`,
+        name: n.label,
+        ansibleHost: ah ?? '',
+        source: 'ansible-ini',
+        group: stringifyValue(n.attributes?.group) ?? undefined,
+        originPath: `${origin} (server ingest)`,
+      })
+      i++
+      continue
+    }
+    if (n.kind === 'tf_resource') {
+      const pub = stringifyValue(n.attributes?.public_ip)
+      const priv = stringifyValue(n.attributes?.private_ip)
+      const ip = pub && pub !== 'null' ? pub : priv && priv !== 'null' ? priv : ''
+      if (!ip) {
+        continue
+      }
+      rows.push({
+        id: `ingest:tf:${n.id}:${i}`,
+        name: n.label,
+        ansibleHost: ip,
+        source: 'terraform-state',
+        originPath: `${origin} (server ingest)`,
+      })
+      i++
+    }
+  }
+  return rows
+}
