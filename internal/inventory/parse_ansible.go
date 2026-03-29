@@ -19,9 +19,9 @@ func ParseAnsibleINIHosts(text []byte) ([]string, error) {
 		return nil, nil
 	}
 	cfg, err := ini.LoadSources(ini.LoadOptions{
-		AllowBooleanKeys:   true,
+		AllowBooleanKeys:    true,
 		InsensitiveSections: true,
-		InsensitiveKeys:    true,
+		InsensitiveKeys:     true,
 		IgnoreInlineComment: false,
 	}, text)
 	if err != nil {

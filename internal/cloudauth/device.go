@@ -13,9 +13,9 @@ import (
 
 // OIDCMetadata is a subset of /.well-known/openid-configuration.
 type OIDCMetadata struct {
-	Issuer                        string `json:"issuer"`
-	DeviceAuthorizationEndpoint   string `json:"device_authorization_endpoint"`
-	TokenEndpoint                 string `json:"token_endpoint"`
+	Issuer                      string `json:"issuer"`
+	DeviceAuthorizationEndpoint string `json:"device_authorization_endpoint"`
+	TokenEndpoint               string `json:"token_endpoint"`
 }
 
 // FetchOIDCMetadata loads discovery JSON from issuer (trailing slash optional).

@@ -53,14 +53,14 @@ type DiscoveryProvenance struct {
 
 // GraphManifest is connector-style discovery output (Python omnigraph-agent parity).
 type GraphManifest struct {
-	GraphID            string              `json:"graph_id"`
-	NodeID             string              `json:"node_id"`
-	ArtifactsDir       string              `json:"artifacts_dir"`
-	Inputs             []string            `json:"inputs"`
-	Outputs            []string            `json:"outputs"`
-	RoutingPolicy      RoutingPolicy       `json:"routing_policy"`
-	BackendConstraints map[string]any      `json:"backend_constraints,omitempty"`
-	ExecutionPlanRef   *string             `json:"execution_plan_ref,omitempty"`
+	GraphID            string               `json:"graph_id"`
+	NodeID             string               `json:"node_id"`
+	ArtifactsDir       string               `json:"artifacts_dir"`
+	Inputs             []string             `json:"inputs"`
+	Outputs            []string             `json:"outputs"`
+	RoutingPolicy      RoutingPolicy        `json:"routing_policy"`
+	BackendConstraints map[string]any       `json:"backend_constraints,omitempty"`
+	ExecutionPlanRef   *string              `json:"execution_plan_ref,omitempty"`
 	Discovery          *DiscoveryProvenance `json:"discovery,omitempty"`
 }
 
