@@ -552,6 +552,7 @@ export default function OmniGraphMVP() {
           ) : null}
           {activeTab === 'pipeline' ? (
             <PipelineTab
+              graphText={graphText}
               workdir={pipelineWorkdir}
               onWorkdirChange={setPipelineWorkdir}
               ansibleRoot={pipelineAnsibleRoot}
