@@ -31,9 +31,9 @@ type RootModule struct {
 
 // ChildModule is a nested module instance in Terraform/OpenTofu JSON state.
 type ChildModule struct {
-	Address      string         `json:"address,omitempty"`
-	Resources    []Resource     `json:"resources,omitempty"`
-	ChildModules []ChildModule  `json:"child_modules,omitempty"`
+	Address      string        `json:"address,omitempty"`
+	Resources    []Resource    `json:"resources,omitempty"`
+	ChildModules []ChildModule `json:"child_modules,omitempty"`
 }
 
 // Resource is a managed or data resource entry in state.

@@ -36,12 +36,12 @@ type SourceProvenance struct {
 
 // StateNode is a normalized vertex (stable ID: use NodeID* helpers from parsers).
 type StateNode struct {
-	ID          string         `json:"id"`
-	Kind        string         `json:"kind"`
-	Label       string         `json:"label"`
-	State       string         `json:"state,omitempty"`
-	Attributes  map[string]any `json:"attributes,omitempty"`
-	Provenance  SourceRef      `json:"provenance"`
+	ID         string         `json:"id"`
+	Kind       string         `json:"kind"`
+	Label      string         `json:"label"`
+	State      string         `json:"state,omitempty"`
+	Attributes map[string]any `json:"attributes,omitempty"`
+	Provenance SourceRef      `json:"provenance"`
 }
 
 // StateEdge links two normalized node IDs.
@@ -62,14 +62,14 @@ type NormalizeError struct {
 
 // OmniGraphState is the merged unified view after normalization.
 type OmniGraphState struct {
-	APIVersion     string             `json:"apiVersion"`
-	GeneratedAt    string             `json:"generatedAt"`
-	CorrelationID  string             `json:"correlationId,omitempty"`
-	Nodes          []StateNode        `json:"nodes"`
-	Edges          []StateEdge        `json:"edges"`
-	Sources        []SourceProvenance `json:"sources,omitempty"`
-	PartialErrors  []NormalizeError   `json:"partialErrors,omitempty"`
-	Revision       int64              `json:"revision,omitempty"`
+	APIVersion    string             `json:"apiVersion"`
+	GeneratedAt   string             `json:"generatedAt"`
+	CorrelationID string             `json:"correlationId,omitempty"`
+	Nodes         []StateNode        `json:"nodes"`
+	Edges         []StateEdge        `json:"edges"`
+	Sources       []SourceProvenance `json:"sources,omitempty"`
+	PartialErrors []NormalizeError   `json:"partialErrors,omitempty"`
+	Revision      int64              `json:"revision,omitempty"`
 }
 
 // OmniGraphStateFragment is the output of a single normalizer invocation.
@@ -95,10 +95,10 @@ type Normalizer interface {
 
 // StatePatch is a structured delta applied by the sync WebSocket hub.
 type StatePatch struct {
-	UpsertNodes   []StateNode `json:"upsertNodes,omitempty"`
-	RemoveNodes   []string    `json:"removeNodes,omitempty"`
-	UpsertEdges   []StateEdge `json:"upsertEdges,omitempty"`
-	RemoveEdges   []EdgeKey   `json:"removeEdges,omitempty"`
+	UpsertNodes []StateNode `json:"upsertNodes,omitempty"`
+	RemoveNodes []string    `json:"removeNodes,omitempty"`
+	UpsertEdges []StateEdge `json:"upsertEdges,omitempty"`
+	RemoveEdges []EdgeKey   `json:"removeEdges,omitempty"`
 }
 
 // EdgeKey identifies an edge for removal.
@@ -110,9 +110,9 @@ type EdgeKey struct {
 
 // DegradedNode describes runtime divergence from intended omnistate.
 type DegradedNode struct {
-	NodeID     string            `json:"nodeId"`
-	Reasons    []string          `json:"reasons"`
-	AttrDiffs  map[string]DiffPair `json:"attrDiffs,omitempty"`
+	NodeID    string              `json:"nodeId"`
+	Reasons   []string            `json:"reasons"`
+	AttrDiffs map[string]DiffPair `json:"attrDiffs,omitempty"`
 }
 
 // DiffPair compares intended vs runtime scalar summaries.
@@ -132,10 +132,10 @@ type FracturedEdge struct {
 
 // DriftReport is the result of CompareIntendedVsRuntime.
 type DriftReport struct {
-	DegradedNodes   []DegradedNode   `json:"degradedNodes"`
-	FracturedEdges  []FracturedEdge  `json:"fracturedEdges"`
-	AnalyzedNodes   int              `json:"analyzedNodes"`
-	AnalyzedEdges   int              `json:"analyzedEdges"`
+	DegradedNodes  []DegradedNode  `json:"degradedNodes"`
+	FracturedEdges []FracturedEdge `json:"fracturedEdges"`
+	AnalyzedNodes  int             `json:"analyzedNodes"`
+	AnalyzedEdges  int             `json:"analyzedEdges"`
 }
 
 // MergeFragments combines fragments into one state with fresh metadata.

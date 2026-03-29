@@ -121,7 +121,7 @@ func newGraphCmd() *cobra.Command {
 	emit.Flags().StringVar(&tfState, "tfstate", "", "path to Terraform/OpenTofu JSON state after apply")
 	emit.Flags().StringVar(&telemetryFile, "telemetry-file", "", "path to omnigraph/telemetry/v1 JSON to merge into the graph")
 	emit.Flags().StringVar(&securityFile, "security-file", "", "path to omnigraph/security/v1 JSON to merge securityPosture into host nodes")
-root := &cobra.Command{Use: "graph", Short: "Build and parse graph documents"}
+	root := &cobra.Command{Use: "graph", Short: "Build and parse graph documents"}
 	root.AddCommand(emit)
 	root.AddCommand(newParseCmd())
 	return root

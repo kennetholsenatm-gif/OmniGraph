@@ -106,10 +106,10 @@ type ingestLocalRequest struct {
 }
 
 type ingestFileItem struct {
-	Name          string `json:"name"`
-	ContentType   string `json:"contentType"`
-	Encoding      string `json:"encoding"`
-	Data          string `json:"data"`
+	Name        string `json:"name"`
+	ContentType string `json:"contentType"`
+	Encoding    string `json:"encoding"`
+	Data        string `json:"data"`
 }
 
 type ingestResponseError struct {

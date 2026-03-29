@@ -131,15 +131,15 @@ type wsEnvelope struct {
 }
 
 type wsStateDelta struct {
-	Type          string              `json:"type"`
-	BaseRevision  int64               `json:"baseRevision,omitempty"`
-	Patch         omnistate.StatePatch `json:"patch"`
-	Source        string              `json:"source,omitempty"`
+	Type         string               `json:"type"`
+	BaseRevision int64                `json:"baseRevision,omitempty"`
+	Patch        omnistate.StatePatch `json:"patch"`
+	Source       string               `json:"source,omitempty"`
 }
 
 type wsStateAck struct {
-	Type       string `json:"type"`
-	Revision   int64  `json:"revision"`
+	Type     string `json:"type"`
+	Revision int64  `json:"revision"`
 }
 
 type wsMutationResult struct {
@@ -187,9 +187,9 @@ func (h *syncHub) PushApplyMutation(conn *websocket.Conn, m wsApplyMutation) err
 
 // wsApplyMutation is a downstream file write for the sync daemon.
 type wsApplyMutation struct {
-	Type        string `json:"type"`
-	MutationID  string `json:"mutationId"`
-	TargetPath  string `json:"targetPath"`
-	Encoding    string `json:"encoding"`
-	Data        string `json:"data"`
+	Type       string `json:"type"`
+	MutationID string `json:"mutationId"`
+	TargetPath string `json:"targetPath"`
+	Encoding   string `json:"encoding"`
+	Data       string `json:"data"`
 }
