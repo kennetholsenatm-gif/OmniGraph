@@ -1,7 +1,10 @@
-import { Download, Eye, Network, Upload } from 'lucide-react'
-import { useRef, type ChangeEvent } from 'react'
+import { Download, Eye, Monitor, Network, Siren, Upload } from 'lucide-react'
+import { useEffect, useRef, type ChangeEvent } from 'react'
 
 import { GraphCanvas, type GraphNodeSelection } from '../graph/GraphCanvas'
+import { NodeContextPanel } from '../triage/NodeContextPanel'
+import { TriageSessionProvider, postTriageSelectionDetached, useTriageSession } from '../triage/TriageSessionContext'
+import { createGraphPopoutChannel, postGraphToPopouts } from './graphPopoutChannel'
 import { GRAPH_V1_ATTR } from '../graph/graphConventions'
 
 function formatAttrSnippet(value: unknown): string {
@@ -35,7 +38,7 @@ export type GraphVisualizerTabProps = {
   onGraphFileNameHintChange?: (value: string | undefined) => void
 }
 
-export function GraphVisualizerTab({
+function GraphVisualizerTabInner({
   graphText,
   onGraphTextChange,
   selectedNode,
@@ -44,6 +47,47 @@ export function GraphVisualizerTab({
   onGraphFileNameHintChange,
 }: GraphVisualizerTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const popoutChannelRef = useRef<BroadcastChannel | null>(null)
+
+  useEffect(() => {
+    popoutChannelRef.current = createGraphPopoutChannel()
+    return () => {
+      popoutChannelRef.current?.close()
+      popoutChannelRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    postGraphToPopouts(popoutChannelRef.current, graphText)
+  }, [graphText])
+
+  const {
+    triageByNodeId,
+    triageModeEnabled,
+    setTriageModeEnabled,
+    panelDetached,
+    setPanelDetached,
+    streamStatus,
+  } = useTriageSession()
+
+  useEffect(() => {
+    if (panelDetached) {
+      postTriageSelectionDetached(selectedNode?.id ?? null)
+    }
+  }, [selectedNode?.id, panelDetached])
+
+  const openGraphPopout = () => {
+    const u = new URL(window.location.href)
+    u.searchParams.set('popout', 'graph')
+    window.open(u.toString(), '_blank', 'noopener,noreferrer,width=1280,height=800')
+  }
+
+  const openTriagePanelPopout = () => {
+    setPanelDetached(true)
+    const u = new URL(window.location.href)
+    u.searchParams.set('popout', 'triage-panel')
+    window.open(u.toString(), '_blank', 'noopener,noreferrer,width=480,height=900')
+  }
 
   const onPickFile = () => fileInputRef.current?.click()
 
@@ -61,6 +105,8 @@ export function GraphVisualizerTab({
     }
     reader.readAsText(f)
   }
+
+  const triageForSelected = selectedNode ? triageByNodeId[selectedNode.id] : undefined
 
   const downloadGraph = () => {
     const blob = new Blob([graphText], { type: 'application/json;charset=utf-8' })
@@ -80,6 +126,19 @@ export function GraphVisualizerTab({
             Graph JSON <span className="text-gray-500">(omnigraph/graph/v1)</span>
           </label>
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setTriageModeEnabled(!triageModeEnabled)}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs ${
+                triageModeEnabled
+                  ? 'border-amber-600/60 bg-amber-950/40 text-amber-100'
+                  : 'border-gray-700 bg-gray-900 text-gray-200 hover:bg-gray-800'
+              }`}
+              title="Unified triage: canvas cues + aggregated hand-off, posture, drift for the selected node id"
+            >
+              <Siren size={14} aria-hidden />
+              Triage mode
+            </button>
             <input
               ref={fileInputRef}
               type="file"
@@ -104,6 +163,15 @@ export function GraphVisualizerTab({
               <Download size={14} aria-hidden />
               Download
             </button>
+            <button
+              type="button"
+              onClick={openGraphPopout}
+              className="flex items-center gap-2 rounded-lg border border-gray-700 bg-gray-900 px-3 py-1.5 text-xs text-gray-200 hover:bg-gray-800"
+              title="Opens a second window you can place on another monitor; stays in sync with this graph JSON."
+            >
+              <Monitor size={14} aria-hidden />
+              Graph in new window
+            </button>
           </div>
         </div>
         {graphFileNameHint ? (
@@ -126,18 +194,46 @@ export function GraphVisualizerTab({
           <code className="text-gray-400">--plan-json</code>, <code className="text-gray-400">--tfstate</code>,{' '}
           <code className="text-gray-400">--telemetry-file</code>) and paste the output here.
         </p>
-        <div className="min-h-[420px] shrink-0">
-          <GraphCanvas graphText={graphText} onNodeSelect={onNodeSelect} />
+        <div className="flex min-h-0 flex-1 flex-col">
+          <GraphCanvas graphText={graphText} onNodeSelect={onNodeSelect} className="min-h-0 flex-1" />
         </div>
       </div>
 
-      <aside className="flex w-full shrink-0 flex-col border-t border-gray-800 bg-gray-900/80 p-6 backdrop-blur-md lg:w-80 lg:border-l lg:border-t-0">
-        <h2 className="mb-6 flex items-center gap-2 text-lg font-bold text-gray-100">
-          <Eye className="text-blue-400" size={20} aria-hidden />
-          Inspector
-        </h2>
-
-        {selectedNode ? (
+      <aside
+        className={`flex min-h-0 shrink-0 flex-col border-t border-gray-800 bg-gray-900/80 backdrop-blur-md lg:border-l lg:border-t-0 ${
+          triageModeEnabled ? 'lg:w-[28rem]' : 'lg:w-80'
+        } w-full`}
+      >
+        {triageModeEnabled ? (
+          panelDetached ? (
+            <div className="flex flex-col gap-3 p-6 text-sm text-gray-400">
+              <p>Triage panel is open in another window (BroadcastChannel sync).</p>
+              <button
+                type="button"
+                className="rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-xs text-gray-200 hover:bg-gray-800"
+                onClick={() => setPanelDetached(false)}
+              >
+                Re-attach panel here
+              </button>
+            </div>
+          ) : (
+            <NodeContextPanel
+              open
+              selectedNode={selectedNode}
+              triage={triageForSelected}
+              streamStatus={streamStatus}
+              onClose={() => setTriageModeEnabled(false)}
+              onDetach={openTriagePanelPopout}
+            />
+          )
+        ) : (
+          <div className="flex min-h-0 flex-1 flex-col p-6">
+            <h2 className="mb-6 flex items-center gap-2 text-lg font-bold text-gray-100">
+              <Eye className="text-blue-400" size={20} aria-hidden />
+              Inspector
+            </h2>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+{selectedNode ? (
           <div className="space-y-6 transition-opacity duration-300">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm text-gray-400">Node id</span>
@@ -234,7 +330,19 @@ export function GraphVisualizerTab({
             </p>
           </div>
         )}
+            </div>
+          </div>
+        )}
       </aside>
     </div>
   )
 }
+
+export function GraphVisualizerTab(props: GraphVisualizerTabProps) {
+  return (
+    <TriageSessionProvider graphText={props.graphText} syncSelectionId={props.selectedNode?.id ?? null}>
+      <GraphVisualizerTabInner {...props} />
+    </TriageSessionProvider>
+  )
+}
+

@@ -2,9 +2,11 @@
 
 This page documents **headless and scripted** use of the **`omnigraph`** binary: validation, policy, graph emission, security scans, orchestration, and `serve`. It is the **automation path** that **feeds** the web workspace and CI—not the main product pitch; for the interactive graph UI, start with [using-the-web.md](using-the-web.md) and [README.md](../README.md).
 
-These scenarios use the real CLI and files under [`testdata/`](../testdata/). Run commands from the **repository root** after building the binary ([local-dev.md](development/local-dev.md)).
+These scenarios use the real CLI and files under [`testdata/`](../testdata/). For a **minimal** state + schema pair and copy-paste commands, see **[`examples/quickstart/`](../examples/quickstart/README.md)**. Run commands from the **repository root** after building the binary ([local-dev.md](development/local-dev.md)).
 
 **Prerequisites:** Go 1.23+, Node.js 20+ (only if you also run the web app), Git.
+
+**Optional Python agent:** The repo includes an optional **`omnigraph-agent`** package under [`python/`](../python/) (install with `pip install ./python` from the repo root, or `pip install -e ".[dev]"` from `python/`). It scans directories for Terraform state and Ansible inventories and prints discovery JSON (`omnigraph-agent discover --root . --json`). Use it for local onboarding helpers and connector IR experiments; **`omnigraph graph emit`**, **`serve`**, and headless CI flows stay on the Go binary above.
 
 **Build once:**
 
@@ -70,6 +72,22 @@ Example policy sources: [`testdata/policies/security-baseline.yaml`](../testdata
   --security-file testdata/sample.security.json
 ```
 
+## Scenario 4: Parse graph JSON and construct graph structure
+
+**Goal.** Parse `omnigraph/graph/v1` JSON and construct the internal graph structure for analysis or modification.
+
+```bash
+./bin/omnigraph graph parse graph.json
+```
+
+Redirect when you need a file:
+
+```bash
+./bin/omnigraph graph parse graph.json > graph-structure.json
+```
+
+Optional inputs: `--file` (path to JSON file, default stdin).
+
 Redirect when you need a file:
 
 ```bash
@@ -79,6 +97,15 @@ Redirect when you need a file:
 ```
 
 Optional inputs (when you have them): `--plan-json` (terraform/tofu show -json plan), `--tfstate` (JSON state path).
+
+**Quickstart fixtures** (tiny Terraform JSON state + valid `.omnigraph.schema`):
+
+```bash
+./bin/omnigraph graph emit examples/quickstart/.omnigraph.schema \
+  --tfstate examples/quickstart/minimal.tfstate.json
+
+./bin/omnigraph inventory from-state examples/quickstart/minimal.tfstate.json
+```
 
 ## Scenario 4: Passive security posture scan
 

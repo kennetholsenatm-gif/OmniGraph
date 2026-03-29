@@ -7,12 +7,16 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/kennetholsenatm-gif/omnigraph/internal/identity"
+	"github.com/kennetholsenatm-gif/omnigraph/internal/omnistate"
 )
 
 func TestGetWorkspaceStreamSSE(t *testing.T) {
@@ -209,5 +213,170 @@ func TestGetInventoryJSONAndINI(t *testing.T) {
 	body, _ := io.ReadAll(res2.Body)
 	if !bytes.Contains(body, []byte("[omnigraph]")) || !bytes.Contains(body, []byte("ansible_host=10.0.0.1")) {
 		t.Fatalf("ini body %s", body)
+	}
+}
+
+func TestPostIngestLocalMergeAndPartialFailure(t *testing.T) {
+	hub := newSyncHub()
+	s := &server{
+		authToken:          "tok",
+		authz:              &identity.ExperimentalAuthorizer{StaticTokenConfigured: true},
+		syncHub:            hub,
+		maxIngestBodyBytes: 4 << 20,
+	}
+	h := s.cors(s.requirePermission(identity.PermServeIngestLocal, s.postIngestLocal))
+	ts := httptest.NewServer(http.HandlerFunc(h))
+	t.Cleanup(ts.Close)
+
+	tfMinimal := `{"version":4,"terraform_version":"1.0.0","values":{"root_module":{"resources":[{"address":"aws_instance.x","type":"aws_instance","name":"x","mode":"managed","provider_name":"registry.terraform.io/hashicorp/aws","values":{}}]}}}`
+	body := map[string]any{
+		"clientSessionId": "sess-1",
+		"files": []map[string]string{
+			{"name": "terraform.tfstate", "contentType": "application/json", "encoding": "utf8", "data": tfMinimal},
+			{"name": "bad..name", "contentType": "text/plain", "encoding": "utf8", "data": "x"},
+		},
+	}
+	raw, err := json.Marshal(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest(http.MethodPost, ts.URL, bytes.NewReader(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer tok")
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("status %d", res.StatusCode)
+	}
+	var out ingestLocalResponse
+	if err := json.NewDecoder(res.Body).Decode(&out); err != nil {
+		t.Fatal(err)
+	}
+	if len(out.State.Nodes) < 1 {
+		t.Fatalf("expected terraform nodes, got %+v", out.State.Nodes)
+	}
+	if len(out.Errors) != 1 || out.Errors[0].Code != "E_NAME" {
+		t.Fatalf("errors %+v", out.Errors)
+	}
+	snap := hub.snapshot()
+	if len(snap.Nodes) != len(out.State.Nodes) {
+		t.Fatalf("hub snapshot out of sync: hub %d resp %d", len(snap.Nodes), len(out.State.Nodes))
+	}
+}
+
+func TestSyncWebSocketPingAndStateDelta(t *testing.T) {
+	hub := newSyncHub()
+	s := &server{
+		authToken: "tok",
+		authz:     &identity.ExperimentalAuthorizer{StaticTokenConfigured: true},
+		syncHub:   hub,
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/sync/ws", s.cors(s.requirePermission(identity.PermServeSyncWS, s.getSyncWebSocket)))
+	ts := httptest.NewServer(mux)
+	t.Cleanup(ts.Close)
+
+	httpURL, err := url.Parse(ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wsScheme := "ws"
+	if httpURL.Scheme == "https" {
+		wsScheme = "wss"
+	}
+	wsAddr := wsScheme + "://" + httpURL.Host + "/api/v1/sync/ws"
+	hdr := http.Header{}
+	hdr.Set("Authorization", "Bearer tok")
+	d := websocket.Dialer{HandshakeTimeout: 5 * time.Second}
+	conn, _, err := d.Dial(wsAddr, hdr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+
+	if err := conn.WriteJSON(map[string]string{"type": "ping"}); err != nil {
+		t.Fatal(err)
+	}
+	var pong map[string]string
+	if err := conn.ReadJSON(&pong); err != nil {
+		t.Fatal(err)
+	}
+	if pong["type"] != "pong" {
+		t.Fatalf("pong %+v", pong)
+	}
+
+	delta := map[string]any{
+		"type": "state_delta",
+		"patch": omnistate.StatePatch{
+			UpsertNodes: []omnistate.StateNode{
+				{ID: "n-ws-test", Kind: "synthetic", Label: "ws", Provenance: omnistate.SourceRef{Type: omnistate.SourceAgentLocal, Name: "test"}},
+			},
+		},
+	}
+	if err := conn.WriteJSON(delta); err != nil {
+		t.Fatal(err)
+	}
+	var ack wsStateAck
+	if err := conn.ReadJSON(&ack); err != nil {
+		t.Fatal(err)
+	}
+	if ack.Type != "state_ack" || ack.Revision < 1 {
+		t.Fatalf("ack %+v", ack)
+	}
+	snap := hub.snapshot()
+	var found bool
+	for _, n := range snap.Nodes {
+		if n.ID == "n-ws-test" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("hub missing patched node: %+v", snap.Nodes)
+	}
+
+	if err := conn.WriteJSON(map[string]any{
+		"type":       "mutation_result",
+		"mutationId": "m1",
+		"ok":         true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var mack wsGeneric
+	if err := conn.ReadJSON(&mack); err != nil {
+		t.Fatal(err)
+	}
+	if mack.Type != "mutation_ack" || !mack.OK || mack.MutationID != "m1" {
+		t.Fatalf("mutation_ack %+v", mack)
+	}
+}
+
+func TestPostIngestLocalEmptyFiles(t *testing.T) {
+	s := &server{
+		authToken: "tok",
+		authz:     &identity.ExperimentalAuthorizer{StaticTokenConfigured: true},
+	}
+	h := s.cors(s.requirePermission(identity.PermServeIngestLocal, s.postIngestLocal))
+	ts := httptest.NewServer(http.HandlerFunc(h))
+	t.Cleanup(ts.Close)
+	req, err := http.NewRequest(http.MethodPost, ts.URL, strings.NewReader(`{"files":[]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer tok")
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status %d", res.StatusCode)
 	}
 }

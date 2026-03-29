@@ -30,7 +30,7 @@ func (e *ExperimentalAuthorizer) Can(s Subject, perm string, _ string) bool {
 func experimentalPermitted(perm string) bool {
 	switch perm {
 	case PermServeSecurityScan, PermServeHostOpsRead, PermServeHostOpsWrite,
-		PermServeInventoryRead, PermServeAuditRead:
+		PermServeInventoryRead, PermServeAuditRead, PermServeIngestLocal, PermServeSyncWS:
 		return true
 	default:
 		return false

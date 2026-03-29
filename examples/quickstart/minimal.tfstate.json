@@ -1,0 +1,11 @@
+{
+  "version": 4,
+  "values": {
+    "outputs": {
+      "x": { "value": "10.0.0.1" }
+    },
+    "root_module": {
+      "resources": []
+    }
+  }
+}

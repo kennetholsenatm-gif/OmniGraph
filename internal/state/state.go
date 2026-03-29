@@ -23,9 +23,17 @@ type OutputValue struct {
 	Type  any `json:"type,omitempty"`
 }
 
-// RootModule lists resources at the module root.
+// RootModule lists resources at the module root and nested child modules (state format v4).
 type RootModule struct {
-	Resources []Resource `json:"resources,omitempty"`
+	Resources    []Resource    `json:"resources,omitempty"`
+	ChildModules []ChildModule `json:"child_modules,omitempty"`
+}
+
+// ChildModule is a nested module instance in Terraform/OpenTofu JSON state.
+type ChildModule struct {
+	Address      string        `json:"address,omitempty"`
+	Resources    []Resource    `json:"resources,omitempty"`
+	ChildModules []ChildModule `json:"child_modules,omitempty"`
 }
 
 // Resource is a managed or data resource entry in state.

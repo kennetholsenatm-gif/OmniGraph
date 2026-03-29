@@ -22,6 +22,25 @@ Declarative graphs explain **intent**; Ansible-style logs explain **what the run
 
 You still read the real log lines, but you read them **beside the node that failed**, with structure that tells you **why that node mattered** to the declared system. Abstraction carries its own receipts.
 
+## WASM boundary (Web IDE)
+
+The **shipping Topology experience** builds `omnigraph/graph/v1` in **Go** ([`internal/graph`](../../internal/graph), CLI in [`internal/cli/graph.go`](../../internal/cli/graph.go)) from project documents, optional plan/state paths, and merges—not from Wasm inside the CLI.
+
+**What the bundled Wasm does:** the **Web IDE** loads [`wasm/hcldiag`](../../wasm/hcldiag) in the **browser** only. [`packages/web/src/hclWasm.ts`](../../packages/web/src/hclWasm.ts) instantiates it and exposes `omnigraphHclValidate` on `globalThis` so the UI can lint **HCL source strings** you type in the scratchpad. It does **not** read `terraform.tfstate`, plan JSON, or `.omnigraph.schema` from disk; those paths are handled by **Go** (`graph emit --tfstate`, `serve` discovery, Inventory paste) or by you pasting text into the workspace.
+
+**What Wasm does not do:** it is not the authority for graph reconciliation, inventory, or OpenTofu/Terraform state. Treat Wasm as an **editor assist** for HCL-shaped text, separate from the control plane.
+
+Other trees (for example [`internal/enclave`](../../internal/enclave)) describe different Wasm-adjacent designs for contributors; they do not power the default Topology tab today.
+
+**Browser integration (excerpt from `hclWasm.ts`):**
+
+```typescript
+const go = new Go()
+const res = await WebAssembly.instantiateStreaming(fetch('/wasm/hcldiag.wasm'), go.importObject)
+void go.run(res.instance)
+// …then validateHclText(src) calls globalThis.omnigraphHclValidate(src) and JSON.parses diagnostics
+```
+
 ## See also
 
 - [Understanding the UI modes](../guides/ui-modes.md)

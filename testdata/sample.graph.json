@@ -1,0 +1,30 @@
+{
+  "apiVersion": "omnigraph/graph/v1",
+  "kind": "Graph",
+  "metadata": {
+    "generatedAt": "2024-01-01T00:00:00Z",
+    "project": "test-project",
+    "environment": "dev"
+  },
+  "spec": {
+    "phase": "plan",
+    "nodes": [
+      {
+        "id": "node1",
+        "kind": "host",
+        "label": "host1",
+        "state": "active",
+        "attributes": {
+          "ip": "192.168.1.1"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "node1",
+        "to": "node2",
+        "kind": "connects"
+      }
+    ]
+  }
+}

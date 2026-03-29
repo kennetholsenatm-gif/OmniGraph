@@ -70,6 +70,14 @@ type RunSummary struct {
 	Inventory  string `json:"inventoryPreview,omitempty"`
 }
 
+// Graph represents the internal graph structure.
+type Graph struct {
+	APIVersion string    `json:"apiVersion"`
+	Kind       string    `json:"kind"`
+	Metadata   Metadata  `json:"metadata"`
+	Spec       GraphSpec `json:"spec"`
+}
+
 // EmitOptions configures optional plan/state enrichment.
 type EmitOptions struct {
 	PlanJSONPath   string
@@ -222,6 +230,116 @@ func slug(s string) string {
 		return "host"
 	}
 	return string(b)
+}
+
+// ParseDocument parses JSON bytes into a Document struct.
+func ParseDocument(data []byte) (*Document, error) {
+	var doc Document
+	if err := json.Unmarshal(data, &doc); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+	if err := validateDocument(&doc); err != nil {
+		return nil, err
+	}
+	return &doc, nil
+}
+
+// validateDocument validates the Document against the IaC schema.
+func validateDocument(doc *Document) error {
+	if doc == nil {
+		return fmt.Errorf("document is nil")
+	}
+	if doc.APIVersion != apiVersion {
+		return fmt.Errorf("invalid apiVersion: expected %q, got %q", apiVersion, doc.APIVersion)
+	}
+	if doc.Kind != kind {
+		return fmt.Errorf("invalid kind: expected %q, got %q", kind, doc.Kind)
+	}
+	if doc.Spec.Phase == "" {
+		return fmt.Errorf("spec.phase is required")
+	}
+	if len(doc.Spec.Nodes) == 0 {
+		return fmt.Errorf("spec.nodes is required and cannot be empty")
+	}
+	for _, node := range doc.Spec.Nodes {
+		if node.ID == "" {
+			return fmt.Errorf("node ID cannot be empty")
+		}
+		if node.Kind == "" {
+			return fmt.Errorf("node kind cannot be empty for node %q", node.ID)
+		}
+		if node.Label == "" {
+			return fmt.Errorf("node label cannot be empty for node %q", node.ID)
+		}
+	}
+	nodeIDs := make(map[string]struct{}, len(doc.Spec.Nodes))
+	for _, node := range doc.Spec.Nodes {
+		nodeIDs[node.ID] = struct{}{}
+	}
+	for _, edge := range doc.Spec.Edges {
+		if edge.From == "" {
+			return fmt.Errorf("edge from cannot be empty")
+		}
+		if edge.To == "" {
+			return fmt.Errorf("edge to cannot be empty")
+		}
+		if _, ok := nodeIDs[edge.From]; !ok {
+			return fmt.Errorf("edge references unknown node %q", edge.From)
+		}
+		if _, ok := nodeIDs[edge.To]; !ok {
+			return fmt.Errorf("edge references unknown node %q", edge.To)
+		}
+	}
+	return nil
+}
+
+// ConstructFromDocument builds a graph structure from a parsed Document.
+func ConstructFromDocument(doc *Document) (*Graph, error) {
+	if doc == nil {
+		return nil, fmt.Errorf("document is nil")
+	}
+	if err := validateDocument(doc); err != nil {
+		return nil, err
+	}
+
+	graph := &Graph{
+		APIVersion: doc.APIVersion,
+		Kind:       doc.Kind,
+		Metadata: Metadata{
+			GeneratedAt: doc.Metadata.GeneratedAt,
+			Project:     doc.Metadata.Project,
+			Environment: doc.Metadata.Environment,
+		},
+		Spec: GraphSpec{
+			Phase:   doc.Spec.Phase,
+			Nodes:   make([]Node, len(doc.Spec.Nodes)),
+			Edges:   make([]Edge, len(doc.Spec.Edges)),
+			Phases:  doc.Spec.Phases,
+			Summary: doc.Spec.Summary,
+		},
+	}
+
+	// Copy nodes
+	for i, node := range doc.Spec.Nodes {
+		graph.Spec.Nodes[i] = Node{
+			ID:         node.ID,
+			Kind:       node.Kind,
+			Label:      node.Label,
+			State:      node.State,
+			Attributes: node.Attributes,
+		}
+	}
+
+	// Copy edges
+	for i, edge := range doc.Spec.Edges {
+		graph.Spec.Edges[i] = Edge{
+			From: edge.From,
+			To:   edge.To,
+			Kind: edge.Kind,
+		}
+	}
+
+	return graph, nil
 }
 
 // EncodeIndent returns indented JSON for human-readable artifacts.

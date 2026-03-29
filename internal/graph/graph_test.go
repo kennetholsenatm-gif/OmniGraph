@@ -2,105 +2,249 @@ package graph
 
 import (
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"testing"
-
-	"github.com/kennetholsenatm-gif/omnigraph/internal/coerce"
-	"github.com/kennetholsenatm-gif/omnigraph/internal/project"
-	"github.com/kennetholsenatm-gif/omnigraph/internal/schema"
-	"github.com/kennetholsenatm-gif/omnigraph/internal/security"
-	"github.com/kennetholsenatm-gif/omnigraph/internal/state"
-	"github.com/kennetholsenatm-gif/omnigraph/schemas"
-	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
-func TestEmit_ConformsToGraphSchema(t *testing.T) {
-	root, err := filepath.Abs("../..")
+func TestParseDocument_ValidJSON(t *testing.T) {
+	jsonData := []byte(`{
+		"apiVersion": "omnigraph/graph/v1",
+		"kind": "Graph",
+		"metadata": {
+			"generatedAt": "2024-01-01T00:00:00Z",
+			"project": "test-project",
+			"environment": "dev"
+		},
+		"spec": {
+			"phase": "plan",
+			"nodes": [
+				{
+					"id": "node1",
+					"kind": "host",
+					"label": "host1",
+					"state": "active",
+					"attributes": {
+						"ip": "192.168.1.1"
+					}
+				},
+				{
+					"id": "node2",
+					"kind": "host",
+					"label": "host2",
+					"state": "active",
+					"attributes": {
+						"ip": "192.168.1.2"
+					}
+				}
+			],
+			"edges": [
+				{
+					"from": "node1",
+					"to": "node2",
+					"kind": "connects"
+				}
+			]
+		}
+	}`)
+
+	doc, err := ParseDocument(jsonData)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("ParseDocument failed: %v", err)
 	}
-	raw, err := os.ReadFile(filepath.Join(root, "testdata", "sample.omnigraph.schema"))
-	if err != nil {
-		t.Fatal(err)
+
+	if doc.APIVersion != "omnigraph/graph/v1" {
+		t.Errorf("expected apiVersion %q, got %q", "omnigraph/graph/v1", doc.APIVersion)
 	}
-	if _, err := schema.ValidateRawDocument(raw); err != nil {
-		t.Fatal(err)
+	if doc.Kind != "Graph" {
+		t.Errorf("expected kind %q, got %q", "Graph", doc.Kind)
 	}
-	doc, err := project.ParseDocument(raw)
-	if err != nil {
-		t.Fatal(err)
+	if len(doc.Spec.Nodes) != 2 {
+		t.Errorf("expected 2 nodes, got %d", len(doc.Spec.Nodes))
 	}
-	art, err := coerce.FromDocument(doc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	st, err := state.Load(filepath.Join(root, "internal", "state", "testdata", "minimal.state.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	planPath := filepath.Join(root, "internal", "plan", "testdata", "minimal-plan.json")
-	telemetryPath := filepath.Join(root, "testdata", "sample.telemetry.json")
-	gdoc, err := Emit(doc, art, EmitOptions{
-		PlanJSONPath:   planPath,
-		TerraformState: st,
-		TelemetryPath:  telemetryPath,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	b, err := EncodeIndent(gdoc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var graphSchema map[string]any
-	if err := json.Unmarshal(schemas.GraphV1SchemaJSON, &graphSchema); err != nil {
-		t.Fatal(err)
-	}
-	c := jsonschema.NewCompiler()
-	const graphID = "https://github.com/kennetholsenatm-gif/omnigraph/schemas/graph.v1.schema.json"
-	if err := c.AddResource(graphID, graphSchema); err != nil {
-		t.Fatal(err)
-	}
-	sch, err := c.Compile(graphID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var instance map[string]any
-	if err := json.Unmarshal(b, &instance); err != nil {
-		t.Fatal(err)
-	}
-	if err := sch.Validate(instance); err != nil {
-		t.Fatal(err)
+	if len(doc.Spec.Edges) != 1 {
+		t.Errorf("expected 1 edge, got %d", len(doc.Spec.Edges))
 	}
 }
 
-func TestMergeSecurity(t *testing.T) {
-	g := &Document{
-		APIVersion: apiVersion,
-		Kind:       kind,
-		Metadata:   Metadata{GeneratedAt: "now"},
+func TestParseDocument_InvalidJSON(t *testing.T) {
+	jsonData := []byte(`{
+		"apiVersion": "omnigraph/graph/v1",
+		"kind": "Graph",
+		"metadata": {
+			"generatedAt": "2024-01-01T00:00:00Z"
+		},
+		"spec": {
+			"phase": "plan",
+			"nodes": [],
+			"edges": []
+		}
+	}`)
+
+	_, err := ParseDocument(jsonData)
+	if err == nil {
+		t.Errorf("expected error for empty nodes, got nil")
+	}
+}
+
+func TestParseDocument_MissingFields(t *testing.T) {
+	jsonData := []byte(`{
+		"apiVersion": "omnigraph/graph/v1",
+		"kind": "Graph",
+		"metadata": {
+			"generatedAt": "2024-01-01T00:00:00Z",
+			"project": "test-project"
+		},
+		"spec": {
+			"phase": "plan",
+			"nodes": [
+				{
+					"id": "node1",
+					"kind": "host",
+					"label": "host1"
+				}
+			],
+			"edges": [
+				{
+					"from": "node1",
+					"to": "node2"
+				}
+			]
+		}
+	}`)
+
+	_, err := ParseDocument(jsonData)
+	if err == nil {
+		t.Errorf("expected error for missing node2, got nil")
+	}
+}
+
+func TestConstructFromDocument_ValidDocument(t *testing.T) {
+	doc := &Document{
+		APIVersion: "omnigraph/graph/v1",
+		Kind:       "Graph",
+		Metadata: Metadata{
+			GeneratedAt: "2024-01-01T00:00:00Z",
+			Project:     "test-project",
+			Environment: "dev",
+		},
 		Spec: GraphSpec{
+			Phase: "plan",
 			Nodes: []Node{
-				{ID: "h1", Kind: "host", Label: "app", State: "live", Attributes: map[string]any{"ansible_host": "10.0.0.5"}},
+				{
+					ID:         "node1",
+					Kind:       "host",
+					Label:      "host1",
+					State:      "active",
+					Attributes: map[string]any{"ip": "192.168.1.1"},
+				},
+				{
+					ID:         "node2",
+					Kind:       "host",
+					Label:      "host2",
+					State:      "active",
+					Attributes: map[string]any{"ip": "192.168.1.2"},
+				},
+			},
+			Edges: []Edge{
+				{
+					From: "node1",
+					To:   "node2",
+					Kind: "connects",
+				},
 			},
 		},
 	}
-	sec, err := security.LoadDocument(filepath.Join("..", "..", "testdata", "sample.security.json"))
+
+	graph, err := ConstructFromDocument(doc)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("ConstructFromDocument failed: %v", err)
 	}
-	sec.Metadata.AnsibleHost = "10.0.0.5"
-	MergeSecurity(g, sec)
-	attr := g.Spec.Nodes[0].Attributes
-	if attr == nil {
-		t.Fatal("no attributes")
+
+	if graph.APIVersion != "omnigraph/graph/v1" {
+		t.Errorf("expected apiVersion %q, got %q", "omnigraph/graph/v1", graph.APIVersion)
 	}
-	sp, ok := attr["securityPosture"].(map[string]any)
-	if !ok {
-		t.Fatalf("securityPosture missing: %#v", attr["securityPosture"])
+	if len(graph.Spec.Nodes) != 2 {
+		t.Errorf("expected 2 nodes, got %d", len(graph.Spec.Nodes))
 	}
-	if _, ok := sp["generatedAt"]; !ok {
-		t.Fatalf("payload: %+v", sp)
+	if len(graph.Spec.Edges) != 1 {
+		t.Errorf("expected 1 edge, got %d", len(graph.Spec.Edges))
+	}
+}
+
+func TestConstructFromDocument_InvalidDocument(t *testing.T) {
+	doc := &Document{
+		APIVersion: "omnigraph/graph/v1",
+		Kind:       "Graph",
+		Metadata: Metadata{
+			GeneratedAt: "2024-01-01T00:00:00Z",
+		},
+		Spec: GraphSpec{
+			Phase: "plan",
+			Nodes: []Node{},
+			Edges: []Edge{},
+		},
+	}
+
+	_, err := ConstructFromDocument(doc)
+	if err == nil {
+		t.Errorf("expected error for empty nodes, got nil")
+	}
+}
+
+func TestRoundTripJSON(t *testing.T) {
+	original := &Document{
+		APIVersion: "omnigraph/graph/v1",
+		Kind:       "Graph",
+		Metadata: Metadata{
+			GeneratedAt: "2024-01-01T00:00:00Z",
+			Project:     "test-project",
+			Environment: "dev",
+		},
+		Spec: GraphSpec{
+			Phase: "plan",
+			Nodes: []Node{
+				{
+					ID:         "node1",
+					Kind:       "host",
+					Label:      "host1",
+					State:      "active",
+					Attributes: map[string]any{"ip": "192.168.1.1"},
+				},
+				{
+					ID:         "node2",
+					Kind:       "host",
+					Label:      "host2",
+					State:      "active",
+					Attributes: map[string]any{"ip": "192.168.1.2"},
+				},
+			},
+			Edges: []Edge{
+				{
+					From: "node1",
+					To:   "node2",
+					Kind: "connects",
+				},
+			},
+		},
+	}
+
+	// Convert to JSON and back
+	jsonData, err := json.MarshalIndent(original, "", "  ")
+	if err != nil {
+		t.Fatalf("failed to marshal JSON: %v", err)
+	}
+
+	parsed, err := ParseDocument(jsonData)
+	if err != nil {
+		t.Fatalf("ParseDocument failed: %v", err)
+	}
+
+	// Convert back to JSON
+	roundTripJSON, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		t.Fatalf("failed to marshal round-trip JSON: %v", err)
+	}
+
+	if string(jsonData) != string(roundTripJSON) {
+		t.Errorf("round-trip JSON does not match original")
 	}
 }

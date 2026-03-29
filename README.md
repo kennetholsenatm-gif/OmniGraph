@@ -79,6 +79,7 @@ Tab-by-tab tour: **[docs/using-the-web.md](docs/using-the-web.md)**.
 | [`wasm/`](wasm/) | Browser Wasm (e.g. [`wasm/hcldiag`](wasm/hcldiag)) for editor-side HCL diagnostics—not Terraform state I/O. |
 | [`e2e/`](e2e/) | Contributor end-to-end harness. |
 | [`pkg/emitter`](pkg/emitter) | **IR → artifacts** (Emitter Engine): [`model.go`](pkg/emitter/model.go) carries `omnigraph/ir/v1`-shaped intent; backends such as [`emit_ansible.go`](pkg/emitter/emit_ansible.go) compile that into Ansible-oriented output. Manifest **reconciliation** (desired vs actual) lives in `internal/reconcile` / `omnigraph apply`, not here. |
+| [`python/`](python/) | **Optional** Python agent (`pip install ./python`): discovery (Terraform state / Ansible inventory), connector IR and drift scaffold; CLI `omnigraph-agent`. See [`python/README.md`](python/README.md). |
 
 **Live workspace stream (SSE):** implemented in Go as **`getWorkspaceStream`** on **`GET /api/v1/workspace/stream`** — see [`internal/serve/server.go`](internal/serve/server.go) (handler and route registration).
 
@@ -133,6 +134,10 @@ go build -o bin/omnigraph ./cmd/omnigraph
 ```
 
 Optional: add **`--plan-json`** to `graph emit` with output from **`terraform show -json tfplan`** (or OpenTofu equivalent). Full automation scenarios: **[docs/cli-and-ci.md](docs/cli-and-ci.md)**.
+
+### C — Optional Python agent (discovery)
+
+If you want **local file discovery** without pasting JSON into the UI, install the optional package from [`python/`](python/): `cd python && pip install -e .`, then run **`omnigraph-agent discover --root . --json`** to emit manifests for Terraform state and Ansible inventories. The Go **`omnigraph`** CLI remains the canonical path for **`graph emit`**, **`serve`**, and CI; details in **[python/README.md](python/README.md)**.
 
 ---
 
