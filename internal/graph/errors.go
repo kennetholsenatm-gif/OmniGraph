@@ -20,6 +20,9 @@ var (
 	ErrEmptyEdgeFrom = errors.New("graph: edge from cannot be empty")
 	ErrEmptyEdgeTo   = errors.New("graph: edge to cannot be empty")
 
+	// ErrInvalidDependencyRole is returned when dependencyRole is set to an unknown value.
+	ErrInvalidDependencyRole = errors.New("graph: invalid edge dependencyRole (use necessary or sufficient)")
+
 	ErrOrphanNode              = errors.New("graph: orphan node has no incident edges")
 	ErrMultipleWeakComponents  = errors.New("graph: multiple weakly connected components")
 	ErrNilConcurrentGraph      = errors.New("graph: concurrent graph nil receiver")

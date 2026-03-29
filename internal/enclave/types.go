@@ -23,6 +23,10 @@ type EnclaveMetadata struct {
 
 // EnclaveSpec defines the desired state
 type EnclaveSpec struct {
+	// Requires names explicit inputs (API contract); cross-enclave references must appear here or in Provides.
+	Requires []string `json:"requires" yaml:"requires"`
+	// Provides names explicit outputs (API contract) this enclave publishes to peers.
+	Provides []string `json:"provides" yaml:"provides"`
 	DependsOn          []string          `json:"dependsOn,omitempty" yaml:"dependsOn,omitempty"`
 	DeploymentStrategy string            `json:"deploymentStrategy" yaml:"deploymentStrategy"`
 	Replicas           int               `json:"replicas" yaml:"replicas"`

@@ -35,6 +35,7 @@ flowchart LR
 - **Browser workspace** — Topology, schema, pipeline context, inventory, and posture live together in one canvas.
 - **Honest boundaries** — OpenTofu/Terraform/Ansible stay your engines; OmniGraph does not replace your provider layer.
 - **Live backend truth** — When you use same-origin **serve**, **Server-Sent Events** and optional **WebSocket** sync keep the view aligned with normalized state (see **[docs/core-concepts/ux-architecture.md](docs/core-concepts/ux-architecture.md)**).
+- **TOML-first human authoring** — **`.omnigraph.schema`** (Project intent) is **recommended in TOML** for day-to-day editing; the CLI and Schema Contract tab also accept **YAML** and **JSON** for compatibility. **Machine-shaped** artifacts—OpenTofu/Terraform **JSON state**, **plan JSON**, Ansible inventory, CI outputs—stay in the formats those tools emit; OmniGraph **ingests** them for reconciliation and graph emit **without** asking you to hand-maintain that noise for project intent.
 
 ## How OmniGraph supports declarative Ansible handoff
 
@@ -68,6 +69,8 @@ Same-origin **serve** with Inventory and SSE is described in **[docs/using-the-w
 - **[docs/overview.md](docs/overview.md)** — who / what / where
 - **[docs/core-concepts/ux-architecture.md](docs/core-concepts/ux-architecture.md)** — progressive disclosure, backend truth
 - **[docs/guides/ui-modes.md](docs/guides/ui-modes.md)** — Topology, Reconciliation, Posture
+- **[docs/guides/graph-dependencies-and-blast-radius.md](docs/guides/graph-dependencies-and-blast-radius.md)** — `dependencyRole` on graph edges; incident blast radius
+- **[docs/core-concepts/data-handoff.md](docs/core-concepts/data-handoff.md)** — how provider state/plan/inventory reaches the web UI (SSE, emit)
 
 ---
 

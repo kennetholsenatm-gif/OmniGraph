@@ -24,8 +24,8 @@ Sidebar structure matches [`packages/web/src/mvp/OmniGraphMVP.tsx`](../packages/
 
 | Tab (sidebar label) | Purpose |
 |---------------------|---------|
-| **Topology** | Edit or paste **`omnigraph/graph/v1`** JSON; interactive graph (React Flow). Inspector shows node fields and optional **`attributes.debugLog`** (imperative lines mapped to the node). Optional filename hint for export discipline. |
-| **Schema Contract** | Edit **`.omnigraph.schema`** YAML/JSON; validate against the bundled schema; configure path to the **`omnigraph`** binary for CLI-backed validation when needed. |
+| **Topology** | Edit or paste **`omnigraph/graph/v1`** JSON; interactive graph (React Flow). Inspector shows node fields and optional **`attributes.debugLog`** (imperative lines mapped to the node). **`dependencyRole`** on edges (`necessary` / `sufficient`) drives **blast-radius** semantics—see [Graph dependencies and blast radius](guides/graph-dependencies-and-blast-radius.md). **Triage mode** focuses the side panel on the **selected** node. Outages and drift are **observed** via refreshed graph/inventory and **SSE** when the server is enabled—not triggered from an in-UI “simulate” control. Optional filename hint for export discipline. |
+| **Schema Contract** | Edit **`.omnigraph.schema`** as **TOML**, **YAML**, or **JSON** (TOML recommended for hand editing); validate against the bundled schema; configure path to the **`omnigraph`** binary for CLI-backed validation when needed. |
 | **Web IDE** | HCL scratchpad with **WASM-backed diagnostics** when `hcldiag.wasm` is available (`HCL Wasm ready` in the footer). |
 | **Inventory** | Paste **Terraform/OpenTofu JSON state**, **plan JSON**, **Ansible INI**; optionally **scan a repository folder** for `.omnigraph.schema` files; or call **`omnigraph serve`** **workspace summary** when the API is reachable. Shows **SSE** status for **`GET /api/v1/workspace/stream`** (`workspace_summary` events; the Go server **watches** discovered `.tfstate` and Ansible inventory paths with a **500ms debounce** so rapid writes do not flood the browser, plus a slow fallback poll). |
 | **Pipeline** | Form for **`omnigraph orchestrate`** fields (workdir, playbook, runner, images, graph output path, etc.); generates a copy-paste shell command—useful for seeing how CLI flags map to your repo layout. |
@@ -47,6 +47,14 @@ For same-origin API calls from the browser (no CORS setup):
 2. From repo root: `omnigraph serve --web-dist packages/web/dist`
 
 Then open the URL **`serve`** prints (loopback by default). **Inventory → Load from OmniGraph server** can fill summary data when `/api/v1/workspace/summary` is available. See **`omnigraph serve --help`** for authentication and experimental endpoints.
+
+## Day-1 developer workflows (before the outage)
+
+Use the workspace **outside** incidents so the muscle memory is there when things break.
+
+- **Pre-merge structural review** — After emitting or refreshing **`omnigraph/graph/v1`** (CLI or CI artifact), paste or load the JSON into **Topology** and skim **node kinds**, **edges**, and **`dependencyRole`**. Treat it like a second diff alongside the HCL or module change: you are validating **architecture intent**, not only line edits.
+- **Planned vs live vertices** — When graph emit includes OpenTofu/Terraform **plan** and **state**, nodes often appear as **`planned-*`** (speculative) vs **`live-*`** (observed). Use that split to rehearse **what will change** vs **what already runs** before merge.
+- **Daily intent reconciliation** — Spend a few minutes in **Inventory** with the same **workspace summary** / **SSE** stream you would use in triage, but with **no** pager: confirm labels, counts, and topology still match your mental model of the system.
 
 ## Contributor reference
 

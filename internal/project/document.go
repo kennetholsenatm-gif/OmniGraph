@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/pelletier/go-toml/v2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -34,7 +35,8 @@ type NetworkSpec struct {
 	PublicPorts []int  `json:"publicPorts,omitempty" yaml:"publicPorts,omitempty"`
 }
 
-// ParseDocument decodes JSON or YAML bytes into Document.
+// ParseDocument decodes JSON, YAML, or TOML bytes into Document.
+// For non-JSON payloads, YAML is tried first; if it fails, TOML is attempted.
 func ParseDocument(raw []byte) (*Document, error) {
 	trim := bytes.TrimSpace(raw)
 	if len(trim) == 0 {
@@ -48,7 +50,9 @@ func ParseDocument(raw []byte) (*Document, error) {
 		}
 	default:
 		if err := yaml.Unmarshal(trim, &doc); err != nil {
-			return nil, fmt.Errorf("parse yaml: %w", err)
+			if err2 := toml.Unmarshal(trim, &doc); err2 != nil {
+				return nil, fmt.Errorf("parse yaml: %w; parse toml: %w", err, err2)
+			}
 		}
 	}
 	return &doc, nil

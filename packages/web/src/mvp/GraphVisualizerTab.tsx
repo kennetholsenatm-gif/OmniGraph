@@ -190,9 +190,12 @@ function GraphVisualizerTabInner({
           aria-label="Omnigraph graph v1 JSON"
         />
         <p className="text-xs text-gray-500">
-          Produce real graphs with <code className="text-gray-400">omnigraph graph emit</code> (optionally{' '}
-          <code className="text-gray-400">--plan-json</code>, <code className="text-gray-400">--tfstate</code>,{' '}
-          <code className="text-gray-400">--telemetry-file</code>) and paste the output here.
+          Use <strong className="text-gray-400">dependencyRole</strong> on edges (<code className="text-gray-500">necessary</code> vs{' '}
+          <code className="text-gray-500">sufficient</code>) for blast-radius semantics — see{' '}
+          <span className="text-gray-400">docs/guides/graph-dependencies-and-blast-radius.md</span> (including lifecycle, auditing,
+          and roadmap UI notes). Provider artifacts to Inventory/Topology:{' '}
+          <span className="text-gray-400">docs/core-concepts/data-handoff.md</span>. Automation that emits graph JSON:{' '}
+          <span className="text-gray-400">docs/cli-and-ci.md</span>.
         </p>
         <div className="flex min-h-0 flex-1 flex-col">
           <GraphCanvas graphText={graphText} onNodeSelect={onNodeSelect} className="min-h-0 flex-1" />

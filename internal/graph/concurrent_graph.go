@@ -125,7 +125,7 @@ func (g *ConcurrentGraph) AddEdge(e Edge) error {
 		return nil
 	}
 	g.edgeSeen[p] = struct{}{}
-	g.edges = append(g.edges, Edge{From: e.From, To: e.To, Kind: e.Kind})
+	g.edges = append(g.edges, Edge{From: e.From, To: e.To, Kind: e.Kind, DependencyRole: e.DependencyRole})
 	g.ensureNodeDegreesLocked(e.From)
 	g.ensureNodeDegreesLocked(e.To)
 	g.inDeg[e.To]++
@@ -201,7 +201,7 @@ func (g *ConcurrentGraph) BatchAddEdges(edges []Edge) error {
 			continue
 		}
 		g.edgeSeen[p] = struct{}{}
-		g.edges = append(g.edges, Edge{From: e.From, To: e.To, Kind: e.Kind})
+		g.edges = append(g.edges, Edge{From: e.From, To: e.To, Kind: e.Kind, DependencyRole: e.DependencyRole})
 		g.ensureNodeDegreesLocked(e.From)
 		g.ensureNodeDegreesLocked(e.To)
 		g.inDeg[e.To]++

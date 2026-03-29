@@ -32,6 +32,8 @@ export interface GraphEdgeV1 {
   from: string
   to: string
   kind?: string
+  /** necessary (default) | sufficient — see docs/guides/graph-dependencies-and-blast-radius.md */
+  dependencyRole?: string
 }
 
 export interface GraphPhaseInfo {

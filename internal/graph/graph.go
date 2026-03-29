@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/kennetholsenatm-gif/omnigraph/internal/coerce"
@@ -20,6 +21,12 @@ import (
 
 const apiVersion = "omnigraph/graph/v1"
 const kind = "Graph"
+
+// EdgeDependencyRole values for Edge.DependencyRole (JSON dependencyRole).
+const (
+	EdgeDependencyNecessary  = "necessary"
+	EdgeDependencySufficient = "sufficient"
+)
 
 // Document is the versioned graph payload for UI and PR comments.
 type Document struct {
@@ -59,6 +66,9 @@ type Edge struct {
 	From string `json:"from"`
 	To   string `json:"to"`
 	Kind string `json:"kind,omitempty"`
+	// DependencyRole classifies the edge for blast-radius and triage: "necessary" (hard / critical path)
+	// or "sufficient" (optimization or fallback). Empty omitempty JSON means necessary (backward compatible).
+	DependencyRole string `json:"dependencyRole,omitempty"`
 }
 
 // PhaseInfo records lifecycle progress.
@@ -130,12 +140,14 @@ func Emit(doc *project.Document, art *coerce.Artifacts, opts EmitOptions) (*Docu
 		if err != nil {
 			return nil, err
 		}
+		seenPlanned := make(map[string]struct{})
 		hosts := plan.ProjectedHosts(pj)
-		g.Spec.Nodes = slices.Grow(g.Spec.Nodes, len(hosts))
-		g.Spec.Edges = slices.Grow(g.Spec.Edges, len(hosts))
+		g.Spec.Nodes = slices.Grow(g.Spec.Nodes, len(hosts)+8)
+		g.Spec.Edges = slices.Grow(g.Spec.Edges, len(hosts)+8)
 		for _, addr := range sortedStringKeys(hosts) {
 			ip := hosts[addr]
-			id := "planned-" + slug(addr)
+			id := PlannedResourceNodeID(addr)
+			seenPlanned[id] = struct{}{}
 			g.Spec.Nodes = append(g.Spec.Nodes, Node{
 				ID:    id,
 				Kind:  "host",
@@ -147,6 +159,23 @@ func Emit(doc *project.Document, art *coerce.Artifacts, opts EmitOptions) (*Docu
 			})
 			g.Spec.Edges = append(g.Spec.Edges, Edge{From: "tf", To: id, Kind: "creates"})
 		}
+		for _, addr := range plan.MutationSeedAddresses(pj) {
+			id := PlannedResourceNodeID(addr)
+			if _, ok := seenPlanned[id]; ok {
+				continue
+			}
+			seenPlanned[id] = struct{}{}
+			g.Spec.Nodes = append(g.Spec.Nodes, Node{
+				ID:    id,
+				Kind:  "resource",
+				Label: addr,
+				State: "planned",
+				Attributes: map[string]any{
+					"terraform_address": addr,
+				},
+			})
+			g.Spec.Edges = append(g.Spec.Edges, Edge{From: "tf", To: id, Kind: "mutates"})
+		}
 	}
 	if opts.TerraformState != nil {
 		hosts := state.ExtractHosts(opts.TerraformState)
@@ -154,7 +183,7 @@ func Emit(doc *project.Document, art *coerce.Artifacts, opts EmitOptions) (*Docu
 		g.Spec.Edges = slices.Grow(g.Spec.Edges, len(hosts))
 		for _, addr := range sortedStringKeys(hosts) {
 			ip := hosts[addr]
-			id := "live-" + slug(addr)
+			id := "live-" + AddressSlug(addr)
 			g.Spec.Nodes = append(g.Spec.Nodes, Node{
 				ID:    id,
 				Kind:  "host",
@@ -207,7 +236,7 @@ func mergeTelemetry(d *Document, b *telemetry.Bundle) {
 		if e.From == "" || e.To == "" {
 			continue
 		}
-		d.Spec.Edges = append(d.Spec.Edges, Edge{From: e.From, To: e.To, Kind: e.Kind})
+		d.Spec.Edges = append(d.Spec.Edges, Edge{From: e.From, To: e.To, Kind: e.Kind, DependencyRole: e.DependencyRole})
 	}
 }
 
@@ -228,6 +257,11 @@ func truncateString(s string, max int) string {
 }
 
 func slug(s string) string {
+	return AddressSlug(s)
+}
+
+// AddressSlug returns a stable token for a Terraform/OpenTofu resource address, used in graph node IDs.
+func AddressSlug(s string) string {
 	b := make([]rune, 0, len(s))
 	for _, r := range s {
 		switch {
@@ -241,6 +275,11 @@ func slug(s string) string {
 		return "host"
 	}
 	return string(b)
+}
+
+// PlannedResourceNodeID is the graph node id for a planned resource at the given Terraform address (matches Emit).
+func PlannedResourceNodeID(address string) string {
+	return "planned-" + AddressSlug(address)
 }
 
 // ParseDocument parses JSON bytes into a Document struct.
@@ -337,6 +376,10 @@ func validateEdgeRefs(edges []Edge, nodeIDs map[string]struct{}) error {
 		}
 		if _, ok := nodeIDs[edge.To]; !ok {
 			return fmt.Errorf("%w", &UnknownNodeError{ID: edge.To})
+		}
+		dr := strings.TrimSpace(edge.DependencyRole)
+		if dr != "" && dr != EdgeDependencyNecessary && dr != EdgeDependencySufficient {
+			return fmt.Errorf("edge %q -> %q: %w", edge.From, edge.To, ErrInvalidDependencyRole)
 		}
 	}
 	return nil
@@ -548,9 +591,10 @@ func ConstructFromDocument(doc *Document) (*Graph, error) {
 	// Copy edges
 	for i, edge := range doc.Spec.Edges {
 		graph.Spec.Edges[i] = Edge{
-			From: edge.From,
-			To:   edge.To,
-			Kind: edge.Kind,
+			From:           edge.From,
+			To:             edge.To,
+			Kind:           edge.Kind,
+			DependencyRole: edge.DependencyRole,
 		}
 	}
 

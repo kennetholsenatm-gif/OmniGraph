@@ -1,6 +1,6 @@
 # OmniGraph documentation
 
-OmniGraph is a **graph-forward web workspace** backed by schema-first contracts (`.omnigraph.schema`, `omnigraph/*/v1`). The React UI lives in the isolated npm package [`packages/web`](../packages/web). The Go **`omnigraph`** CLI validates, orchestrates, scans, and **emits** the JSON that feeds that view and CI—it is essential automation, not the elevator pitch. See [product-philosophy.md](product-philosophy.md).
+OmniGraph is a **graph-forward web workspace** backed by schema-first contracts (`.omnigraph.schema` in **TOML** recommended, or YAML/JSON; `omnigraph/*/v1` artifacts). The React UI lives in the isolated npm package [`packages/web`](../packages/web). The Go **`omnigraph`** CLI validates, orchestrates, scans, and **emits** the JSON that feeds that view and CI—it is essential automation, not the elevator pitch. See [product-philosophy.md](product-philosophy.md).
 
 **Canonical copy lives here.** The GitHub wiki under `wiki/` links back to these paths.
 
@@ -10,12 +10,15 @@ OmniGraph is a **graph-forward web workspace** backed by schema-first contracts 
 2. [Product philosophy](product-philosophy.md) — visualization-first positioning; what the CLI is for.
 3. [UX architecture](core-concepts/ux-architecture.md) — progressive disclosure, backend truth (SSE), contextual debugging.
 4. [Understanding the UI modes](guides/ui-modes.md) — Topology, Reconciliation, Posture; mapping to sidebar tabs.
-5. [Platform architecture for contributors](development/platform-architecture.md) — narrative: workspaces, Emitter Engine, Wasm safety, E2E (start here if you ship code).
-6. [Using the web workspace](using-the-web.md) — run the UI; what each tab does.
-7. [Overview](overview.md) — who / what / where, diagrams, artifacts.
-8. [Architecture](core-concepts/architecture.md) — layers (presentation first).
-9. [Execution matrix](core-concepts/execution-matrix.md) — runners; how orchestration feeds artifacts the UI consumes.
-10. [Security posture](security/posture.md) — policy, scans, `serve` hardening, Wasm boundary.
+5. [Graph dependencies and blast radius](guides/graph-dependencies-and-blast-radius.md) — `dependencyRole` on graph edges; Go/TS blast helpers.
+6. [Data handoff](core-concepts/data-handoff.md) — provider artifacts, SSE, Inventory, Topology (technical bridge).
+7. [NOC / SRE workflow](guides/workflows-noc-sre.md) · [SOC / SecOps workflow](guides/workflows-soc-secops.md) — persona-shaped paths through the workspace.
+8. [Platform architecture for contributors](development/platform-architecture.md) — narrative: workspaces, Emitter Engine, Wasm safety, E2E (start here if you ship code).
+9. [Using the web workspace](using-the-web.md) — run the UI; what each tab does.
+10. [Overview](overview.md) — who / what / where, diagrams, artifacts.
+11. [Architecture](core-concepts/architecture.md) — layers (presentation first).
+12. [Execution matrix](core-concepts/execution-matrix.md) — runners; how orchestration feeds artifacts the UI consumes.
+13. [Security posture](security/posture.md) — policy, scans, `serve` hardening, Wasm boundary.
 
 Then: [CLI and CI](cli-and-ci.md) (headless commands and `testdata/`), [IR model](core-concepts/omnigraph-ir.md), [Emitter Engine](core-concepts/emitter-engine.md), [E2E testing](development/e2e-testing.md), [schemas](schemas/), [reference architectures](reference-architectures/overview.md) (non-normative).
 
@@ -25,6 +28,9 @@ Then: [CLI and CI](cli-and-ci.md) (headless commands and `testdata/`), [IR model
 |--------|------------|
 | Why graph/UI leads; anti-“generic CLI” | [product-philosophy.md](product-philosophy.md) |
 | First session in the browser only | [getting-started.md](getting-started.md) |
+| Dependency roles + blast radius on graph edges | [guides/graph-dependencies-and-blast-radius.md](guides/graph-dependencies-and-blast-radius.md) |
+| Provider outputs to UI (SSE, Inventory, graph emit) | [core-concepts/data-handoff.md](core-concepts/data-handoff.md) |
+| NOC/SRE or SOC/SecOps shaped tours | [guides/workflows-noc-sre.md](guides/workflows-noc-sre.md), [guides/workflows-soc-secops.md](guides/workflows-soc-secops.md) |
 | Use the graph and workspace in the browser | [using-the-web.md](using-the-web.md) |
 | What is this and for whom? | [overview.md](overview.md) |
 | Automation, CI, terminal workflows | [cli-and-ci.md](cli-and-ci.md), [examples/quickstart/README.md](../examples/quickstart/README.md) |
@@ -38,7 +44,7 @@ Then: [CLI and CI](cli-and-ci.md) (headless commands and `testdata/`), [IR model
 ## Section map
 
 - **`examples/quickstart/`** (repo root) — minimal `.tfstate.json` + `.omnigraph.schema` for `graph emit` / `inventory from-state`.
-- **guides/** — task-oriented guides (UI modes, future how-tos).
+- **guides/** — task-oriented guides (UI modes, graph dependencies / blast radius, persona workflows).
 - **core-concepts/** — architecture, UX architecture, IR, state, integrations, execution, ADRs, inventory.
 - **development/** — platform architecture narrative, local builds, web frontend, E2E, contributing pointers, [WASI parser plugins](development/wasm-plugins.md).
 - **reference-architectures/** — example topologies; adapt to your standards.
