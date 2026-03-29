@@ -55,6 +55,9 @@ type Options struct {
 
 	// IACEngine selects the infrastructure CLI family (only tofu is implemented).
 	IACEngine string // tofu (default) or pulumi (stub)
+
+	// BlastPolicy gates apply when non-zero limits are exceeded (plan-time blast radius).
+	BlastPolicy BlastRadiusPolicy
 }
 
 // Run executes validate → coerce → tofu plan → show json → inventory + ansible check → approve → apply → ansible apply.
@@ -190,6 +193,31 @@ func Run(ctx context.Context, r runner.Runner, o Options, log func(phase, detail
 	if err != nil {
 		return fmt.Errorf("orchestrate: parse plan json: %w", err)
 	}
+
+	telemetryForBlast := strings.TrimSpace(o.TelemetryFile)
+	if telemetryForBlast != "" && !filepath.IsAbs(telemetryForBlast) {
+		telemetryForBlast = filepath.Join(workAbs, telemetryForBlast)
+	}
+	gdocBlast, err := graph.Emit(doc, art, graph.EmitOptions{
+		PlanJSONPath:  planJSONHost,
+		TelemetryPath: telemetryForBlast,
+	})
+	if err != nil {
+		return fmt.Errorf("orchestrate: emit graph for blast: %w", err)
+	}
+	mutationAddrs := plan.MutationSeedAddresses(pj)
+	seedNodeIDs := make([]string, 0, len(mutationAddrs))
+	for _, a := range mutationAddrs {
+		seedNodeIDs = append(seedNodeIDs, graph.PlannedResourceNodeID(a))
+	}
+	blastReport, err := graph.ComputeBlastRadius(gdocBlast, mutationAddrs, seedNodeIDs)
+	if err != nil {
+		return fmt.Errorf("orchestrate: blast radius: %w", err)
+	}
+	if err := EvaluateBlastRadiusPolicy(o.BlastPolicy, blastReport, gdocBlast); err != nil {
+		return err
+	}
+
 	projHosts := plan.ProjectedHosts(pj)
 	invCheck := filepath.Join(workAbs, fmt.Sprintf(".omnigraph-check-%s.ini", sanitize(planRel)))
 	invCheckContent := inventory.BuildINI(projHosts)
@@ -221,6 +249,15 @@ func Run(ctx context.Context, r runner.Runner, o Options, log func(phase, detail
 	if err := confirmApply(o.AutoApprove); err != nil {
 		return err
 	}
+
+	stateMgr, err := state.NewManager(workAbs)
+	if err != nil {
+		return fmt.Errorf("orchestrate: state manager: %w", err)
+	}
+	execScope := state.NewExecutionScopeForBlastRadius(stateHost)
+	execScope.AuditSummary = blastRadiusAuditSummary(blastReport)
+	stateMgr.SetExecutionScope(execScope)
+	defer stateMgr.ClearExecutionScope()
 
 	applyArgv := []string{tfBin, "apply", "-auto-approve", planRel}
 	if runnerKind == "container" {
@@ -347,6 +384,14 @@ func sanitize(s string) string {
 		return "x"
 	}
 	return string(b)
+}
+
+func blastRadiusAuditSummary(r *graph.BlastRadiusReport) string {
+	if r == nil {
+		return ""
+	}
+	return fmt.Sprintf("seeds=%d affected=%d edges=%d total_nodes=%d",
+		len(r.SeedNodeIDs), len(r.AffectedNodeIDs), r.AffectedEdgeCount, r.TotalNodeCount)
 }
 
 func confirmApply(auto bool) error {

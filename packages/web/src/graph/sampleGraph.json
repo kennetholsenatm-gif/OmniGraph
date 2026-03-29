@@ -77,12 +77,17 @@
       }
     ],
     "edges": [
-      { "from": "project", "to": "tf", "kind": "provisions" },
-      { "from": "tf", "to": "ansible", "kind": "configures" },
-      { "from": "tf", "to": "planned-aws_instance_web", "kind": "creates" },
-      { "from": "mesh-broker-1", "to": "mesh-agent-1", "kind": "routes" },
-      { "from": "mesh-agent-1", "to": "planned-aws_instance_web", "kind": "observes" },
-      { "from": "tel-nb-demo", "to": "tf", "kind": "context" }
+      { "from": "project", "to": "tf", "kind": "provisions", "dependencyRole": "necessary" },
+      { "from": "tf", "to": "ansible", "kind": "configures", "dependencyRole": "necessary" },
+      { "from": "tf", "to": "planned-aws_instance_web", "kind": "creates", "dependencyRole": "necessary" },
+      { "from": "mesh-broker-1", "to": "mesh-agent-1", "kind": "routes", "dependencyRole": "necessary" },
+      { "from": "mesh-agent-1", "to": "planned-aws_instance_web", "kind": "observes", "dependencyRole": "necessary" },
+      {
+        "from": "tel-nb-demo",
+        "to": "tf",
+        "kind": "context",
+        "dependencyRole": "sufficient"
+      }
     ],
     "phases": [
       { "name": "validate", "status": "ok" },

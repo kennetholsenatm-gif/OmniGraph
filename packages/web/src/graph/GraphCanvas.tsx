@@ -21,7 +21,8 @@ import {
 import '@xyflow/react/dist/style.css'
 
 import { clusterPaletteClass, computeEnclaveClusters } from './graphConventions'
-import { mapGraphV1ToFlow } from './mapGraphV1ToFlow'
+import { mapGraphV1ToFlow, type DrillHighlightKind } from './mapGraphV1ToFlow'
+import { parseGraphDocument } from './parseGraphDocument'
 import type { GraphDocument } from './types'
 import { TopologyNodeFrame } from '../triage/TopologyNode'
 
@@ -38,6 +39,22 @@ export type GraphNodeSelection = {
   enclave: string
   /** Copy of graph node attributes for mesh telemetry and future fields. */
   attributes: Record<string, unknown>
+}
+
+function drillHighlightRingClass(h: unknown): string {
+  if (typeof h !== 'string' || !h) {
+    return ''
+  }
+  switch (h) {
+    case 'incident':
+      return 'ring-2 ring-rose-500/90 shadow-[0_0_22px_rgba(244,63,94,0.4)]'
+    case 'downstream':
+      return 'ring-2 ring-orange-500/80 shadow-[0_0_16px_rgba(249,115,22,0.25)]'
+    case 'upstream':
+      return 'ring-2 ring-cyan-500/65 shadow-[0_0_14px_rgba(34,211,238,0.2)]'
+    default:
+      return ''
+  }
 }
 
 function statusRingClass(state: string): string {
@@ -69,10 +86,11 @@ function OmniNode({ data, id }: NodeProps) {
         ? 'border-amber-600/60'
         : 'border-slate-500/60'
   const grayRing = isGray ? 'ring-1 ring-slate-600/40 border-dashed opacity-90' : ''
+  const drill = drillHighlightRingClass(data.drillHighlight)
   return (
     <TopologyNodeFrame nodeId={id}>
     <div
-      className={`min-w-[168px] rounded-lg border px-3 py-2 text-left text-xs ${border} ${grayRing} bg-slate-900/95 text-slate-100 shadow-md`}
+      className={`min-w-[168px] rounded-lg border px-3 py-2 text-left text-xs ${border} ${grayRing} ${drill} bg-slate-900/95 text-slate-100 shadow-md`}
     >
       <Handle type="target" position={Position.Top} className="!h-2 !w-2 !bg-slate-400" />
       <div className="font-medium">{String(data.label)}</div>
@@ -93,9 +111,10 @@ function OmniNode({ data, id }: NodeProps) {
 function TelemetryNode({ data, id }: NodeProps) {
   const kind = String(data.kind ?? 'telemetry')
   const state = String(data.state ?? 'gray')
+  const drill = drillHighlightRingClass(data.drillHighlight)
   return (
     <TopologyNodeFrame nodeId={id}>
-    <div className="relative min-w-[188px] rounded-lg border border-dashed border-sky-500/35 bg-slate-900/80 px-3 py-2 pl-11 text-left text-xs text-slate-100 shadow-md ring-1 ring-sky-500/15">
+    <div className={`relative min-w-[188px] rounded-lg border border-dashed border-sky-500/35 bg-slate-900/80 px-3 py-2 pl-11 text-left text-xs text-slate-100 shadow-md ring-1 ring-sky-500/15 ${drill}`}>
       <svg
         className="pointer-events-none absolute left-2 top-1/2 h-9 w-9 -translate-y-1/2 text-sky-400/85"
         viewBox="0 0 36 36"
@@ -139,10 +158,11 @@ function TelemetryNode({ data, id }: NodeProps) {
 function MeshBrokerNode({ data, id }: NodeProps) {
   const state = String(data.state ?? '')
   const ring = statusRingClass(state)
+  const drill = drillHighlightRingClass(data.drillHighlight)
   return (
     <TopologyNodeFrame nodeId={id}>
     <div
-      className={`relative min-w-[180px] rounded-lg border border-violet-500/45 bg-slate-900/95 px-3 py-2 pl-10 text-left text-xs text-slate-100 shadow-md ${ring}`}
+      className={`relative min-w-[180px] rounded-lg border border-violet-500/45 bg-slate-900/95 px-3 py-2 pl-10 text-left text-xs text-slate-100 shadow-md ${ring} ${drill}`}
     >
       <Radio
         className="pointer-events-none absolute left-2.5 top-1/2 h-5 w-5 -translate-y-1/2 text-violet-400/90"
@@ -166,10 +186,11 @@ function MeshBrokerNode({ data, id }: NodeProps) {
 function MeshAgentNode({ data, id }: NodeProps) {
   const state = String(data.state ?? '')
   const ring = statusRingClass(state)
+  const drill = drillHighlightRingClass(data.drillHighlight)
   return (
     <TopologyNodeFrame nodeId={id}>
     <div
-      className={`relative min-w-[180px] rounded-lg border border-indigo-500/45 bg-slate-900/95 px-3 py-2 pl-10 text-left text-xs text-slate-100 shadow-md ${ring}`}
+      className={`relative min-w-[180px] rounded-lg border border-indigo-500/45 bg-slate-900/95 px-3 py-2 pl-10 text-left text-xs text-slate-100 shadow-md ${ring} ${drill}`}
     >
       <Bot
         className="pointer-events-none absolute left-2.5 top-1/2 h-5 w-5 -translate-y-1/2 text-indigo-400/90"
@@ -198,26 +219,6 @@ const nodeTypes = {
   broker: MeshBrokerNode,
   agent: MeshAgentNode,
   default: OmniNode,
-}
-
-function parseGraph(text: string): { ok: true; doc: GraphDocument } | { ok: false; error: string } {
-  const t = text.trim()
-  if (!t) {
-    return { ok: false, error: 'Empty graph JSON' }
-  }
-  try {
-    const doc = JSON.parse(t) as GraphDocument
-    if (doc.apiVersion !== 'omnigraph/graph/v1' || doc.kind !== 'Graph') {
-      return { ok: false, error: 'Not an omnigraph/graph/v1 document' }
-    }
-    if (!doc.spec?.nodes || !doc.spec?.edges) {
-      return { ok: false, error: 'Missing spec.nodes or spec.edges' }
-    }
-    return { ok: true, doc }
-  } catch (e) {
-    const m = e instanceof Error ? e.message : String(e)
-    return { ok: false, error: m }
-  }
 }
 
 function EnclaveClusterLayer() {
@@ -371,10 +372,12 @@ function GraphCanvasInner({
   graphText,
   onNodeSelect,
   className,
+  drillHighlight,
 }: {
   graphText: string
   onNodeSelect?: (node: GraphNodeSelection | null) => void
   className?: string
+  drillHighlight?: Record<string, DrillHighlightKind>
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
@@ -384,12 +387,12 @@ function GraphCanvasInner({
     onSelectRef.current = onNodeSelect
   }, [onNodeSelect])
 
-  const parsed = useMemo(() => parseGraph(graphText), [graphText])
+  const parsed = useMemo(() => parseGraphDocument(graphText), [graphText])
 
   const applyLayout = useCallback(
     (doc: GraphDocument) => {
       try {
-        const { nodes: n, edges: e } = mapGraphV1ToFlow(doc)
+        const { nodes: n, edges: e } = mapGraphV1ToFlow(doc, { drillHighlight })
         setNodes(n)
         setEdges(e)
       } catch {
@@ -397,7 +400,7 @@ function GraphCanvasInner({
         setEdges([])
       }
     },
-    [setEdges, setNodes],
+    [drillHighlight, setEdges, setNodes],
   )
 
   useEffect(() => {
@@ -469,15 +472,25 @@ export function GraphCanvas({
   graphText,
   onNodeSelect,
   className,
+  drillHighlight,
 }: {
   graphText: string
   onNodeSelect?: (node: GraphNodeSelection | null) => void
   /** Merged onto the graph container (e.g. `min-h-0 flex-1` in popout layout). */
   className?: string
+  /** Fire-drill / blast-radius overlay kinds keyed by graph node id. */
+  drillHighlight?: Record<string, DrillHighlightKind>
 }) {
   return (
     <ReactFlowProvider>
-      <GraphCanvasInner graphText={graphText} onNodeSelect={onNodeSelect} className={className} />
+      <GraphCanvasInner
+        graphText={graphText}
+        onNodeSelect={onNodeSelect}
+        className={className}
+        drillHighlight={drillHighlight}
+      />
     </ReactFlowProvider>
   )
 }
+
+export type { DrillHighlightKind }

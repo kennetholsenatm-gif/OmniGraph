@@ -4,6 +4,20 @@ import (
 	"testing"
 )
 
+func TestValidateRawDocument_ValidTOML(t *testing.T) {
+	raw := []byte(`apiVersion = "omnigraph/v1alpha1"
+kind = "Project"
+
+[metadata]
+name = "x"
+
+[spec]
+`)
+	if _, err := ValidateRawDocument(raw); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestValidateRawDocument_ValidYAML(t *testing.T) {
 	raw := []byte(`apiVersion: omnigraph/v1alpha1
 kind: Project

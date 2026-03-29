@@ -1,6 +1,12 @@
 import dagre from 'dagre'
 import type { Edge, Node } from '@xyflow/react'
 import type { GraphDocument } from './types'
+
+export type DrillHighlightKind = 'incident' | 'downstream' | 'upstream'
+
+export type MapGraphFlowOptions = {
+  drillHighlight?: Record<string, DrillHighlightKind>
+}
 import {
   FLOW_NODE_HEIGHT,
   FLOW_NODE_WIDTH,
@@ -32,7 +38,7 @@ function cloneAttributes(attr: Record<string, unknown> | undefined): Record<stri
 }
 
 /** Maps omnigraph/graph/v1 nodes and edges into React Flow models with Dagre layout. */
-export function mapGraphV1ToFlow(doc: GraphDocument): { nodes: Node[]; edges: Edge[] } {
+export function mapGraphV1ToFlow(doc: GraphDocument, opts?: MapGraphFlowOptions): { nodes: Node[]; edges: Edge[] } {
   const g = new dagre.graphlib.Graph()
   g.setDefaultEdgeLabel(() => ({}))
   g.setGraph({ rankdir: 'TB', nodesep: 48, ranksep: 64, marginx: 24, marginy: 24 })
@@ -53,6 +59,7 @@ export function mapGraphV1ToFlow(doc: GraphDocument): { nodes: Node[]; edges: Ed
     const dbg = debugLogFromAttributes(attr)
     const enclave = enclaveLabelFromAttributes(attr)
     const flowType = flowTypeForMeshOrKind(n.kind, attr)
+    const drillHighlight = opts?.drillHighlight?.[n.id]
     return {
       id: n.id,
       type: flowType,
@@ -66,6 +73,7 @@ export function mapGraphV1ToFlow(doc: GraphDocument): { nodes: Node[]; edges: Ed
         debugLog: dbg,
         enclave: enclave ?? '',
         attributes: cloneAttributes(attr),
+        drillHighlight,
       },
     }
   })

@@ -1,0 +1,53 @@
+{
+  "cases": [
+    {
+      "name": "necessary_chain",
+      "incidents": ["a"],
+      "downstream": ["a", "b", "c"],
+      "upstream": ["a"],
+      "doc": {
+        "apiVersion": "omnigraph/graph/v1",
+        "kind": "Graph",
+        "metadata": { "generatedAt": "2026-01-01T00:00:00Z" },
+        "spec": {
+          "phase": "plan",
+          "nodes": [
+            { "id": "a", "kind": "svc", "label": "A" },
+            { "id": "b", "kind": "svc", "label": "B" },
+            { "id": "c", "kind": "svc", "label": "C" }
+          ],
+          "edges": [
+            { "from": "a", "to": "b", "kind": "depends" },
+            { "from": "b", "to": "c", "kind": "depends" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "sufficient_skipped_on_blast",
+      "incidents": ["a"],
+      "downstream": ["a", "b", "d"],
+      "upstream": ["a"],
+      "doc": {
+        "apiVersion": "omnigraph/graph/v1",
+        "kind": "Graph",
+        "metadata": { "generatedAt": "2026-01-01T00:00:00Z" },
+        "spec": {
+          "phase": "plan",
+          "nodes": [
+            { "id": "a", "kind": "svc", "label": "A" },
+            { "id": "b", "kind": "svc", "label": "B" },
+            { "id": "c", "kind": "svc", "label": "C" },
+            { "id": "d", "kind": "svc", "label": "D" }
+          ],
+          "edges": [
+            { "from": "a", "to": "b", "kind": "hard" },
+            { "from": "a", "to": "c", "kind": "soft", "dependencyRole": "sufficient" },
+            { "from": "b", "to": "d", "kind": "hard" },
+            { "from": "c", "to": "d", "kind": "soft", "dependencyRole": "sufficient" }
+          ]
+        }
+      }
+    }
+  ]
+}

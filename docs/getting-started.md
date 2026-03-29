@@ -28,8 +28,22 @@ You do not need to paste real infrastructure data on day one. The sample graph i
 
 Bring **Terraform/OpenTofu JSON state**, **plan JSON**, or **Ansible INI** when you are ready—through the **Inventory** flows your team enables. Same-origin **live summaries** are described in [using-the-web.md](using-the-web.md).
 
+## 6. Five-minute observation drill (Topology + live sync)
+
+OmniGraph is a **visibility and coordination** surface for infrastructure intent and state—not an execution engine for outages. This drill rehearses **watching the graph react** when **you** change the world outside the UI.
+
+1. Open **Topology** with the **sample** or a real **`omnigraph/graph/v1`** document, and enable **same-origin** ingest if your deployment supports it (background sync / SSE summaries are described in [using-the-web.md](using-the-web.md)).
+2. In a **terminal** (or automation you control), trigger a **safe, disposable** change: for example run a small shell script such as [`examples/quickstart/break_network.sh`](../examples/quickstart/break_network.sh) after editing it for your lab, **or** apply a mock **Terraform/OpenTofu drift** in a throwaway workspace, **or** stop a local dependency your graph represents.
+3. Stay in the workspace and watch **Topology**, **Inventory**, and any **live summary** stream: node state, attributes, and graph updates should move as refreshed inputs arrive—not because the web app “simulated” the failure for you.
+4. Turn on **Triage mode** when you want the **node-scoped** panel: practice narrowing from the **selected** vertex while the canvas keeps context.
+
+**Why this matters:** Edges can declare **`dependencyRole`** (`necessary` vs `sufficient`), which shapes **blast radius** and triage semantics. You practice that mapping against **real or lab telemetry**, not an in-browser fake outage. Full reference: [Graph dependencies and blast radius](guides/graph-dependencies-and-blast-radius.md). Fixture-oriented steps: [examples/quickstart/README.md](../examples/quickstart/README.md).
+
+For **how OpenTofu/Terraform/Ansible artifacts become Inventory and Topology updates** (without duplicating this guide), see [Data handoff](core-concepts/data-handoff.md).
+
 ## See also
 
 - [Product philosophy](product-philosophy.md) — graph-first positioning; honest boundaries with Terraform/Ansible/OpenTofu.
 - [UI modes](guides/ui-modes.md) — Topology, Reconciliation, Posture.
+- [NOC / SRE workflow](guides/workflows-noc-sre.md) · [SOC / SecOps workflow](guides/workflows-soc-secops.md)
 - [UX architecture](core-concepts/ux-architecture.md) — progressive disclosure and backend truth.

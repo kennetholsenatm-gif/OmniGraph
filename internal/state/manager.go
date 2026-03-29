@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -19,6 +20,7 @@ type Manager struct {
 	watchers   map[string]*StateWatcher
 	history    map[string][]*StateVersion
 	driftCache map[string]*DriftResult
+	execScope  *ExecutionScope
 }
 
 // StateLock represents a state lock
@@ -91,6 +93,28 @@ func NewManager(rootDir string) (*Manager, error) {
 	}, nil
 }
 
+// SetExecutionScope sets the optional path allowlist for mutating operations. Pass nil to clear.
+func (m *Manager) SetExecutionScope(scope *ExecutionScope) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.execScope = scope
+}
+
+// ClearExecutionScope removes any active execution scope.
+func (m *Manager) ClearExecutionScope() {
+	m.SetExecutionScope(nil)
+}
+
+func (m *Manager) checkExecutionScopeMutatingPath(absPath string) error {
+	if m.execScope == nil || len(m.execScope.AllowedPaths) == 0 {
+		return nil
+	}
+	if !m.execScope.allowsPath(absPath) {
+		return fmt.Errorf("state: path %q is outside the approved execution scope", absPath)
+	}
+	return nil
+}
+
 // AcquireLock acquires a lock on a state file
 func (m *Manager) AcquireLock(ctx context.Context, path, owner, operation string, ttl time.Duration) (*StateLock, error) {
 	m.mu.Lock()
@@ -98,6 +122,9 @@ func (m *Manager) AcquireLock(ctx context.Context, path, owner, operation string
 
 	absPath, err := m.resolvePath(path)
 	if err != nil {
+		return nil, err
+	}
+	if err := m.checkExecutionScopeMutatingPath(absPath); err != nil {
 		return nil, err
 	}
 
@@ -117,6 +144,12 @@ func (m *Manager) AcquireLock(ctx context.Context, path, owner, operation string
 		Operation: operation,
 		LockedAt:  time.Now(),
 		ExpiresAt: time.Now().Add(ttl),
+	}
+	if m.execScope != nil && strings.TrimSpace(m.execScope.AuditSummary) != "" {
+		if lock.Metadata == nil {
+			lock.Metadata = make(map[string]interface{})
+		}
+		lock.Metadata["blast_radius_audit"] = strings.TrimSpace(m.execScope.AuditSummary)
 	}
 
 	m.locks[absPath] = lock
@@ -143,6 +176,9 @@ func (m *Manager) ReleaseLock(path, lockID string) error {
 
 	absPath, err := m.resolvePath(path)
 	if err != nil {
+		return err
+	}
+	if err := m.checkExecutionScopeMutatingPath(absPath); err != nil {
 		return err
 	}
 
@@ -242,6 +278,9 @@ func (m *Manager) CreateVersion(ctx context.Context, path, author, message strin
 
 	absPath, err := m.resolvePath(path)
 	if err != nil {
+		return nil, err
+	}
+	if err := m.checkExecutionScopeMutatingPath(absPath); err != nil {
 		return nil, err
 	}
 

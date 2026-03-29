@@ -47,6 +47,21 @@ The sidebar groups **Topology**, **Reconciliation** (Inventory + Pipeline), **Po
 
 **Why it feels lighter:** Global lists and non-critical metrics stay out of the way until you switch to reconciliation or posture. Selection-scoped detail keeps the right pane **about the node**, not about the entire estate.
 
+### When an incident narrows the story (alert-shaped focus, today)
+
+The workspace does **not** need a live paging integration to respect **incident-shaped** attention. Today this shows up as:
+
+- **Triage mode** — Opens the unified panel (reconciliation-shaped lines, posture refs, drift-shaped cues) **for the selected node id**, without turning the whole canvas into a dashboard.
+- **Observation drill (external trigger)** — Practice **MTTR-style** focus by changing **lab** infrastructure **outside** the UI (script, local mock, or throwaway Terraform/OpenTofu apply) while **Topology** and **Inventory** update through **ingest** and **SSE**. OmniGraph coordinates visibility; it does not execute the outage from a workspace button. See [Getting started — observation drill](../getting-started.md).
+
+Edge **`dependencyRole`** (`necessary` vs `sufficient`) defines what counts for blast-radius math in tooling and the web; see [Graph dependencies and blast radius](graph-dependencies-and-blast-radius.md).
+
+### Day-1 developer rhythm (non-crisis)
+
+- **Pre-merge** — Load emitted **`omnigraph/graph/v1`** next to your code review and scan **structural deltas** (new nodes/edges, `dependencyRole` changes).
+- **Speculative topology** — Prefer graphs that distinguish **`planned-*`** vs **`live-*`** resources so reviewers see **intent before apply**.
+- **Architecture minutes** — Re-read **Topology** and a **workspace summary** on a quiet day to **reconcile** your mental model with the declared graph before an incident forces the same work under pressure.
+
 ## Reconciliation mode
 
 **Purpose:** Answer **“does the world match what we declared?”** using evidence from Terraform/OpenTofu state and plan artifacts, Ansible inventory, and pipeline/orchestration context.
@@ -69,6 +84,8 @@ The sidebar groups **Topology**, **Reconciliation** (Inventory + Pipeline), **Po
 
 ## See also
 
+- [Graph dependencies and blast radius](graph-dependencies-and-blast-radius.md)
+- [NOC / SRE workflow](workflows-noc-sre.md) · [SOC / SecOps workflow](workflows-soc-secops.md)
 - [Using the web workspace](../using-the-web.md)
 - [Overview](../overview.md)
 - [Architecture](../core-concepts/architecture.md)

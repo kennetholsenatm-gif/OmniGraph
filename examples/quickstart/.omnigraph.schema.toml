@@ -1,0 +1,17 @@
+# Same Project intent as .omnigraph.schema (YAML)—human-friendly TOML authoring.
+# Topology / dependencyRole live on omnigraph/graph/v1 JSON; see docs/guides/graph-dependencies-and-blast-radius.md
+
+apiVersion = "omnigraph/v1alpha1"
+kind = "Project"
+
+[metadata]
+name = "quickstart-demo"
+environment = "local"
+
+[spec.network]
+vpcCidr = "10.0.0.0/16"
+publicPorts = [80, 443]
+
+[spec.tags]
+app = "web"
+role = "app-server"

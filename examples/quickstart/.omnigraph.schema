@@ -1,4 +1,5 @@
 # Valid OmniGraph Project document (see schemas/omnigraph.schema.json).
+# Topology dependencies (necessary vs sufficient edges) live on omnigraph/graph/v1, not here—see docs/guides/graph-dependencies-and-blast-radius.md.
 # YAML comments are for humans only; the CLI and UI validate the structured fields below.
 #
 # Typical layout next to this file (not stored in spec—use Pipeline / omnigraph orchestrate for paths):

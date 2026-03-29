@@ -61,7 +61,12 @@
             "properties": {
               "from": { "type": "string" },
               "to": { "type": "string" },
-              "kind": { "type": "string" }
+              "kind": { "type": "string" },
+              "dependencyRole": {
+                "type": "string",
+                "description": "necessary = hard dependency on the critical path; sufficient = optimization or fallback. Omitted means necessary.",
+                "enum": ["necessary", "sufficient"]
+              }
             },
             "required": ["from", "to"]
           }

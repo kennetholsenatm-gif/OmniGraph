@@ -10,6 +10,8 @@ Traditional infra UIs punish curiosity: every panel stays open, every list compe
 
 Operationally, the product organizes work into **three modes**—Topology, Reconciliation, and Posture—so you are not asked to read topology while reconciling drift, or reconcile drift while judging exposure. Each mode is a **cognitive buffer**: it holds the problem shape steady while the UI loads just enough detail to act.
 
+When work **shifts to incident triage**, the same principle applies: **Topology** can stay the anchor while **Triage mode** and blast-radius semantics (**necessary** vs **sufficient** edges on `omnigraph/graph/v1`) deepen context **around the selected failure** instead of expanding every panel at once. Rehearse that shift with an **observation drill**: change **lab** state **outside** the UI and watch **ingest / SSE** update the workspace—see [Getting started](../getting-started.md).
+
 ## Absolute truth (curing state drift)
 
 Split-brain UIs teach bad habits: they flash success before the network answers, then scramble when reality disagrees. OmniGraph **does not use optimistic UI updates** for authoritative outcomes. The **Go control plane** owns discovery, execution handoff, and aggregation; the **React/TypeScript client** is a **reactive projection** of that truth.

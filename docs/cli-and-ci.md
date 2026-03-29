@@ -57,7 +57,7 @@ flowchart TB
 
 ## Scenario 1: Validate schema only
 
-**Goal.** Fail fast on invalid `.omnigraph.schema` before any tool runs.
+**Goal.** Fail fast on invalid `.omnigraph.schema` before any tool runs. The project document may be **TOML**, **YAML**, or **JSON**; `validate` uses the same decode path as `orchestrate` and the Schema Contract tab.
 
 ```bash
 ./bin/omnigraph validate testdata/sample.omnigraph.schema
