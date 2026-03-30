@@ -51,6 +51,16 @@ type Options struct {
 	Authorizer identity.Authorizer
 	// EnableMetrics registers GET /metrics (Prometheus format).
 	EnableMetrics bool
+	// EnableIngestLocalAPI registers POST /api/v1/ingest/local (browser-uploaded file payloads → omnistate).
+	EnableIngestLocalAPI bool
+	// EnableSyncWSAPI registers GET /api/v1/sync/ws (bi-directional WebSocket sync hub).
+	EnableSyncWSAPI bool
+	// EnableWorkspaceDriftAPI registers POST /api/v1/workspace/drift (CompareIntendedVsRuntime).
+	EnableWorkspaceDriftAPI bool
+	// EnableIntegrationRunAPI registers POST /api/v1/integrations/run (WASM integration micro-containers; requires auth).
+	EnableIntegrationRunAPI bool
+	// MaxIngestBodyBytes caps JSON body size for ingest (default 64 MiB when zero).
+	MaxIngestBodyBytes int64
 }
 
 type scanRequest struct {
@@ -67,7 +77,9 @@ type workspaceSummary struct {
 
 // Run starts the HTTP server and blocks until the context is cancelled.
 func Run(ctx context.Context, opts Options) error {
-	privilegedAPI := opts.EnableSecurityScanAPI || opts.EnableHostOpsAPI || opts.EnableInventoryAPI
+	privilegedAPI := opts.EnableSecurityScanAPI || opts.EnableHostOpsAPI || opts.EnableInventoryAPI ||
+		opts.EnableIngestLocalAPI || opts.EnableSyncWSAPI || opts.EnableWorkspaceDriftAPI ||
+		opts.EnableIntegrationRunAPI
 	hasStatic := strings.TrimSpace(opts.AuthToken) != ""
 	hasOIDC := strings.TrimSpace(opts.OIDCIssuerURL) != "" && strings.TrimSpace(opts.OIDCClientID) != ""
 	if privilegedAPI && !hasStatic && !hasOIDC {
@@ -98,6 +110,14 @@ func Run(ctx context.Context, opts Options) error {
 	if expAPI {
 		audit = NewAuditLog(200)
 	}
+	maxIngest := opts.MaxIngestBodyBytes
+	if maxIngest <= 0 {
+		maxIngest = 64 << 20
+	}
+	var hub *syncHub
+	if opts.EnableSyncWSAPI {
+		hub = newSyncHub()
+	}
 	s := &server{
 		root:               opts.Root,
 		authToken:          strings.TrimSpace(opts.AuthToken),
@@ -106,12 +126,15 @@ func Run(ctx context.Context, opts Options) error {
 		authz:              authInit.authz,
 		audit:              audit,
 		hostOpsAllowWrites: opts.HostOpsAllowWrites,
+		syncHub:            hub,
+		maxIngestBodyBytes: maxIngest,
 	}
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/v1/health", s.cors(s.getHealth))
 	mux.HandleFunc("POST /api/v1/repo/scan", s.cors(s.postRepoScan))
 	mux.HandleFunc("POST /api/v1/workspace/summary", s.cors(s.postWorkspaceSummary))
+	mux.HandleFunc("GET /api/v1/workspace/stream", s.cors(s.getWorkspaceStream))
 	if opts.EnableSecurityScanAPI {
 		mux.HandleFunc("POST /api/v1/security/scan", s.cors(s.requirePermission(identity.PermServeSecurityScan, s.postSecurityScanAPI)))
 	}
@@ -122,6 +145,19 @@ func Run(ctx context.Context, opts Options) error {
 	}
 	if opts.EnableInventoryAPI {
 		mux.HandleFunc("GET /api/v1/inventory", s.cors(s.requirePermission(identity.PermServeInventoryRead, s.getInventory)))
+	}
+	if opts.EnableIngestLocalAPI {
+		mux.HandleFunc("POST /api/v1/ingest/local", s.cors(s.requirePermission(identity.PermServeIngestLocal, s.postIngestLocal)))
+	}
+	if opts.EnableSyncWSAPI {
+		mux.HandleFunc("GET /api/v1/sync/ws", s.cors(s.requirePermission(identity.PermServeSyncWS, s.getSyncWebSocket)))
+	}
+	if opts.EnableWorkspaceDriftAPI {
+		mux.HandleFunc("POST /api/v1/workspace/drift", s.cors(s.requirePermission(identity.PermServeWorkspaceDrift, s.postWorkspaceDrift)))
+		mux.HandleFunc("POST /api/v1/reconciliation/snapshot", s.cors(s.requirePermission(identity.PermServeWorkspaceDrift, s.postReconciliationSnapshot)))
+	}
+	if opts.EnableIntegrationRunAPI {
+		mux.HandleFunc("POST /api/v1/integrations/run", s.cors(s.requirePermission(identity.PermServeIntegrationRun, s.postIntegrationRun)))
 	}
 	if expAPI {
 		mux.HandleFunc("GET /api/v1/audit", s.cors(s.requirePermission(identity.PermServeAuditRead, s.getAudit)))
@@ -141,7 +177,7 @@ func Run(ctx context.Context, opts Options) error {
 		}
 		indexPath := filepath.Join(abs, "index.html")
 		if _, err := os.Stat(indexPath); err != nil {
-			return fmt.Errorf("serve: %q has no index.html — run npm run build in web/ and point --web-dist at web/dist", abs)
+			return fmt.Errorf("serve: %q has no index.html — run npm run build in packages/web and point --web-dist at packages/web/dist", abs)
 		}
 		mux.HandleFunc("GET /", s.cors(s.staticSPA(abs)))
 	} else {
@@ -226,6 +262,8 @@ type server struct {
 	authz              identity.Authorizer
 	audit              *AuditLog
 	hostOpsAllowWrites bool
+	syncHub            *syncHub
+	maxIngestBodyBytes int64
 }
 
 func (s *server) getRootLanding(w http.ResponseWriter, r *http.Request) {
@@ -241,9 +279,9 @@ func (s *server) getRootLanding(w http.ResponseWriter, r *http.Request) {
 <h1>OmniGraph</h1>
 <p>API only — no static UI was configured. Use the health link below or serve the built web app.</p>
 <p><a href="/api/v1/health">GET /api/v1/health</a></p>
-<p>To load the React UI from this same port, build it and restart with <code>--web-dist</code> pointing at <code>web/dist</code>:</p>
-<pre>cd web &amp;&amp; npm run build
-omnigraph serve --web-dist web/dist</pre>
+<p>To load the React UI from this same port, build it and restart with <code>--web-dist</code> pointing at <code>packages/web/dist</code>:</p>
+<pre>cd packages/web &amp;&amp; npm run build
+go run ./cmd/omnigraph --web-dist packages/web/dist</pre>
 </body>
 </html>`
 	_, _ = w.Write([]byte(page))
@@ -331,28 +369,135 @@ func (s *server) postWorkspaceSummary(w http.ResponseWriter, r *http.Request) {
 	}
 	root, err := s.resolveBodyPath(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeAPIErrorJSON(w, "WORKSPACE_PATH_INVALID", "workspace/summary: "+err.Error(), http.StatusBadRequest)
 		return
 	}
+	sum, err := s.workspaceSummaryForRoot(root)
+	if err != nil {
+		writeAPIErrorJSON(w, "WORKSPACE_SUMMARY_FAILED", "workspace/summary: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(sum)
+}
+
+func (s *server) workspaceSummaryForRoot(root string) (workspaceSummary, error) {
 	disc, err := repo.Discover(root)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return workspaceSummary{}, err
 	}
 	rows, stateErrs, err := repo.AggregateStateHosts(root, 32, 0)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return workspaceSummary{}, err
 	}
-	sum := workspaceSummary{
+	return workspaceSummary{
 		Root:           disc.Root,
 		Discover:       disc,
 		StateInventory: rows,
 		StateErrors:    stateErrs,
 		OmnigraphINI:   MergedOmnigraphINI(rows),
+	}, nil
+}
+
+// getWorkspaceStream streams Server-Sent Events (SSE) with periodic workspace_summary payloads.
+// Query: path — same resolution rules as POST /api/v1/workspace/summary (default ".").
+func (s *server) getWorkspaceStream(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(sum)
+	q := strings.TrimSpace(r.URL.Query().Get("path"))
+	if q == "" {
+		q = "."
+	}
+	root, err := resolveWorkspacePath(s.root, q)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+	h := w.Header()
+	h.Set("Content-Type", "text/event-stream")
+	h.Set("Cache-Control", "no-cache")
+	h.Set("Connection", "keep-alive")
+	h.Set("X-Accel-Buffering", "no")
+
+	sendSummary := func() bool {
+		sum, err := s.workspaceSummaryForRoot(root)
+		if err != nil {
+			msg, _ := json.Marshal(err.Error())
+			_, _ = fmt.Fprintf(w, "event: workspace_error\ndata: %s\n\n", msg)
+			flusher.Flush()
+			return false
+		}
+		b, err := json.Marshal(sum)
+		if err != nil {
+			msg, _ := json.Marshal(err.Error())
+			_, _ = fmt.Fprintf(w, "event: workspace_error\ndata: %s\n\n", msg)
+			flusher.Flush()
+			return false
+		}
+		_, _ = fmt.Fprintf(w, "event: workspace_summary\ndata: %s\n\n", b)
+		flusher.Flush()
+		return true
+	}
+
+	if !sendSummary() {
+		return
+	}
+
+	// Debounced fsnotify pushes (500ms after last write) keep the UI fresh without flooding during terraform apply.
+	redraw := make(chan struct{}, 1)
+	pokeRedraw := func() {
+		select {
+		case redraw <- struct{}{}:
+		default:
+		}
+	}
+	watchCtx, cancelWatch := context.WithCancel(r.Context())
+	defer cancelWatch()
+	idx, wErr := buildWorkspaceWatchIndex(root)
+	var watchStop func()
+	if wErr == nil && len(idx) > 0 {
+		var err error
+		watchStop, err = runWorkspaceWatch(watchCtx, idx, pokeRedraw)
+		if err != nil {
+			watchStop = nil
+		}
+	}
+	if watchStop != nil {
+		defer watchStop()
+	}
+
+	tickEvery := 20 * time.Second
+	if watchStop != nil {
+		tickEvery = 2 * time.Minute
+	}
+	ticker := time.NewTicker(tickEvery)
+	defer ticker.Stop()
+	heartbeat := time.NewTicker(25 * time.Second)
+	defer heartbeat.Stop()
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-redraw:
+			if !sendSummary() {
+				return
+			}
+		case <-heartbeat.C:
+			_, _ = fmt.Fprintf(w, ": ping\n\n")
+			flusher.Flush()
+		case <-ticker.C:
+			if !sendSummary() {
+				return
+			}
+		}
+	}
 }
 
 func (s *server) resolveBodyPath(r *http.Request) (string, error) {

@@ -22,4 +22,4 @@ only supported way to run OmniGraph.
 - [Documentation hub](../README.md)
 - [Overview](../overview.md)
 - [Using the web workspace](../using-the-web.md)
-- [CLI and CI](../cli-and-ci.md) (terminal flows against `testdata/`)
+- [CI and contributor automation](../ci-and-contributor-automation.md) (`go test`, `testdata/`)

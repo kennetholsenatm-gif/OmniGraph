@@ -42,45 +42,15 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: Build OmniGraph
-        run: |
-          mkdir -p bin && go build -o bin/omnigraph ./cmd/omnigraph
-
-      - name: Validate policy files
-        run: |
-          echo "Validating policy files..."
-          # Exclude .github (workflow YAML embeds the grep pattern and would self-match)
-          find . -type f \( -name "*.rego" -o -name "*.yaml" -o -name "*.yml" \) \
-            ! -path "./.git/*" ! -path "./.github/*" ! -path "./node_modules/*" | while read -r file; do
-            if grep -q "omnigraph/policy/v1" "$file" 2>/dev/null; then
-              echo "  Checking $file..."
-              ./bin/omnigraph policy validate "$file" || exit 1
-            fi
-          done
-          echo "All policy files validated successfully"
-
-      - name: Validate schema files
-        run: |
-          echo "Validating schema files..."
-          find . -name "*.omnigraph.schema" | while read file; do
-            echo "  Checking $file..."
-            if [ -d "policies" ]; then
-              ./bin/omnigraph validate "$file" --policy-dir policies --enforce || exit 1
-            elif [ -d "testdata/policies" ]; then
-              ./bin/omnigraph validate "$file" --policy-dir testdata/policies --enforce || exit 1
-            else
-              ./bin/omnigraph validate "$file" || exit 1
-            fi
-          done
-          echo "All schema files validated successfully"
+      - name: Validate policy manifests and schema files
+        run: go test ./internal/policycheck/ -count=1 -run 'Test(PolicyManifestYAMLs|OmniGraphSchemaFiles)'
 
       - name: Generate policy report
         if: success() || failure()
         run: |
           if [ -d "policies" ]; then
             echo "Generating policy compliance report..."
-            ./bin/omnigraph policy report --policy-dir policies --format json --output policy-report.json || true
-
+            OMNIGRAPH_WRITE_POLICY_REPORT=1 go test ./internal/policycheck/ -count=1 -run TestWritePolicyReportJSON || true
             if [ -f "policy-report.json" ]; then
               echo "Policy report generated: policy-report.json"
               cat policy-report.json | jq '.' 2>/dev/null || cat policy-report.json

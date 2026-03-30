@@ -1,7 +1,6 @@
 # Declarative Reconciliation (Reference Architecture)
 
-This document captures a reference pattern for Kubernetes-style reconciliation in
-OmniGraph-oriented environments.
+This document captures a reference pattern for **Kubernetes-style reconciliation** in OmniGraph-oriented environments: **manifest desired state** compared to **provider actual state** in a control loop.
 
 ## Model
 
@@ -28,3 +27,8 @@ spec:
         provider: "<COMPUTE_PROVIDER>"
         state: running
 ```
+
+## See also
+
+- [Emitter Engine](../core-concepts/emitter-engine.md) — compiles `omnigraph/ir/v1` into execution artifacts (inventory, etc.); distinct from manifest reconciliation.
+- [Platform architecture for contributors](../development/platform-architecture.md) — glossary of terms

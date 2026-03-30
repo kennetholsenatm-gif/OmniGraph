@@ -67,5 +67,5 @@ tool availability, reproducibility requirements). No single runner is required.
 
 - [Overview](../overview.md)
 - [Using the web workspace](../using-the-web.md)
-- [CLI and CI](../cli-and-ci.md) (command examples)
+- [CI and contributor automation](../ci-and-contributor-automation.md)
 - [Architecture](architecture.md)

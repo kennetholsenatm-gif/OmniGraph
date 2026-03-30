@@ -1,0 +1,12 @@
+{
+  "apiVersion": "omnigraph/ir/v1",
+  "kind": "InfrastructureIntent",
+  "metadata": { "name": "e2e-fixture" },
+  "spec": {
+    "targets": [
+      { "id": "app1", "ansibleHost": "10.0.0.99" }
+    ],
+    "components": [],
+    "relations": []
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "apiVersion": "omnigraph/graph/v1",
+  "kind": "Graph",
+  "metadata": {
+    "generatedAt": "2025-01-01T00:00:00Z",
+    "project": "demo",
+    "environment": "staging"
+  },
+  "spec": {
+    "phase": "plan",
+    "nodes": [
+      {
+        "id": "project",
+        "kind": "project",
+        "label": "demo",
+        "state": "active",
+        "attributes": { "enclave": "control-plane" }
+      },
+      {
+        "id": "tf",
+        "kind": "tool",
+        "label": "OpenTofu",
+        "state": "pending",
+        "attributes": { "enclave": "control-plane" }
+      },
+      {
+        "id": "ansible",
+        "kind": "tool",
+        "label": "Ansible",
+        "state": "pending",
+        "attributes": { "enclave": "control-plane" }
+      },
+      {
+        "id": "mesh-broker-1",
+        "kind": "broker",
+        "label": "AgentMesh broker",
+        "state": "active",
+        "attributes": {
+          "enclave": "edge",
+          "meshTelemetry": { "lastHeartbeatMs": 120, "peers": 4 },
+          "routes": ["agent/edge-a", "agent/edge-b"],
+          "connectivity": "ok"
+        }
+      },
+      {
+        "id": "mesh-agent-1",
+        "kind": "agent",
+        "label": "edge collector",
+        "state": "degraded",
+        "attributes": {
+          "enclave": "edge",
+          "meshTelemetry": { "queueDepth": 12, "dropped": 1 },
+          "routes": ["broker:mesh-broker-1"],
+          "connectivity": "partial"
+        }
+      },
+      {
+        "id": "planned-aws_instance_web",
+        "kind": "host",
+        "label": "aws_instance.web",
+        "state": "planned",
+        "attributes": {
+          "enclave": "workload",
+          "ansible_host": "10.0.5.99",
+          "debugLog": [
+            "TASK [web : ensure nginx] ********************",
+            "fatal: [10.0.5.99]: FAILED! => {\"changed\": false, \"msg\": \"conflict\"}"
+          ]
+        }
+      },
+      {
+        "id": "tel-nb-demo",
+        "kind": "telemetry",
+        "label": "NetBox: edge-router",
+        "state": "gray",
+        "attributes": { "source": "netbox", "ip": "10.0.0.1" }
+      }
+    ],
+    "edges": [
+      { "from": "project", "to": "tf", "kind": "provisions", "dependencyRole": "necessary" },
+      { "from": "tf", "to": "ansible", "kind": "configures", "dependencyRole": "necessary" },
+      { "from": "tf", "to": "planned-aws_instance_web", "kind": "creates", "dependencyRole": "necessary" },
+      { "from": "mesh-broker-1", "to": "mesh-agent-1", "kind": "routes", "dependencyRole": "necessary" },
+      { "from": "mesh-agent-1", "to": "planned-aws_instance_web", "kind": "observes", "dependencyRole": "necessary" },
+      {
+        "from": "tel-nb-demo",
+        "to": "tf",
+        "kind": "context",
+        "dependencyRole": "sufficient"
+      }
+    ],
+    "phases": [
+      { "name": "validate", "status": "ok" },
+      { "name": "coerce", "status": "ok" },
+      { "name": "plan", "status": "pending" },
+      { "name": "apply", "status": "pending" }
+    ],
+    "summary": { "validateOk": true, "coerceOk": true }
+  }
+}

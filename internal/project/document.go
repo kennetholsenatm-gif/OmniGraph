@@ -1,3 +1,6 @@
+// Package project decodes human-authored project intent from .omnigraph.schema.
+// TOML is the recommended encoding for hand editing; YAML and JSON are accepted for compatibility.
+// Machine-oriented topology for the UI is omnigraph/graph/v1 JSON (see package graph), not this document.
 package project
 
 import (
@@ -5,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/pelletier/go-toml/v2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -34,8 +38,9 @@ type NetworkSpec struct {
 	PublicPorts []int  `json:"publicPorts,omitempty" yaml:"publicPorts,omitempty"`
 }
 
-// ParseDocument decodes JSON or YAML bytes into Document.
-func ParseDocument(raw []byte) (*Document, error) {
+// ParseProjectIntent decodes JSON, YAML, or TOML project bytes into Document.
+// For non-JSON payloads, YAML is tried first; if it fails, TOML is attempted.
+func ParseProjectIntent(raw []byte) (*Document, error) {
 	trim := bytes.TrimSpace(raw)
 	if len(trim) == 0 {
 		return nil, fmt.Errorf("empty document")
@@ -48,8 +53,15 @@ func ParseDocument(raw []byte) (*Document, error) {
 		}
 	default:
 		if err := yaml.Unmarshal(trim, &doc); err != nil {
-			return nil, fmt.Errorf("parse yaml: %w", err)
+			if err2 := toml.Unmarshal(trim, &doc); err2 != nil {
+				return nil, fmt.Errorf("parse yaml: %w; parse toml: %w", err, err2)
+			}
 		}
 	}
 	return &doc, nil
+}
+
+// ParseDocument is an alias for ParseProjectIntent.
+func ParseDocument(raw []byte) (*Document, error) {
+	return ParseProjectIntent(raw)
 }

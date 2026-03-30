@@ -1,10 +1,12 @@
 package state
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestExtractHosts(t *testing.T) {
@@ -23,5 +25,28 @@ func TestExtractHosts(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("hosts mismatch\n got: %#v\nwant: %#v", got, want)
+	}
+}
+
+func TestExecutionScopeAcquireLock(t *testing.T) {
+	dir := t.TempDir()
+	allowed := filepath.Join(dir, "terraform.tfstate")
+	other := filepath.Join(dir, "other.tfstate")
+	for _, p := range []string{allowed, other} {
+		if err := os.WriteFile(p, []byte("{}"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	m, err := NewManager(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	m.SetExecutionScope(NewExecutionScopeForBlastRadius(allowed))
+	if _, err := m.AcquireLock(ctx, allowed, "t", "op", time.Minute); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.AcquireLock(ctx, other, "t", "op2", time.Minute); err == nil {
+		t.Fatal("expected error for path outside execution scope")
 	}
 }

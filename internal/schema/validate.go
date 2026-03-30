@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/kennetholsenatm-gif/omnigraph/schemas"
+	"github.com/pelletier/go-toml/v2"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"gopkg.in/yaml.v3"
 )
@@ -43,7 +44,11 @@ func ValidateOmniGraph(instance map[string]any) error {
 	return nil
 }
 
-// ValidateRawDocument validates raw JSON or YAML bytes by decoding to a generic map first.
+// ValidateRawDocument validates raw JSON, YAML, or TOML bytes by decoding to a generic map first.
+// It accepts the same encodings as the Schema Contract tab; TOML is the recommended human encoding.
+// Downstream machine artifacts (for example omnigraph/graph/v1) remain JSON per their contracts.
+// For non-JSON payloads, YAML is tried first (backward compatible with existing .omnigraph.schema files);
+// if YAML fails, TOML is attempted.
 func ValidateRawDocument(raw []byte) (map[string]any, error) {
 	var instance map[string]any
 	trim := bytes.TrimSpace(raw)
@@ -57,7 +62,9 @@ func ValidateRawDocument(raw []byte) (map[string]any, error) {
 		}
 	default:
 		if err := yaml.Unmarshal(trim, &instance); err != nil {
-			return nil, fmt.Errorf("parse yaml: %w", err)
+			if err2 := toml.Unmarshal(trim, &instance); err2 != nil {
+				return nil, fmt.Errorf("parse yaml: %w; parse toml: %w", err, err2)
+			}
 		}
 	}
 	if err := ValidateOmniGraph(instance); err != nil {

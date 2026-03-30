@@ -21,7 +21,8 @@ type Node struct {
 
 // Edge mirrors graph.Edge.
 type Edge struct {
-	From string `json:"from"`
-	To   string `json:"to"`
-	Kind string `json:"kind,omitempty"`
+	From           string `json:"from"`
+	To             string `json:"to"`
+	Kind           string `json:"kind,omitempty"`
+	DependencyRole string `json:"dependencyRole,omitempty"`
 }

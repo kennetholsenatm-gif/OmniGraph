@@ -65,12 +65,12 @@ func (s *server) getInventory(w http.ResponseWriter, r *http.Request) {
 	}
 	root, err := resolveWorkspacePath(s.root, r.URL.Query().Get("path"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeAPIErrorJSON(w, "INVENTORY_PATH_INVALID", "inventory: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	rows, stateErrs, err := repo.AggregateStateHosts(root, 32, 0)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeAPIErrorJSON(w, "INVENTORY_AGGREGATE_FAILED", "inventory: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if s.audit != nil {
@@ -119,6 +119,6 @@ func (s *server) getInventory(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	default:
-		http.Error(w, fmt.Sprintf("unknown format %q (use json, ini, ansible-json)", format), http.StatusBadRequest)
+		writeAPIErrorJSON(w, "INVENTORY_FORMAT_UNKNOWN", fmt.Sprintf("inventory: unknown format %q (use json, ini, ansible-json)", format), http.StatusBadRequest)
 	}
 }

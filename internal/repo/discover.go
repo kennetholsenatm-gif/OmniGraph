@@ -75,10 +75,8 @@ func Discover(root string) (*Result, error) {
 			files = append(files, Discovered{Path: rel, Kind: KindAnsibleCfg})
 		case name == "site.yml" || name == "site.yaml" || name == "playbook.yml" || name == "playbook.yaml":
 			files = append(files, Discovered{Path: rel, Kind: KindAnsiblePlaybook})
-		case name == "hosts" || strings.HasSuffix(name, ".ini"):
-			if strings.Contains(strings.ToLower(rel), "inventory") || name == "hosts" {
-				files = append(files, Discovered{Path: rel, Kind: KindAnsibleInventory})
-			}
+		case name == "inventory" || name == "hosts" || strings.HasSuffix(name, ".ini"):
+			files = append(files, Discovered{Path: rel, Kind: KindAnsibleInventory})
 		case name == "tfplan" || strings.HasSuffix(name, ".tfplan"):
 			files = append(files, Discovered{Path: rel, Kind: KindTerraformPlanBin})
 		}

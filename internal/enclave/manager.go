@@ -88,7 +88,7 @@ func (m *Manager) Validate(enclave *Enclave) error {
 	if enclave.Spec.CognitivePayload.SourceURI == "" {
 		return fmt.Errorf("spec.cognitivePayload.sourceUri is required")
 	}
-	return nil
+	return ValidateContract(enclave)
 }
 
 // Deploy deploys an enclave

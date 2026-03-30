@@ -36,3 +36,13 @@ var RunV1SchemaJSON []byte
 //
 //go:embed ir.v1.schema.json
 var IrV1SchemaJSON []byte
+
+// IntegrationRunV1SchemaJSON is the JSON Schema for omnigraph/integration-run/v1 stdin envelopes.
+//
+//go:embed integration-run.v1.schema.json
+var IntegrationRunV1SchemaJSON []byte
+
+// IntegrationResultV1SchemaJSON is the JSON Schema for omnigraph/integration-result/v1 plugin stdout.
+//
+//go:embed integration-result.v1.schema.json
+var IntegrationResultV1SchemaJSON []byte

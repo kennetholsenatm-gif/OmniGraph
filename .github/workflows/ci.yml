@@ -34,7 +34,7 @@ jobs:
       - name: Format (gofmt)
         run: |
           set -euo pipefail
-          files=$(find cmd internal schemas wasm -name '*.go' 2>/dev/null || true)
+          files=$(find cmd e2e internal pkg schemas wasm -name '*.go' 2>/dev/null || true)
           if [ -z "$files" ]; then
             echo "No Go files found for gofmt check"
             exit 1
@@ -51,7 +51,7 @@ jobs:
           # Prebuilt releases may lag the Go toolchain; goinstall builds with setup-go’s Go (matches go.mod).
           version: v1.64.8
           install-mode: goinstall
-          args: --timeout=5m ./cmd/... ./internal/... ./schemas/...
+          args: --timeout=5m ./cmd/... ./e2e/... ./internal/... ./pkg/... ./schemas/...
 
       - name: Vet
         run: go vet ./...
@@ -67,34 +67,33 @@ jobs:
       - name: Test Wasm tfpattern module
         run: cd wasm/tfpattern && go test ./...
 
-      - name: Build
+      - name: Fuzz tfpattern (short)
+        run: cd wasm/tfpattern && go test -fuzz=FuzzScan -fuzztime=20s ./...
+
+      - name: Build workspace server
         run: mkdir -p bin && go build -o bin/omnigraph ./cmd/omnigraph
 
-      - name: Validate sample schema
-        run: ./bin/omnigraph validate testdata/sample.omnigraph.schema
-
-      - name: Emit graph JSON (smoke)
+      - name: Build integration WASI plugins (NetBox, Zabbix)
         run: |
-          ./bin/omnigraph graph emit testdata/sample.omnigraph.schema \
-            --plan-json internal/plan/testdata/minimal-plan.json \
-            --tfstate internal/state/testdata/minimal.state.json \
-            | head -c 400
+          mkdir -p bin/wasm-plugins
+          GOOS=wasip1 GOARCH=wasm go build -o bin/wasm-plugins/netbox.wasm ./wasm/plugins/netbox
+          GOOS=wasip1 GOARCH=wasm go build -o bin/wasm-plugins/zabbix.wasm ./wasm/plugins/zabbix
 
       - name: Build HCL diagnostics wasm
         run: |
-          mkdir -p web/public/wasm
+          mkdir -p packages/web/public/wasm
           root="$(go env GOROOT)"
           wasm_exec="${root}/lib/wasm/wasm_exec.js"
           if [ ! -f "$wasm_exec" ]; then
             wasm_exec="${root}/misc/wasm/wasm_exec.js"
           fi
-          cp "$wasm_exec" web/public/wasm/
-          cd wasm/hcldiag && go mod verify && GOOS=js GOARCH=wasm go build -trimpath -o ../../web/public/wasm/hcldiag.wasm .
+          cp "$wasm_exec" packages/web/public/wasm/
+          cd wasm/hcldiag && go mod verify && GOOS=js GOARCH=wasm go build -trimpath -o ../../packages/web/public/wasm/hcldiag.wasm .
 
       - uses: actions/upload-artifact@v7
         with:
           name: wasm-dist
-          path: web/public/wasm
+          path: packages/web/public/wasm
 
   web:
     needs: go
@@ -102,20 +101,20 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: web
+        working-directory: packages/web
     steps:
       - uses: actions/checkout@v6
 
       - uses: actions/download-artifact@v7
         with:
           name: wasm-dist
-          path: web/public/wasm
+          path: packages/web/public/wasm
 
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: packages/web/package-lock.json
 
       - name: Install
         run: npm ci
