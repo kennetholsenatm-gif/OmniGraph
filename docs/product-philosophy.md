@@ -16,4 +16,4 @@ OmniGraph is **not** positioned as a generic terminal-first automation productâ€
 
 ## Copy and docs
 
-When you write README text, help strings, or onboarding: **lead with the graph and UI**; place contributor automation and server flags second unless the audience is explicitly maintainers only. The **root [README.md](../README.md)** should hook on the product with a **web-only quickstart**â€”no shell recipe blocks for subcommands; those belong in [ci-and-contributor-automation.md](ci-and-contributor-automation.md) and contributor docs.
+When you write README text, help strings, or onboarding: **lead with the graph and UI**; place contributor automation and server flags second unless the audience is explicitly maintainers only. The **root [README.md](../README.md)** should hook on the product with a **web-only quickstart**. **Copy-paste shell for contributors** lives in a single place: **[development/contributor-commands.md](development/contributor-commands.md)**; other pages link there instead of duplicating fences.

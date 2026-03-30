@@ -6,11 +6,7 @@ Browser-side tooling aligned with [ADR 001](../docs/core-concepts/adr/001-wasm-l
 
 A **Go `js/wasm`** build ([`wasm/hcldiag`](./hcldiag)) uses `github.com/hashicorp/hcl/v2` to return parse diagnostics for Terraform-style HCL pasted in the web UI. The UI loads `packages/web/public/wasm/hcldiag.wasm` plus `wasm_exec.js` from the Go toolchain (vendored under `packages/web/public/wasm/`; same BSD license as Go).
 
-**Build locally** (requires Go 1.22+):
-
-```bash
-make wasm-hcldiag
-```
+**Build locally** (requires Go 1.22+): **[Contributor commands](../docs/development/contributor-commands.md)** (`make wasm-hcldiag`).
 
 **CI** builds the wasm artifact in the `go` job and passes it to the `web` job via GitHub Actions artifacts.
 

@@ -10,7 +10,7 @@ import { tryParseMetadataName } from './parseMetadataName'
 import { defaultPostureSecurityJson, mvpTabDisplayName, type MvpTab } from './constants'
 import { GraphVisualizerTab } from './GraphVisualizerTab'
 import { InventoryTab } from './InventoryTab'
-import { fetchWorkspaceSummary, type WorkspaceSummary } from './omnigraphApi'
+import { fetchReconciliationSnapshot, fetchWorkspaceSummary, type ReconciliationSnapshot, type WorkspaceSummary } from './omnigraphApi'
 import { scanRepositoryFolder, type RepoScanSession } from './repoFolderScan'
 import { NavItem } from './NavItem'
 import { PipelineTab } from './PipelineTab'
@@ -57,7 +57,7 @@ function snapshotFromState(args: {
   hclText: string
   projectLabel: string
   gitRepoRoot: string
-  schemaCliPath: string
+  schemaManifestRelativePath: string
   schemaFileNameHint?: string
   graphFileNameHint?: string
   pipelineWorkdir: string
@@ -92,7 +92,7 @@ function snapshotFromState(args: {
     hclText: args.hclText,
     projectLabel: args.projectLabel,
     gitRepoRoot: args.gitRepoRoot,
-    schemaCliPath: args.schemaCliPath,
+    schemaManifestRelativePath: args.schemaManifestRelativePath,
     schemaFileNameHint: args.schemaFileNameHint,
     graphFileNameHint: args.graphFileNameHint,
     pipelineWorkdir: args.pipelineWorkdir,
@@ -131,7 +131,9 @@ export default function OmniGraphMVP() {
   const [hclText, setHclText] = useState(initial.hclText)
   const [projectLabel, setProjectLabel] = useState(initial.projectLabel)
   const [gitRepoRoot, setGitRepoRoot] = useState(initial.gitRepoRoot ?? '')
-  const [schemaCliPath, setSchemaCliPath] = useState(initial.schemaCliPath)
+  const [schemaManifestRelativePath, setSchemaManifestRelativePath] = useState(
+    initial.schemaManifestRelativePath,
+  )
   const [schemaFileNameHint, setSchemaFileNameHint] = useState<string | undefined>(initial.schemaFileNameHint)
   const [graphFileNameHint, setGraphFileNameHint] = useState<string | undefined>(initial.graphFileNameHint)
 
@@ -163,6 +165,7 @@ export default function OmniGraphMVP() {
 
   const [repoScanSession, setRepoScanSession] = useState<RepoScanSession | null>(null)
   const [serverSummary, setServerSummary] = useState<WorkspaceSummary | null>(null)
+  const [reconciliationSnapshot, setReconciliationSnapshot] = useState<ReconciliationSnapshot | null>(null)
   const [serverLoading, setServerLoading] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
@@ -183,6 +186,14 @@ export default function OmniGraphMVP() {
     initHclWasm()
       .then(() => setHclWasm('ok'))
       .catch(() => setHclWasm('err'))
+  }, [])
+
+  const switchTab = useCallback((tab: MvpTab) => {
+    setActiveTab(tab)
+    // Keep triage context deterministic: node selection belongs to Topology only.
+    if (tab !== 'visualizer') {
+      setSelectedGraphNode(null)
+    }
   }, [])
 
   useEffect(() => {
@@ -216,7 +227,7 @@ export default function OmniGraphMVP() {
           hclText,
           projectLabel,
           gitRepoRoot,
-          schemaCliPath,
+          schemaManifestRelativePath,
           schemaFileNameHint,
           graphFileNameHint,
           pipelineWorkdir,
@@ -253,7 +264,7 @@ export default function OmniGraphMVP() {
     hclText,
     projectLabel,
     gitRepoRoot,
-    schemaCliPath,
+    schemaManifestRelativePath,
     schemaFileNameHint,
     graphFileNameHint,
     pipelineWorkdir,
@@ -293,7 +304,7 @@ export default function OmniGraphMVP() {
     setHclText(d.hclText)
     setProjectLabel(d.projectLabel)
     setGitRepoRoot('')
-    setSchemaCliPath(d.schemaCliPath)
+    setSchemaManifestRelativePath(d.schemaManifestRelativePath)
     setSchemaFileNameHint(undefined)
     setGraphFileNameHint(undefined)
     setPipelineWorkdir('')
@@ -321,6 +332,7 @@ export default function OmniGraphMVP() {
     setPostureSecurityJson(defaultPostureSecurityJson)
     setRepoScanSession(null)
     setServerSummary(null)
+    setReconciliationSnapshot(null)
     setServerError(null)
     setSelectedGraphNode(null)
   }
@@ -331,13 +343,20 @@ export default function OmniGraphMVP() {
     try {
       const s = await fetchWorkspaceSummary('.')
       setServerSummary(s)
+      try {
+        const snap = await fetchReconciliationSnapshot('.', serveApiToken)
+        setReconciliationSnapshot(snap)
+      } catch {
+        setReconciliationSnapshot(null)
+      }
     } catch (e: unknown) {
       setServerSummary(null)
+      setReconciliationSnapshot(null)
       setServerError(e instanceof Error ? e.message : String(e))
     } finally {
       setServerLoading(false)
     }
-  }, [])
+  }, [serveApiToken])
 
   const openRepositoryFolder = useCallback(async () => {
     const s = await scanRepositoryFolder()
@@ -358,7 +377,7 @@ export default function OmniGraphMVP() {
       pipelineWorkdir,
       pipelineAnsibleRoot,
       pipelinePlaybookRel,
-      schemaCliPath,
+      schemaManifestRelativePath,
     })
     const blob = new Blob([manifestToJson(m)], { type: 'application/json;charset=utf-8' })
     const url = URL.createObjectURL(blob)
@@ -396,41 +415,41 @@ export default function OmniGraphMVP() {
             icon={<Network size={20} aria-hidden />}
             label="Topology"
             active={activeTab === 'visualizer'}
-            onClick={() => setActiveTab('visualizer')}
+            onClick={() => switchTab('visualizer')}
           />
           <NavSectionLabel>Reconciliation</NavSectionLabel>
           <NavItem
             icon={<Server size={20} aria-hidden />}
             label="Inventory"
             active={activeTab === 'inventory'}
-            onClick={() => setActiveTab('inventory')}
+            onClick={() => switchTab('inventory')}
             indent
           />
           <NavItem
             icon={<Workflow size={20} aria-hidden />}
             label="Pipeline"
             active={activeTab === 'pipeline'}
-            onClick={() => setActiveTab('pipeline')}
+            onClick={() => switchTab('pipeline')}
             indent
           />
           <NavItem
             icon={<Shield size={20} aria-hidden />}
             label="Posture"
             active={activeTab === 'posture'}
-            onClick={() => setActiveTab('posture')}
+            onClick={() => switchTab('posture')}
           />
           <NavSectionLabel>Supporting editors</NavSectionLabel>
           <NavItem
             icon={<Settings size={20} aria-hidden />}
             label="Schema Contract"
             active={activeTab === 'schema'}
-            onClick={() => setActiveTab('schema')}
+            onClick={() => switchTab('schema')}
           />
           <NavItem
             icon={<TerminalSquare size={20} aria-hidden />}
             label="Web IDE"
             active={activeTab === 'ide'}
-            onClick={() => setActiveTab('ide')}
+            onClick={() => switchTab('ide')}
           />
         </nav>
 
@@ -509,6 +528,7 @@ export default function OmniGraphMVP() {
               onGraphTextChange={setGraphText}
               selectedNode={selectedGraphNode}
               onNodeSelect={setSelectedGraphNode}
+              reconciliationSnapshot={reconciliationSnapshot}
               graphFileNameHint={graphFileNameHint}
               onGraphFileNameHintChange={setGraphFileNameHint}
             />
@@ -517,10 +537,14 @@ export default function OmniGraphMVP() {
             <SchemaTab
               schemaText={schemaText}
               onSchemaChange={setSchemaText}
-              schemaCliPath={schemaCliPath}
-              onSchemaCliPathChange={setSchemaCliPath}
+              schemaManifestRelativePath={schemaManifestRelativePath}
+              onSchemaManifestRelativePathChange={setSchemaManifestRelativePath}
               schemaFileNameHint={schemaFileNameHint}
               onSchemaFileNameHintChange={setSchemaFileNameHint}
+              pipelineSchemaPath={pipelineSchema}
+              onApplyManifestPathToPipeline={() =>
+                setPipelineSchema(schemaManifestRelativePath.trim() || '.omnigraph.schema')
+              }
             />
           ) : null}
           {activeTab === 'ide' ? <WebIDETab hclWasm={hclWasm} hclText={hclText} onHclChange={setHclText} /> : null}
@@ -543,11 +567,13 @@ export default function OmniGraphMVP() {
               serverSummary={serverSummary}
               onClearServer={() => {
                 setServerSummary(null)
+                setReconciliationSnapshot(null)
                 setServerError(null)
               }}
               onLoadServer={loadFromOmnigraphServer}
               serverLoading={serverLoading}
               serverError={serverError}
+              reconciliationSnapshot={reconciliationSnapshot}
               workspaceStreamConnected={workspaceStreamConnected}
               workspaceStreamError={workspaceStreamError}
               serveApiToken={serveApiToken}

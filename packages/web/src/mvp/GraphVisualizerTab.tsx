@@ -2,6 +2,8 @@ import { Download, Eye, Monitor, Network, Siren, Upload } from 'lucide-react'
 import { useEffect, useRef, type ChangeEvent } from 'react'
 
 import { GraphCanvas, type GraphNodeSelection } from '../graph/GraphCanvas'
+import { buildReconciliationViewModel } from './buildReconciliationViewModel'
+import type { ReconciliationSnapshot } from './omnigraphApi'
 import { NodeContextPanel } from '../triage/NodeContextPanel'
 import { TriageSessionProvider, postTriageSelectionDetached, useTriageSession } from '../triage/TriageSessionContext'
 import { createGraphPopoutChannel, postGraphToPopouts } from './graphPopoutChannel'
@@ -34,6 +36,7 @@ export type GraphVisualizerTabProps = {
   onGraphTextChange: (value: string) => void
   selectedNode: GraphNodeSelection | null
   onNodeSelect: (node: GraphNodeSelection | null) => void
+  reconciliationSnapshot: ReconciliationSnapshot | null
   graphFileNameHint?: string
   onGraphFileNameHintChange?: (value: string | undefined) => void
 }
@@ -43,6 +46,7 @@ function GraphVisualizerTabInner({
   onGraphTextChange,
   selectedNode,
   onNodeSelect,
+  reconciliationSnapshot,
   graphFileNameHint,
   onGraphFileNameHintChange,
 }: GraphVisualizerTabProps) {
@@ -107,6 +111,7 @@ function GraphVisualizerTabInner({
   }
 
   const triageForSelected = selectedNode ? triageByNodeId[selectedNode.id] : undefined
+  const reconVm = buildReconciliationViewModel(reconciliationSnapshot)
 
   const downloadGraph = () => {
     const blob = new Blob([graphText], { type: 'application/json;charset=utf-8' })
@@ -197,6 +202,12 @@ function GraphVisualizerTabInner({
           <span className="text-gray-400">docs/core-concepts/data-handoff.md</span>. Automation that emits graph JSON:{' '}
           <span className="text-gray-400">docs/ci-and-contributor-automation.md</span>.
         </p>
+        {reconciliationSnapshot ? (
+          <p className="text-[11px] text-gray-500">
+            Reconciliation snapshot: {reconVm.bom.totalEntities} BOM entities, {reconVm.bom.totalRelations} dependency
+            relations, {reconVm.relationDriftCount} relation drift cues.
+          </p>
+        ) : null}
         <div className="flex min-h-0 flex-1 flex-col">
           <GraphCanvas graphText={graphText} onNodeSelect={onNodeSelect} className="min-h-0 flex-1" />
         </div>

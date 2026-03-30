@@ -132,10 +132,11 @@ type FracturedEdge struct {
 
 // DriftReport is the result of CompareIntendedVsRuntime.
 type DriftReport struct {
-	DegradedNodes  []DegradedNode  `json:"degradedNodes"`
-	FracturedEdges []FracturedEdge `json:"fracturedEdges"`
-	AnalyzedNodes  int             `json:"analyzedNodes"`
-	AnalyzedEdges  int             `json:"analyzedEdges"`
+	DegradedNodes  []DegradedNode     `json:"degradedNodes"`
+	FracturedEdges []FracturedEdge    `json:"fracturedEdges"`
+	RelationDrifts []BOMRelationDrift `json:"relationDrifts,omitempty"`
+	AnalyzedNodes  int                `json:"analyzedNodes"`
+	AnalyzedEdges  int                `json:"analyzedEdges"`
 }
 
 // MergeFragments combines fragments into one state with fresh metadata.
@@ -201,6 +202,7 @@ func sourceKey(r SourceRef) string {
 }
 
 // ApplyPatch merges a patch into a copy of st (for in-memory hub).
+// Side effect contract: Revision increments exactly once per successful patch application.
 func ApplyPatch(st OmniGraphState, p StatePatch) OmniGraphState {
 	nodeIdx := make(map[string]int, len(st.Nodes))
 	for i, n := range st.Nodes {

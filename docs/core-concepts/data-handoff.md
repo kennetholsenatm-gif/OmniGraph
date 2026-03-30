@@ -2,6 +2,9 @@
 
 This page maps how **raw execution-layer artifacts** relate to what you **see** in the OmniGraph workspace during reconciliation or an incident. It is a **technical deep-dive**; for a short first session in the UI only, start with [Getting started](../getting-started.md).
 
+**You are here:** `docs/core-concepts` -> artifact flow semantics -> **provider-to-workspace handoff**.
+**Next decision:** decide whether your current issue is artifact-shape (state/plan/inventory) or transport-shape (emit/server/SSE).
+
 ## Purpose
 
 OmniGraph does not replace OpenTofu, Terraform, or Ansible. It **coordinates visibility**: normalized summaries, graph JSON, and browser views. Understanding the handoff avoids expecting magic parsing (for example, turning every Ansible traceback into new graph nodes automatically).

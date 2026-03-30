@@ -63,6 +63,7 @@ func CompareIntendedVsRuntime(ctx context.Context, intended, runtime *OmniGraphS
 		}
 		rep.FracturedEdges = append(rep.FracturedEdges, fe)
 	}
+	rep.RelationDrifts = BuildRelationDrifts(intended, runtime)
 	return rep, nil
 }
 

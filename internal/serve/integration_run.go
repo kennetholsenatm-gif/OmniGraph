@@ -22,6 +22,12 @@ type integrationRunRequest struct {
 	Run      json.RawMessage `json:"run"`
 }
 
+const integrationStdioErrPrefix = "serve:integration:stdio"
+
+func integrationStdioErrf(format string, args ...any) error {
+	return fmt.Errorf("%s: %s", integrationStdioErrPrefix, fmt.Sprintf(format, args...))
+}
+
 func (s *server) postIntegrationRun(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -119,43 +125,43 @@ func (s *server) postIntegrationRun(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(out)
 }
 
-// RunIntegrationCLI runs a WASM integration plugin from the CLI (no Netbox/Zabbix imports).
-func RunIntegrationCLI(ctx context.Context, wasmPath string, stdin []byte) ([]byte, error) {
+// RunIntegrationStdio runs a WASM integration plugin with integration-run/v1 bytes on stdin (no Netbox/Zabbix imports in core).
+func RunIntegrationStdio(ctx context.Context, wasmPath string, stdin []byte) ([]byte, error) {
 	var env map[string]any
 	if err := json.Unmarshal(stdin, &env); err != nil {
-		return nil, fmt.Errorf("stdin json: %w", err)
+		return nil, integrationStdioErrf("stdin json: %v", err)
 	}
 	spec, _ := env["spec"].(map[string]any)
 	if spec == nil {
-		return nil, fmt.Errorf("missing spec")
+		return nil, integrationStdioErrf("missing spec")
 	}
 	rawPrefixes, ok := spec["allowedFetchPrefixes"]
 	if !ok {
-		return nil, fmt.Errorf("missing allowedFetchPrefixes")
+		return nil, integrationStdioErrf("missing allowedFetchPrefixes")
 	}
 	arr, ok := rawPrefixes.([]any)
 	if !ok {
-		return nil, fmt.Errorf("allowedFetchPrefixes must be array")
+		return nil, integrationStdioErrf("allowedFetchPrefixes must be array")
 	}
 	var prefixes []string
 	for _, v := range arr {
 		ps, ok := v.(string)
 		if !ok || strings.TrimSpace(ps) == "" {
-			return nil, fmt.Errorf("invalid prefix")
+			return nil, integrationStdioErrf("invalid prefix")
 		}
 		prefixes = append(prefixes, ps)
 	}
 	wasmClean := strings.TrimSpace(wasmPath)
 	if filepath.IsAbs(wasmClean) {
-		return nil, fmt.Errorf("integration-run: --wasm must be relative to the current working directory")
+		return nil, integrationStdioErrf("--wasm must be relative to the current working directory")
 	}
 	wd, err := os.Getwd()
 	if err != nil {
-		return nil, err
+		return nil, integrationStdioErrf("resolve cwd: %v", err)
 	}
 	rootAbs, err := filepath.Abs(wd)
 	if err != nil {
-		return nil, err
+		return nil, integrationStdioErrf("resolve absolute cwd: %v", err)
 	}
 	return runner.RunIntegrationPlugin(ctx, runner.IntegrationHostConfig{
 		AllowedFetchPrefixes: prefixes,

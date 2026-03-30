@@ -261,7 +261,7 @@ func TestPostIngestLocalMergeAndPartialFailure(t *testing.T) {
 	if len(out.State.Nodes) < 1 {
 		t.Fatalf("expected terraform nodes, got %+v", out.State.Nodes)
 	}
-	if len(out.Errors) != 1 || out.Errors[0].Code != "E_NAME" {
+	if len(out.Errors) != 1 || out.Errors[0].Code != "INGEST_NAME_INVALID" {
 		t.Fatalf("errors %+v", out.Errors)
 	}
 	snap := hub.snapshot()
@@ -483,6 +483,99 @@ func TestPostWorkspaceDriftRequiresRuntimeWithoutHub(t *testing.T) {
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status %d", res.StatusCode)
+	}
+}
+
+func TestSyncWebSocketRevisionConflict(t *testing.T) {
+	hub := newSyncHub()
+	hub.replaceState(omnistate.OmniGraphState{
+		APIVersion: omnistate.APIVersion,
+		Revision:   2,
+		Nodes:      []omnistate.StateNode{},
+		Edges:      []omnistate.StateEdge{},
+	})
+	s := &server{
+		authToken: "tok",
+		authz:     &identity.ExperimentalAuthorizer{StaticTokenConfigured: true},
+		syncHub:   hub,
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/sync/ws", s.cors(s.requirePermission(identity.PermServeSyncWS, s.getSyncWebSocket)))
+	ts := httptest.NewServer(mux)
+	t.Cleanup(ts.Close)
+
+	httpURL, err := url.Parse(ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wsURL := url.URL{Scheme: "ws", Host: httpURL.Host, Path: "/api/v1/sync/ws"}
+	h := http.Header{}
+	h.Set("Authorization", "Bearer tok")
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL.String(), h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+
+	if err := conn.WriteJSON(map[string]any{
+		"type":         "state_delta",
+		"baseRevision": 1,
+		"patch": map[string]any{
+			"upsertNodes": []map[string]any{{"id": "n1", "kind": "host", "label": "n1"}},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var got wsError
+	if err := conn.ReadJSON(&got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Code != "reconciliation_revision_conflict" || got.CurrentRevision != 2 {
+		t.Fatalf("unexpected ws error: %+v", got)
+	}
+}
+
+func TestPostReconciliationSnapshot(t *testing.T) {
+	dir := t.TempDir()
+	_ = os.MkdirAll(filepath.Join(dir, "mod"), 0o755)
+	stateJSON := []byte(`{"version":4,"values":{"outputs":{"host_a":{"value":"10.0.0.11"}},"root_module":{"resources":[]}}}`)
+	_ = os.WriteFile(filepath.Join(dir, "mod", "terraform.tfstate"), stateJSON, 0o600)
+
+	s := &server{
+		root:      dir,
+		authToken: "tok",
+		authz:     &identity.ExperimentalAuthorizer{StaticTokenConfigured: true},
+	}
+	h := s.cors(s.requirePermission(identity.PermServeWorkspaceDrift, s.postReconciliationSnapshot))
+	ts := httptest.NewServer(http.HandlerFunc(h))
+	t.Cleanup(ts.Close)
+
+	req, err := http.NewRequest(http.MethodPost, ts.URL, strings.NewReader(`{"path":"."}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer tok")
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("status %d", res.StatusCode)
+	}
+	var out omnistate.ReconciliationSnapshot
+	if err := json.NewDecoder(res.Body).Decode(&out); err != nil {
+		t.Fatal(err)
+	}
+	if out.APIVersion != omnistate.ReconciliationSnapshotAPIVersion {
+		t.Fatalf("apiVersion %q", out.APIVersion)
+	}
+	if out.Kind != "ReconciliationSnapshot" {
+		t.Fatalf("kind %q", out.Kind)
+	}
+	if len(out.Spec.NextActions) == 0 {
+		t.Fatalf("expected nextActions in snapshot")
 	}
 }
 

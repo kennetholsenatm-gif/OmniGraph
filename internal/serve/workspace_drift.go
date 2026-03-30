@@ -2,10 +2,13 @@ package serve
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/kennetholsenatm-gif/omnigraph/internal/omnistate"
 )
+
+const workspaceDriftErrPrefix = "serve:workspace:drift"
 
 // postWorkspaceDrift compares intended vs runtime OmniGraphState and returns a DriftReport.
 // Request JSON: { "intended": OmniGraphState, "runtime": OmniGraphState optional }.
@@ -24,17 +27,17 @@ func (s *server) postWorkspaceDrift(w http.ResponseWriter, r *http.Request) {
 		Runtime  *omnistate.OmniGraphState `json:"runtime"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("%s: invalid JSON: %v", workspaceDriftErrPrefix, err), http.StatusBadRequest)
 		return
 	}
 	if req.Intended == nil {
-		http.Error(w, "intended state required", http.StatusBadRequest)
+		http.Error(w, workspaceDriftErrPrefix+": intended state required", http.StatusBadRequest)
 		return
 	}
 	runtime := req.Runtime
 	if runtime == nil {
 		if s.syncHub == nil {
-			http.Error(w, "runtime state required when sync hub is disabled", http.StatusBadRequest)
+			http.Error(w, workspaceDriftErrPrefix+": runtime state required when sync hub is disabled", http.StatusBadRequest)
 			return
 		}
 		snap := s.syncHub.snapshot()
@@ -43,7 +46,7 @@ func (s *server) postWorkspaceDrift(w http.ResponseWriter, r *http.Request) {
 
 	rep, err := omnistate.CompareIntendedVsRuntime(r.Context(), req.Intended, runtime)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("%s: %v", workspaceDriftErrPrefix, err), http.StatusBadRequest)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

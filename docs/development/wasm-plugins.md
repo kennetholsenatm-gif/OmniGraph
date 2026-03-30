@@ -16,12 +16,7 @@ The Go control plane runs **WebAssembly** modules built with **`GOOS=wasip1` `GO
 ### Reference
 
 - Source: [`wasm/plugins/ansibleini/main.go`](../../wasm/plugins/ansibleini/main.go)
-- Build:
-
-```bash
-GOOS=wasip1 GOARCH=wasm go build -o ansible-ini-parser.wasm ./wasm/plugins/ansibleini
-```
-
+- Build commands (repository root): **[Contributor commands](contributor-commands.md)** (Class A parser artifact).
 - Tests: [`internal/runner/wasiparser_test.go`](../../internal/runner/wasiparser_test.go)
 
 ## Class B — Integration micro-containers (stdio + allowlisted host HTTP)
@@ -42,17 +37,12 @@ GOOS=wasip1 GOARCH=wasm go build -o ansible-ini-parser.wasm ./wasm/plugins/ansib
 | NetBox   | [`wasm/plugins/netbox/main.go`](../../wasm/plugins/netbox/main.go) | REST (`/api/dcim/devices/`, etc.) |
 | Zabbix   | [`wasm/plugins/zabbix/main.go`](../../wasm/plugins/zabbix/main.go) | JSON-RPC (`/api_jsonrpc.php`) |
 
-Build (from repository root):
-
-```bash
-GOOS=wasip1 GOARCH=wasm go build -o netbox.wasm ./wasm/plugins/netbox
-GOOS=wasip1 GOARCH=wasm go build -o zabbix.wasm ./wasm/plugins/zabbix
-```
+Build **`.wasm`** artifacts from the repository root: **[Contributor commands](contributor-commands.md)** (Class B integration guests).
 
 ### Running
 
-- **CLI:** `omnigraph integration-run --wasm=path/to/netbox.wasm < run.json`. **`--wasm` must be relative to the process current directory** (absolute paths are rejected). Stdin is the integration-run document.
-- **HTTP (optional):** enable **`--enable-integration-run-api`** and **`POST /api/v1/integrations/run`** with JSON `{ "wasmPath": "…", "run": { … } }`. **`wasmPath` must be relative to the server workspace root** (absolute paths are rejected). Same auth model as other privileged APIs.
+- **Workspace server (recommended for operators):** enable **`--enable-integration-run-api`** and call **`POST /api/v1/integrations/run`** with JSON `{ "wasmPath": "…", "run": { … } }`. **`wasmPath` must be relative to the server workspace root** (absolute paths are rejected). Same auth model as other privileged APIs.
+- **Maintainer stdin/stdout checks:** contributors validating a guest outside the HTTP API can use the automation documented in **[Contributor commands](contributor-commands.md)** (WASM integration section).
 
 ### Security notes
 

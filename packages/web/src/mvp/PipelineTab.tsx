@@ -449,6 +449,11 @@ export function PipelineTab(p: PipelineTabProps) {
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-400">Project schema file path</label>
           <input className={fieldClass} value={p.schema} onChange={(e) => p.onSchemaChange(e.target.value)} />
+          <p className="mt-1.5 text-[10px] leading-relaxed text-gray-500">
+            Used for matrix / runner previews in this tab. The <span className="text-gray-400">Schema Contract</span> tab
+            stores the manifest path for exports; use <strong className="text-gray-400">Copy manifest path to Pipeline</strong>{' '}
+            there when you want both to match.
+          </p>
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-400">--tf-binary</label>

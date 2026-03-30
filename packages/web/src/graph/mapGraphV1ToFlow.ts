@@ -37,6 +37,21 @@ function cloneAttributes(attr: Record<string, unknown> | undefined): Record<stri
   return { ...attr }
 }
 
+function edgeSemanticLabel(kind: string | undefined, dependencyRole: string | undefined): string {
+  const k = (kind ?? '').trim()
+  const role = (dependencyRole ?? '').trim()
+  if (k && role) {
+    return `${k} (${role})`
+  }
+  if (k) {
+    return k
+  }
+  if (role) {
+    return `depends_on (${role})`
+  }
+  return ''
+}
+
 /** Maps omnigraph/graph/v1 nodes and edges into React Flow models with Dagre layout. */
 export function mapGraphV1ToFlow(doc: GraphDocument, opts?: MapGraphFlowOptions): { nodes: Node[]; edges: Edge[] } {
   const g = new dagre.graphlib.Graph()
@@ -88,7 +103,7 @@ export function mapGraphV1ToFlow(doc: GraphDocument, opts?: MapGraphFlowOptions)
       id: `e-${e.from}-${e.to}-${i}`,
       source: e.from,
       target: e.to,
-      label: e.kind ?? '',
+      label: edgeSemanticLabel(e.kind, e.dependencyRole),
     }
   })
 

@@ -154,6 +154,7 @@ func Run(ctx context.Context, opts Options) error {
 	}
 	if opts.EnableWorkspaceDriftAPI {
 		mux.HandleFunc("POST /api/v1/workspace/drift", s.cors(s.requirePermission(identity.PermServeWorkspaceDrift, s.postWorkspaceDrift)))
+		mux.HandleFunc("POST /api/v1/reconciliation/snapshot", s.cors(s.requirePermission(identity.PermServeWorkspaceDrift, s.postReconciliationSnapshot)))
 	}
 	if opts.EnableIntegrationRunAPI {
 		mux.HandleFunc("POST /api/v1/integrations/run", s.cors(s.requirePermission(identity.PermServeIntegrationRun, s.postIntegrationRun)))
@@ -368,12 +369,12 @@ func (s *server) postWorkspaceSummary(w http.ResponseWriter, r *http.Request) {
 	}
 	root, err := s.resolveBodyPath(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeAPIErrorJSON(w, "WORKSPACE_PATH_INVALID", "workspace/summary: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	sum, err := s.workspaceSummaryForRoot(root)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeAPIErrorJSON(w, "WORKSPACE_SUMMARY_FAILED", "workspace/summary: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

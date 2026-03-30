@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kennetholsenatm-gif/omnigraph/schemas/omnigraph.reconciliation-snapshot.v1.schema.json",
+  "title": "OmniGraphReconciliationSnapshot",
+  "description": "WUI-ready reconciliation projection joining BOM + state drift cues (omnigraph/reconciliation-snapshot/v1).",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": { "type": "string", "const": "omnigraph/reconciliation-snapshot/v1" },
+    "kind": { "type": "string", "const": "ReconciliationSnapshot" },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "source": { "type": "string" },
+        "revision": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["generatedAt", "source"]
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bom": { "$ref": "https://github.com/kennetholsenatm-gif/omnigraph/schemas/omnigraph.bom.v1.schema.json" },
+        "degradedNodes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/degradedNode" }
+        },
+        "fracturedEdges": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/fracturedEdge" }
+        },
+        "relationDrifts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/relationDrift" }
+        },
+        "nextActions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "errors": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/errorItem" }
+        }
+      },
+      "required": ["bom", "degradedNodes", "fracturedEdges", "relationDrifts", "nextActions"]
+    }
+  },
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "$defs": {
+    "degradedNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "nodeId": { "type": "string" },
+        "reasons": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["nodeId", "reasons"]
+    },
+    "fracturedEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "kind": { "type": "string" },
+        "reason": { "type": "string" }
+      },
+      "required": ["from", "to", "reason"]
+    },
+    "relationDrift": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "relationType": { "type": "string" },
+        "category": { "type": "string", "enum": ["missing_dependency", "stale_dependency", "confidence_drop"] },
+        "message": { "type": "string" }
+      },
+      "required": ["from", "to", "relationType", "category", "message"]
+    },
+    "errorItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" }
+      },
+      "required": ["code", "message"]
+    }
+  }
+}

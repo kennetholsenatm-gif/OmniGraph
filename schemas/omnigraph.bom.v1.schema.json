@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kennetholsenatm-gif/omnigraph/schemas/omnigraph.bom.v1.schema.json",
+  "title": "OmniGraphBOM",
+  "description": "Unified software/hardware/service bill of materials document (omnigraph/bom/v1).",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": { "type": "string", "const": "omnigraph/bom/v1" },
+    "kind": { "type": "string", "const": "BOM" },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "source": { "type": "string" },
+        "correlationId": { "type": "string" }
+      },
+      "required": ["generatedAt", "source"]
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entities": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/entity" }
+        },
+        "relations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/relation" }
+        },
+        "errors": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/errorItem" }
+        }
+      },
+      "required": ["entities", "relations"]
+    }
+  },
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "$defs": {
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "class": { "type": "string", "enum": ["software_component", "hardware_asset", "service_endpoint"] },
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "provenance": { "type": "string" },
+        "confidence": { "type": "string", "enum": ["authoritative", "high", "medium", "low", "unknown"] },
+        "observedAt": { "type": "string", "format": "date-time" },
+        "attributes": { "type": "object", "additionalProperties": true }
+      },
+      "required": ["id", "class", "name"]
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "type": { "type": "string", "enum": ["depends_on", "runs_on", "hosts", "connects_to"] },
+        "confidence": { "type": "string", "enum": ["authoritative", "high", "medium", "low", "unknown"] },
+        "observedAt": { "type": "string", "format": "date-time" },
+        "attributes": { "type": "object", "additionalProperties": true }
+      },
+      "required": ["from", "to", "type"]
+    },
+    "errorItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "path": { "type": "string" }
+      },
+      "required": ["code", "message"]
+    }
+  }
+}

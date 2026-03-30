@@ -47,11 +47,11 @@ func (s *server) postIngestLocal(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
-		http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+		writeAPIErrorJSON(w, "INGEST_LOCAL_INVALID_JSON", "ingest/local: invalid JSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	if len(req.Files) == 0 {
-		http.Error(w, "files required", http.StatusBadRequest)
+		writeAPIErrorJSON(w, "INGEST_LOCAL_FILES_REQUIRED", "ingest/local: at least one file is required", http.StatusBadRequest)
 		return
 	}
 
@@ -60,12 +60,12 @@ func (s *server) postIngestLocal(w http.ResponseWriter, r *http.Request) {
 
 	for _, f := range req.Files {
 		if err := validateIngestFileName(f.Name); err != nil {
-			topLevel = append(topLevel, ingestResponseError{Path: f.Name, Code: "E_NAME", Message: err.Error()})
+			topLevel = append(topLevel, ingestResponseError{Path: f.Name, Code: "INGEST_NAME_INVALID", Message: "ingest/local: " + err.Error()})
 			continue
 		}
 		raw, err := decodeIngestPayload(f.Encoding, f.Data)
 		if err != nil {
-			topLevel = append(topLevel, ingestResponseError{Path: f.Name, Code: "E_DECODE", Message: err.Error()})
+			topLevel = append(topLevel, ingestResponseError{Path: f.Name, Code: "INGEST_DECODE_FAILED", Message: "ingest/local: " + err.Error()})
 			continue
 		}
 		ref := omnistate.SourceRef{
@@ -81,7 +81,7 @@ func (s *server) postIngestLocal(w http.ResponseWriter, r *http.Request) {
 			Ref:         ref,
 		})
 		if err != nil {
-			topLevel = append(topLevel, ingestResponseError{Path: f.Name, Code: "E_NORMALIZE", Message: err.Error()})
+			topLevel = append(topLevel, ingestResponseError{Path: f.Name, Code: "INGEST_NORMALIZE_FAILED", Message: "ingest/local: " + err.Error()})
 			continue
 		}
 		frags = append(frags, frag)
@@ -90,6 +90,7 @@ func (s *server) postIngestLocal(w http.ResponseWriter, r *http.Request) {
 	merged := omnistate.MergeFragments(req.ClientSessionID, frags...)
 	merged.Revision = 1
 	if s.syncHub != nil {
+		// Side effect boundary: this replaces the hub's authoritative in-memory state.
 		s.syncHub.replaceState(merged)
 	}
 

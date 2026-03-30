@@ -27,7 +27,6 @@ Use placeholders in examples:
 
 ## Operational entrypoints
 
-- **CLI:** `omnigraph integration-run --wasm=…` with stdin **`omnigraph/integration-run/v1`**.
-- **HTTP:** optional **`POST /api/v1/integrations/run`** when **`--enable-integration-run-api`** is set (requires auth like other experimental APIs).
+- **Workspace server (primary):** **`POST /api/v1/integrations/run`** when **`--enable-integration-run-api`** is set (requires auth like other experimental APIs). The body supplies a workspace-relative **`wasmPath`** and a **`run`** object validating as **`omnigraph/integration-run/v1`**.
 
 See also [Inventory sources](inventory-sources.md) and [IR contracts reference](../schemas/ir-contracts.md).
