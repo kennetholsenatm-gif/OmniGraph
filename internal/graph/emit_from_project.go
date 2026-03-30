@@ -12,10 +12,10 @@ import (
 
 // EmitFromProjectRawOptions configures optional paths merged during graph v1 emission.
 type EmitFromProjectRawOptions struct {
-	PlanJSONPath   string
-	TelemetryPath  string
-	TFStatePath    string
-	SecurityPath   string
+	PlanJSONPath  string
+	TelemetryPath string
+	TFStatePath   string
+	SecurityPath  string
 }
 
 // EmitFromProjectRaw validates raw project bytes, parses intent, coerces, and emits omnigraph/graph/v1.

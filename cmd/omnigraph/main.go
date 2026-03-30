@@ -22,13 +22,13 @@ func main() {
 		fs.PrintDefaults()
 	}
 	var (
-		listen, root, webDist, authToken string
-		oidcIssuer, oidcClientID, oidcRequiredRoles string
-		oidcSkipTLS bool
+		listen, root, webDist, authToken                                                         string
+		oidcIssuer, oidcClientID, oidcRequiredRoles                                              string
+		oidcSkipTLS                                                                              bool
 		enableSecurityScan, enableHostOps, enableInventoryAPI, hostOpsAllowWrites, enableMetrics bool
-		enableIngestLocal, enableSyncWS, enableWorkspaceDrift bool
-		maxIngestBodyMB int64
-		showVersion     bool
+		enableIngestLocal, enableSyncWS, enableWorkspaceDrift                                    bool
+		maxIngestBodyMB                                                                          int64
+		showVersion                                                                              bool
 	)
 	fs.StringVar(&listen, "listen", "127.0.0.1:38671", "listen address (use 127.0.0.1 for local only)")
 	fs.StringVar(&root, "root", "", "default filesystem root for relative {\"path\"} in API requests (empty = process cwd)")
