@@ -10,17 +10,17 @@ export type WorkspaceSnapshotV1 = {
   projectLabel: string
   /** Local clone root; drives portable paths and omnigraph.workspace.json export. */
   gitRepoRoot?: string
-  /** Path used in generated CLI examples (on-disk path). */
+  /** On-disk path hint for schema file (exports / manifest). */
   schemaCliPath: string
   schemaFileNameHint?: string
   graphFileNameHint?: string
-  /** OpenTofu/Terraform root for generated orchestrate command. */
+  /** OpenTofu/Terraform workspace root (pipeline context). */
   pipelineWorkdir?: string
-  /** Separate Ansible repo root; enables `--ansible-root` in the CLI when set. */
+  /** Separate Ansible repository root when playbooks are not under the OpenTofu root. */
   pipelineAnsibleRoot?: string
   /** Playbook path relative to Ansible root (or to workdir if no Ansible root). */
   pipelinePlaybookRel?: string
-  /** When set, used as literal `--playbook` and disables `--ansible-root` in the builder. */
+  /** When set, used as a literal playbook path override. */
   pipelinePlaybookOverride?: string
   pipelineUsePlaybookOverride?: boolean
   pipelineSchema?: string

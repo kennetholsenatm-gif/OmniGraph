@@ -292,8 +292,8 @@ export function InventoryTab(p: InventoryTabProps) {
             Bring <span className="text-gray-400">Terraform/OpenTofu state</span>, <span className="text-gray-400">plan JSON</span>, and{' '}
             <span className="text-gray-400">Ansible inventory</span> into one table. Use <strong className="text-gray-400">Load from server</strong> when
             the control plane runs same-origin, <strong className="text-gray-400">Pick files for server ingest</strong> to read local files in the browser
-            and normalize on the API, or <strong className="text-gray-400">Browser folder scan</strong> for an offline pass. Automation-focused commands
-            live in <span className="text-gray-400">docs/cli-and-ci.md</span>.
+            and normalize on the API, or <strong className="text-gray-400">Browser folder scan</strong> for an offline pass. Contributor automation
+            and <span className="text-gray-400">go test</span> paths are in <span className="text-gray-400">docs/ci-and-contributor-automation.md</span>.
           </p>
         </div>
 
@@ -534,8 +534,8 @@ export function InventoryTab(p: InventoryTabProps) {
 
         <div className="mt-auto space-y-3 border-t border-gray-800/90 p-4">
           <p className="text-[11px] leading-relaxed text-gray-600">
-            Headless validation, graph emission, and orchestration for CI are documented in{' '}
-            <span className="text-gray-400">docs/cli-and-ci.md</span> (repository root).
+            Validation, graph emit smoke tests, and policy checks for CI are documented in{' '}
+            <span className="text-gray-400">docs/ci-and-contributor-automation.md</span> (repository root).
           </p>
         </div>
       </aside>

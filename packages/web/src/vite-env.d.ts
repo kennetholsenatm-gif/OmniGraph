@@ -9,7 +9,7 @@ declare module '*?raw' {
 
 interface ImportMetaEnv {
   readonly VITE_ENABLE_WASM_SPIKE?: string
-  /** When UI is not served by `omnigraph serve`, set to e.g. http://127.0.0.1:38671 */
+  /** When the UI is not same-origin with the workspace server, set to e.g. http://127.0.0.1:38671 */
   readonly VITE_OMNIGRAPH_API?: string
 }
 

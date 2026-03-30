@@ -195,7 +195,7 @@ function GraphVisualizerTabInner({
           <span className="text-gray-400">docs/guides/graph-dependencies-and-blast-radius.md</span> (including lifecycle, auditing,
           and roadmap UI notes). Provider artifacts to Inventory/Topology:{' '}
           <span className="text-gray-400">docs/core-concepts/data-handoff.md</span>. Automation that emits graph JSON:{' '}
-          <span className="text-gray-400">docs/cli-and-ci.md</span>.
+          <span className="text-gray-400">docs/ci-and-contributor-automation.md</span>.
         </p>
         <div className="flex min-h-0 flex-1 flex-col">
           <GraphCanvas graphText={graphText} onNodeSelect={onNodeSelect} className="min-h-0 flex-1" />

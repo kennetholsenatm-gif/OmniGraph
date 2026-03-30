@@ -20,7 +20,7 @@ const (
 	PuppetHiera         = "puppet-hiera"
 )
 
-// AllFormats returns every supported backend id (for CLI and docs parity).
+// AllFormats returns every supported backend id (for docs and test parity).
 func AllFormats() []string {
 	return []string{
 		OpenTofuHCL,

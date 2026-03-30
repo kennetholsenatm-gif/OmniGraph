@@ -4,7 +4,7 @@ labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
-      value: Share context so we can align with the architecture and ADRs. The product leads with the **graph web workspace**; CLI and automation support that experience.
+      value: Share context so we can align with the architecture and ADRs. The product leads with the **graph web workspace**; the local server and `go test` support that experience.
 
   - type: textarea
     id: problem

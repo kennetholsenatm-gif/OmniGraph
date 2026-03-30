@@ -3,8 +3,6 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 
 import { validateOmnigraphText } from '../validateOmnigraph'
 import { CodeBlock } from './CodeBlock'
-import { CopyableCommand } from './CopyableCommand'
-import { shellQuote } from './shellQuote'
 
 function SchemaFieldReadOnly({ name, typeLabel, value }: { name: string; typeLabel: string; value: string }) {
   return (
@@ -55,8 +53,6 @@ export function SchemaTab({
 
   const documentValidation = useMemo(() => validateOmnigraphText(debounced), [debounced])
 
-  const pathArg = shellQuote(schemaCliPath.trim() || '.omnigraph.schema')
-
   const handlePortChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
     setDbPort(val)
@@ -106,8 +102,8 @@ export function SchemaTab({
           <div>
             <h2 className="text-xl font-bold text-gray-100">.omnigraph.schema</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Validated in-browser (JSON Schema). Coercion output comes from the Go CLI — use the commands on the right in your
-              terminal.
+              Validated in-browser (JSON Schema). Coercion into OpenTofu, Ansible, or env shapes happens in your execution
+              environment; the snippets on the right are illustrative only.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -141,7 +137,7 @@ export function SchemaTab({
         ) : null}
 
         <label htmlFor="schema-cli-path" className="mb-1 text-xs font-medium text-gray-400">
-          Path for CLI examples (on disk)
+          On-disk path hint (exports / workspace manifest)
         </label>
         <input
           id="schema-cli-path"
@@ -243,26 +239,18 @@ export function SchemaTab({
       </div>
 
       <div className="flex w-full flex-col overflow-y-auto bg-gray-900/30 p-6 lg:w-1/2">
-        <h2 className="mb-2 text-lg font-bold text-gray-100">Run in terminal</h2>
+        <h2 className="mb-2 text-lg font-bold text-gray-100">Illustrative handoff snippets</h2>
         <p className="mb-4 text-xs text-gray-500">
-          Run these from a directory where <code className="text-gray-400">{schemaCliPath || '.omnigraph.schema'}</code> exists.
-          Adjust the path field on the left if needed.
+          Fictional variables for onboarding only — not generated from your document. Align the path on the left with{' '}
+          <code className="text-gray-400">{schemaCliPath || '.omnigraph.schema'}</code> when exporting manifests.
         </p>
-
-        <div className="mb-6 space-y-3">
-          <CopyableCommand label="Validate" command={`omnigraph validate ${pathArg}`} />
-          <CopyableCommand label="Coerce — all formats" command={`omnigraph coerce --format=all -f ${pathArg}`} />
-          <CopyableCommand label="Coerce — Terraform tfvars JSON" command={`omnigraph coerce --format=tfvars -f ${pathArg}`} />
-          <CopyableCommand label="Coerce — Ansible group_vars" command={`omnigraph coerce --format=groupvars -f ${pathArg}`} />
-          <CopyableCommand label="Coerce — env lines" command={`omnigraph coerce --format=env -f ${pathArg}`} />
-        </div>
 
         <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-300">
           <RefreshCw className="text-emerald-400" size={16} aria-hidden />
-          Illustrative coercion snippets
+          Sample coercion shapes
         </h3>
         <p className="mb-4 text-xs text-gray-500">
-          Fictional variables for onboarding only — not generated from your document. Use the CLI commands above for real output.
+          Shows how intent might appear in OpenTofu, Ansible, and container env files after you run your own tooling.
         </p>
 
         {portError ? (

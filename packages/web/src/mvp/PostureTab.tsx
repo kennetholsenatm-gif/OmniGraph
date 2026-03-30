@@ -149,9 +149,9 @@ export function PostureTab(p: PostureTabProps) {
       <div>
         <h2 className="text-lg font-semibold text-gray-100">Security posture</h2>
         <p className="mt-1 max-w-3xl text-sm text-gray-400">
-          Paste <span className="font-mono text-gray-300">omnigraph/security/v1</span> JSON from{' '}
-          <code className="rounded bg-gray-900 px-1 py-0.5 font-mono text-xs">omnigraph security scan</code>, or call the
-          serve API when <span className="font-mono">--enable-security-scan</span> is on. Authorized use only.
+          Paste <span className="font-mono text-gray-300">omnigraph/security/v1</span> JSON from your security tooling, or call the
+          workspace server <span className="font-mono">POST /api/v1/security/scan</span> when{' '}
+          <span className="font-mono">--enable-security-scan</span> is on. Authorized use only.
         </p>
       </div>
 

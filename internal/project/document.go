@@ -1,3 +1,6 @@
+// Package project decodes human-authored project intent from .omnigraph.schema.
+// TOML is the recommended encoding for hand editing; YAML and JSON are accepted for compatibility.
+// Machine-oriented topology for the UI is omnigraph/graph/v1 JSON (see package graph), not this document.
 package project
 
 import (
@@ -35,9 +38,9 @@ type NetworkSpec struct {
 	PublicPorts []int  `json:"publicPorts,omitempty" yaml:"publicPorts,omitempty"`
 }
 
-// ParseDocument decodes JSON, YAML, or TOML bytes into Document.
+// ParseProjectIntent decodes JSON, YAML, or TOML project bytes into Document.
 // For non-JSON payloads, YAML is tried first; if it fails, TOML is attempted.
-func ParseDocument(raw []byte) (*Document, error) {
+func ParseProjectIntent(raw []byte) (*Document, error) {
 	trim := bytes.TrimSpace(raw)
 	if len(trim) == 0 {
 		return nil, fmt.Errorf("empty document")
@@ -56,4 +59,9 @@ func ParseDocument(raw []byte) (*Document, error) {
 		}
 	}
 	return &doc, nil
+}
+
+// ParseDocument is an alias for ParseProjectIntent.
+func ParseDocument(raw []byte) (*Document, error) {
+	return ParseProjectIntent(raw)
 }

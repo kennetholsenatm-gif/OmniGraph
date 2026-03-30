@@ -7,7 +7,7 @@ Canonical **`docs/`** on `main`:
 - [Overview](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/overview.md)
 - [UX architecture](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/core-concepts/ux-architecture.md)
 - [Understanding the UI modes](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/guides/ui-modes.md)
-- [CLI and CI](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/cli-and-ci.md)
+- [CI and contributor automation](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/ci-and-contributor-automation.md)
 - [Architecture](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/core-concepts/architecture.md)
 - [Platform architecture for contributors](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/development/platform-architecture.md)
 - [Emitter Engine](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/core-concepts/emitter-engine.md)

@@ -2,7 +2,7 @@
 
 
 
-Thank you for your interest in contributing to OmniGraph. The product is **graph-forward**: the React workspace under **`packages/web`** is how most people **see** infrastructure intent and posture. The Go CLI and orchestration paths **validate, run, and emit** the JSON that feeds that UI and CI—they are co-critical but not the whole story. Read [docs/product-philosophy.md](docs/product-philosophy.md) if you are unsure where a change should land.
+Thank you for your interest in contributing to OmniGraph. The product is **graph-forward**: the React workspace under **`packages/web`** is how most people **see** infrastructure intent and posture. The Go **workspace server**, **`go test`**, and orchestration libraries **validate and emit** the JSON that feeds that UI and CI—they are co-critical but not the whole story. Read [docs/product-philosophy.md](docs/product-philosophy.md) if you are unsure where a change should land.
 
 
 
@@ -78,7 +78,7 @@ go work sync
 
 
 
-Then build and test the CLI (see below). The root **`go.work`** file groups the main module, **`wasm/*`** toolchains, and any shared **`pkg/`** libraries so backend work stays **decoupled** from the frontend’s npm graph.
+Then build and test the Go control plane (see below). The root **`go.work`** file groups the main module, **`wasm/*`** toolchains, and any shared **`pkg/`** libraries so backend work stays **decoupled** from the frontend’s npm graph.
 
 
 
@@ -168,13 +168,13 @@ End-user-oriented tab reference: [docs/using-the-web.md](docs/using-the-web.md).
 
 
 
-Build and test the CLI:
+Build and test the workspace server and libraries:
 
 
 
 ```bash
 
-# Run tests
+# Run tests (includes schema + graph emit smoke)
 
 go vet ./...
 
@@ -182,25 +182,11 @@ go test ./...
 
 
 
-# Build binary
+# Build workspace server binary
 
 go build -o bin/omnigraph ./cmd/omnigraph
 
-
-
-# Verify installation
-
-./bin/omnigraph --version
-
-./bin/omnigraph validate testdata/sample.omnigraph.schema
-
-./bin/omnigraph coerce --format=tfvars testdata/sample.omnigraph.schema
-
-./bin/omnigraph graph emit testdata/sample.omnigraph.schema \
-
-  --plan-json internal/plan/testdata/minimal-plan.json \
-
-  --tfstate internal/state/testdata/minimal.state.json
+./bin/omnigraph -h
 
 ```
 
@@ -212,7 +198,7 @@ go build -o bin/omnigraph ./cmd/omnigraph
 
 go build -o bin\omnigraph.exe .\cmd\omnigraph
 
-.\bin\omnigraph.exe --version
+.\bin\omnigraph.exe -h
 
 ```
 
@@ -256,41 +242,11 @@ See [docs/development/e2e-testing.md](docs/development/e2e-testing.md).
 
 
 
-### 6. Orchestration Testing
+### 6. Orchestration and IaC runtime
 
 
 
-Test the full orchestration pipeline (requires OpenTofu workspace and Ansible playbook):
-
-
-
-```bash
-
-go build -o bin/omnigraph ./cmd/omnigraph
-
-
-
-# Dry run (skip Ansible)
-
-./bin/omnigraph orchestrate --workdir /path/to/tf/root --playbook site.yml --auto-approve --skip-ansible
-
-
-
-# Full orchestration with containerized runners
-
-./bin/omnigraph orchestrate \
-
-  --workdir /path/to/tf/root \
-
-  --playbook site.yml \
-
-  --auto-approve \
-
-  --runner=container \
-
-  --container-runtime=docker
-
-```
+Exercise **OpenTofu/Terraform** and **Ansible** directly against your lab roots. Library code under **`internal/orchestrate`** remains available for integrations; the product surface is the **web workspace**, not a multi-command terminal tool. See [docs/core-concepts/execution-matrix.md](docs/core-concepts/execution-matrix.md).
 
 
 
@@ -312,11 +268,9 @@ go build -o bin/omnigraph ./cmd/omnigraph
 
 │   └── emitter/            # Emitter Engine: IR → emitted artifacts (public package)
 
-├── cmd/omnigraph/          # CLI entry point
+├── cmd/omnigraph/          # Workspace server entry (HTTP API + optional static UI)
 
 ├── internal/
-
-│   ├── cli/                # Command implementations
 
 │   ├── coerce/             # Schema coercion engine
 

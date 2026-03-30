@@ -2,8 +2,7 @@ import { AlertTriangle, ArrowRight, CheckCircle, Play, RefreshCw } from 'lucide-
 import { useMemo, useState } from 'react'
 
 import { tryParseGraphDocument } from '../graph/graphConventions'
-import { CopyableCommand } from './CopyableCommand'
-import { buildOrchestrateCommand, looksAbsoluteHostPath } from './pipelineCommand'
+import { looksAbsoluteHostPath } from './pipelineCommand'
 
 type MatrixRow = {
   stage: string
@@ -18,7 +17,7 @@ const SIM_STEPS = [
   { id: 2, title: 'Coerce intent', hint: 'Tool inputs' },
   { id: 3, title: 'OpenTofu plan', hint: 'plan output' },
   { id: 4, title: 'Ansible check', hint: 'Check mode' },
-  { id: 5, title: 'Approval gate', hint: 'TTY or --auto-approve' },
+  { id: 5, title: 'Approval gate', hint: 'Interactive or automated' },
   { id: 6, title: 'OpenTofu apply', hint: 'Apply' },
   { id: 7, title: 'Ansible apply', hint: 'Apply mode' },
   { id: 8, title: 'Artifacts', hint: 'graph / telemetry' },
@@ -94,7 +93,7 @@ export function PipelineTab(p: PipelineTabProps) {
 
   const ansibleDesc = useMemo(() => {
     if (p.skipAnsible) {
-      return 'skipped (--skip-ansible)'
+      return 'skipped'
     }
     if (p.usePlaybookOverride) {
       return trimCell(p.playbookOverride) || '—'
@@ -118,10 +117,10 @@ export function PipelineTab(p: PipelineTabProps) {
   const outputsDesc = useMemo(() => {
     const parts: string[] = []
     if (p.graphOut.trim()) {
-      parts.push(`--graph-out`)
+      parts.push(`graph output`)
     }
     if (p.telemetryFile.trim()) {
-      parts.push(`--telemetry-file`)
+      parts.push(`telemetry file`)
     }
     return parts.length ? parts.join(', ') : '—'
   }, [p.graphOut, p.telemetryFile])
@@ -163,7 +162,7 @@ export function PipelineTab(p: PipelineTabProps) {
       },
       {
         stage: 'Approval gate',
-        target: p.autoApprove ? 'non-interactive (--auto-approve)' : 'TTY confirmation',
+        target: p.autoApprove ? 'non-interactive approval' : 'Interactive confirmation',
         runner: '—',
         ansible: '—',
         outputs: '—',
@@ -191,51 +190,6 @@ export function PipelineTab(p: PipelineTabProps) {
       },
     ]
   }, [ansibleDesc, outputsDesc, p.autoApprove, p.iacEngine, p.planFile, p.schema, p.stateFile, p.workdir, runnerDesc])
-
-  const command = useMemo(
-    () =>
-      buildOrchestrateCommand({
-        workdir: p.workdir,
-        schema: p.schema,
-        ansibleRoot: p.usePlaybookOverride ? '' : p.ansibleRoot,
-        playbookRel: p.playbookRel,
-        playbookOverride: p.usePlaybookOverride ? p.playbookOverride : '',
-        tfBinary: p.tfBinary,
-        planFile: p.planFile,
-        stateFile: p.stateFile,
-        runner: p.runner,
-        containerRuntime: p.containerRuntime,
-        autoApprove: p.autoApprove,
-        skipAnsible: p.skipAnsible,
-        graphOut: p.graphOut,
-        telemetryFile: p.telemetryFile,
-        iacEngine: p.iacEngine,
-        tofuImage: p.tofuImage,
-        ansibleImage: p.ansibleImage,
-        pulumiImage: p.pulumiImage,
-      }),
-    [
-      p.workdir,
-      p.schema,
-      p.ansibleRoot,
-      p.playbookRel,
-      p.playbookOverride,
-      p.usePlaybookOverride,
-      p.tfBinary,
-      p.planFile,
-      p.stateFile,
-      p.runner,
-      p.containerRuntime,
-      p.autoApprove,
-      p.skipAnsible,
-      p.graphOut,
-      p.telemetryFile,
-      p.iacEngine,
-      p.tofuImage,
-      p.ansibleImage,
-      p.pulumiImage,
-    ],
-  )
 
   const containerSingleMountWarning =
     p.runner === 'container' &&
@@ -274,13 +228,12 @@ export function PipelineTab(p: PipelineTabProps) {
   return (
     <div className="relative flex h-full flex-col overflow-auto p-6 lg:p-8">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-100">Orchestrate (CLI)</h2>
+        <h2 className="text-2xl font-bold text-gray-100">Pipeline context</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Build a copy-paste command for <code className="text-gray-400">omnigraph orchestrate</code> (alias{' '}
-          <code className="text-gray-400">pipeline</code>). The execution matrix below mirrors the orchestration chain in{' '}
-          <code className="text-gray-400">docs/core-concepts/execution-matrix.md</code> and maps each stage to your targets,
-          runner, Ansible model, and artifact outputs. Apply requires a TTY unless <code className="text-gray-400">--auto-approve</code>.
-          See{' '}
+          The execution matrix mirrors the chain described in{' '}
+          <code className="text-gray-400">docs/core-concepts/execution-matrix.md</code>: validate intent, coerce tool inputs,
+          OpenTofu plan/apply, Ansible check/apply, and artifacts for Topology. Run OpenTofu and Ansible from your own automation;
+          this tab keeps workspace fields aligned with that story. See{' '}
           <a
             className="text-blue-400 underline-offset-2 hover:underline"
             href="/docs/architecture.md"
@@ -351,7 +304,7 @@ export function PipelineTab(p: PipelineTabProps) {
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-semibold text-gray-200">Reconciliation flow (simulation)</h3>
-            <p className="text-xs text-gray-500">Walks the same stage names as the matrix; does not run the CLI.</p>
+            <p className="text-xs text-gray-500">Walks the same stage names as the matrix; does not run OpenTofu or Ansible.</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <label className="flex cursor-pointer items-center gap-2 text-xs text-gray-400">
@@ -437,7 +390,7 @@ export function PipelineTab(p: PipelineTabProps) {
 
       <div className="mb-6 grid max-w-3xl grid-cols-1 gap-4 md:grid-cols-2">
         <div className="md:col-span-2">
-          <label className="mb-1 block text-xs font-medium text-gray-400">OpenTofu root (--workdir, required)</label>
+          <label className="mb-1 block text-xs font-medium text-gray-400">OpenTofu / Terraform workspace root (required)</label>
           <input
             className={fieldClass}
             value={p.workdir}
@@ -447,7 +400,7 @@ export function PipelineTab(p: PipelineTabProps) {
         </div>
         <div className="md:col-span-2">
           <label className="mb-1 block text-xs font-medium text-gray-400">
-            Ansible repo root (--ansible-root, optional)
+            Ansible repository root (optional)
           </label>
           <input
             className={fieldClass}
@@ -457,9 +410,8 @@ export function PipelineTab(p: PipelineTabProps) {
             disabled={p.usePlaybookOverride}
           />
           <p className="mt-1 text-xs text-gray-600">
-            When set, the generated command uses <code className="text-gray-500">--ansible-root</code> and{' '}
-            <code className="text-gray-500">--playbook</code> is relative to that folder (e.g. <code className="text-gray-500">site.yml</code>
-            ).
+            When set, playbook paths are interpreted relative to this folder (e.g. <code className="text-gray-500">site.yml</code>). Container
+            runners that mount multiple trees should expose this root separately from the OpenTofu workspace.
           </p>
         </div>
         <div>
@@ -495,7 +447,7 @@ export function PipelineTab(p: PipelineTabProps) {
           ) : null}
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-400">--schema</label>
+          <label className="mb-1 block text-xs font-medium text-gray-400">Project schema file path</label>
           <input className={fieldClass} value={p.schema} onChange={(e) => p.onSchemaChange(e.target.value)} />
         </div>
         <div>
@@ -503,7 +455,7 @@ export function PipelineTab(p: PipelineTabProps) {
           <input className={fieldClass} value={p.tfBinary} onChange={(e) => p.onTfBinaryChange(e.target.value)} />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-400">--runner</label>
+          <label className="mb-1 block text-xs font-medium text-gray-400">Runner (host or container)</label>
           <select
             className={fieldClass}
             value={p.runner}
@@ -516,7 +468,7 @@ export function PipelineTab(p: PipelineTabProps) {
         {p.runner === 'container' ? (
           <>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-400">--container-runtime</label>
+              <label className="mb-1 block text-xs font-medium text-gray-400">Container runtime</label>
               <input
                 className={fieldClass}
                 value={p.containerRuntime}
@@ -525,11 +477,11 @@ export function PipelineTab(p: PipelineTabProps) {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-400">--tofu-image</label>
+              <label className="mb-1 block text-xs font-medium text-gray-400">OpenTofu container image</label>
               <input className={fieldClass} value={p.tofuImage} onChange={(e) => p.onTofuImageChange(e.target.value)} placeholder="optional" />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-400">--ansible-image</label>
+              <label className="mb-1 block text-xs font-medium text-gray-400">Ansible container image</label>
               <input
                 className={fieldClass}
                 value={p.ansibleImage}
@@ -549,7 +501,7 @@ export function PipelineTab(p: PipelineTabProps) {
           </>
         ) : null}
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-400">--plan-file</label>
+          <label className="mb-1 block text-xs font-medium text-gray-400">Plan file path</label>
           <input className={fieldClass} value={p.planFile} onChange={(e) => p.onPlanFileChange(e.target.value)} />
         </div>
         <div>
@@ -557,11 +509,11 @@ export function PipelineTab(p: PipelineTabProps) {
           <input className={fieldClass} value={p.stateFile} onChange={(e) => p.onStateFileChange(e.target.value)} />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-400">--graph-out</label>
+          <label className="mb-1 block text-xs font-medium text-gray-400">Graph JSON output path</label>
           <input className={fieldClass} value={p.graphOut} onChange={(e) => p.onGraphOutChange(e.target.value)} placeholder="optional path" />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-400">--telemetry-file</label>
+          <label className="mb-1 block text-xs font-medium text-gray-400">Telemetry JSON path</label>
           <input
             className={fieldClass}
             value={p.telemetryFile}
@@ -570,7 +522,7 @@ export function PipelineTab(p: PipelineTabProps) {
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-400">--iac-engine</label>
+          <label className="mb-1 block text-xs font-medium text-gray-400">IaC engine</label>
           <input className={fieldClass} value={p.iacEngine} onChange={(e) => p.onIacEngineChange(e.target.value)} placeholder="tofu or pulumi" />
         </div>
         <div className="flex flex-col gap-3 md:col-span-2">
@@ -581,7 +533,7 @@ export function PipelineTab(p: PipelineTabProps) {
               onChange={(e) => p.onAutoApproveChange(e.target.checked)}
               className="rounded border-gray-700 bg-gray-800 text-blue-500"
             />
-            --auto-approve
+            Auto-approve apply (non-interactive)
           </label>
           <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-300">
             <input
@@ -595,22 +547,25 @@ export function PipelineTab(p: PipelineTabProps) {
         </div>
       </div>
 
-      <div className="mb-8 max-w-3xl">
-        <CopyableCommand label="Generated command" command={command} />
+      <div className="mb-8 max-w-3xl space-y-3 rounded-lg border border-gray-800 bg-gray-900/30 p-4 text-sm text-gray-400">
+        <p>
+          Use <strong>Export workspace</strong> in the header to save these fields as <code className="text-gray-500">omnigraph.workspace.json</code>{' '}
+          for your team&apos;s OpenTofu and Ansible workflows.
+        </p>
         {!p.workdir.trim() ? (
-          <p className="mt-2 text-xs text-amber-600/90">Set --workdir before running; the command is still shown for editing.</p>
+          <p className="text-xs text-amber-600/90">Set the OpenTofu workspace root so the matrix reflects your layout.</p>
         ) : null}
         {containerSingleMountWarning ? (
-          <p className="mt-2 text-xs text-amber-600/90">
+          <p className="text-xs text-amber-600/90">
             Container runner only mounts the OpenTofu workdir at <code className="text-gray-500">/workspace</code>. Use a
             playbook path under that tree (e.g. <code className="text-gray-500">..\ansible\site.yml</code>) or set an
-            Ansible repo root so the CLI can mount it at <code className="text-gray-500">/ansible</code>.
+            Ansible repository root so a second mount (e.g. <code className="text-gray-500">/ansible</code>) is available.
           </p>
         ) : null}
         {containerOverrideWarning ? (
-          <p className="mt-2 text-xs text-amber-600/90">
-            Absolute <code className="text-gray-500">--playbook</code> outside the workdir may not exist inside the
-            container; prefer the Ansible repo root fields or a path under <code className="text-gray-500">--workdir</code>.
+          <p className="text-xs text-amber-600/90">
+            Absolute playbook paths outside the workdir may not exist inside the container; prefer the Ansible repository root
+            fields or a path under the OpenTofu workspace root.
           </p>
         ) : null}
       </div>

@@ -5,15 +5,15 @@ OmniGraph exists so teams can **see** infrastructure intent and operational cont
 ## What we optimize for
 
 - **Shared understanding:** topology, dependencies, and posture visible in one surface (`omnigraph/graph/v1` and related artifacts).
-- **Schema-first intent:** `.omnigraph.schema` and versioned contracts as the spine; the UI and CLI both consume the same shapes.
+- **Schema-first intent:** `.omnigraph.schema` and versioned contracts as the spine; the workspace and in-repo libraries consume the same shapes.
 - **Honest boundaries:** OpenTofu, Terraform, Ansible, and cloud APIs remain your tools. OmniGraph coordinates visibility and handoff—it does not replace your provider layer.
 
-## What the CLI is (and is not)
+## What the local control plane is (and is not)
 
-The **`omnigraph`** binary is the **control plane and automation surface**: validate and policy-check documents, emit graph JSON for CI, run orchestrated pipelines, scan posture, and serve HTTP APIs. It is essential for **headless workflows** and **integration**.
+The **local Go workspace server** exposes HTTP APIs and optional static UI for the React workspace: health, repository scan, workspace summary, SSE streams, and optional privileged routes when authenticated. Contributor checks and CI use **`go test`** against the same validation and graph-emit logic the product relies on.
 
-It is **not** how we want strangers to categorize the project. OmniGraph is **not** positioned as “one more generic CI/CD CLI”—that market is crowded and misses the point. The differentiated value is **graph-forward exploration** and a **first-class web workspace**.
+OmniGraph is **not** positioned as a generic terminal-first automation product—that misses the differentiated value. The differentiated value is **graph-forward exploration** and a **first-class web workspace**.
 
 ## Copy and docs
 
-When you write README text, help strings, or onboarding: **lead with the graph and UI**; place CLI and pipeline detail second unless the audience is explicitly automation-only. The **root [README.md](../README.md)** should hook on the product with a **web-only quickstart**—no `omnigraph` command blocks or validation walkthroughs there; those belong in [cli-and-ci.md](cli-and-ci.md) and contributor docs.
+When you write README text, help strings, or onboarding: **lead with the graph and UI**; place contributor automation and server flags second unless the audience is explicitly maintainers only. The **root [README.md](../README.md)** should hook on the product with a **web-only quickstart**—no shell recipe blocks for subcommands; those belong in [ci-and-contributor-automation.md](ci-and-contributor-automation.md) and contributor docs.

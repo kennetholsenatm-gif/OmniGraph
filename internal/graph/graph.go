@@ -1,5 +1,6 @@
-// Package graph defines omnigraph/graph/v1 documents and helpers. Document, Graph, and GraphSpec
-// are immutable snapshots for JSON; use ConcurrentGraph for goroutine-safe incremental mutation.
+// Package graph defines omnigraph/graph/v1 documents and helpers—machine-oriented topology JSON
+// for the web workspace and automation. Human project intent lives in .omnigraph.schema (package project).
+// Document, Graph, and GraphSpec are immutable snapshots for JSON; use ConcurrentGraph for goroutine-safe incremental mutation.
 package graph
 
 import (

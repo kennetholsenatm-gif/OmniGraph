@@ -20,9 +20,9 @@ flowchart LR
     INV[Ansible_INI]
   end
   subgraph control [OmniGraph_control_plane]
-    CLI[omnigraph_CLI]
-    EMIT[graph_emit]
-    SRV[omnigraph_serve]
+    CIEMIT[CI_go_test_graph_emit]
+    EMIT[graph_v1_JSON]
+    SRV[workspace_server]
     SSE[SSE_workspace_stream]
   end
   subgraph browser [Browser_workspace]
@@ -32,10 +32,10 @@ flowchart LR
   TF --> ST
   TF --> PL
   AN --> INV
-  ST --> CLI
-  PL --> CLI
-  INV --> CLI
-  CLI --> EMIT
+  ST --> CIEMIT
+  PL --> CIEMIT
+  INV --> CIEMIT
+  CIEMIT --> EMIT
   EMIT --> TOP
   ST --> SRV
   INV --> SRV
@@ -45,8 +45,8 @@ flowchart LR
 
 Typical paths:
 
-1. **CLI / CI** — You run `omnigraph graph emit` with a **Project** document (`.omnigraph.schema`, TOML/YAML/JSON) plus optional `--tfstate`, `--plan-json`, telemetry, security files. Output is **`omnigraph/graph/v1` JSON** for Topology or artifacts.
-2. **Same-origin serve** — `omnigraph serve` discovers state and inventory paths, **watches** files (with debounce), and pushes **`workspace_summary`** events on **`GET /api/v1/workspace/stream`** (SSE). The **Inventory** tab consumes that stream so counts and paths refresh without pasting each time.
+1. **CI / `go test` emit path** — Automated checks run the same graph emit logic used in the product: a **Project** document (`.omnigraph.schema`, TOML/YAML/JSON) plus optional tfstate, plan JSON, telemetry, and security payloads. Output is **`omnigraph/graph/v1` JSON** for Topology or saved artifacts.
+2. **Same-origin workspace server** — The local server discovers state and inventory paths, **watches** files (with debounce), and pushes **`workspace_summary`** events on **`GET /api/v1/workspace/stream`** (SSE). The **Inventory** tab consumes that stream so counts and paths refresh without pasting each time.
 3. **Manual paste** — You can still paste **state JSON**, **plan JSON**, or **INI** into Inventory when the server is not in the loop.
 
 Implementation touchpoints: [`internal/serve/workspace_watch.go`](../../internal/serve/workspace_watch.go) (watch + SSE), [`docs/using-the-web.md`](../using-the-web.md) (tab behavior).
@@ -71,5 +71,5 @@ These snippets are **representative**, not a guarantee of every field the UI sho
 ## See also
 
 - [UX architecture](ux-architecture.md) — progressive disclosure, backend truth
-- [CLI and CI](../cli-and-ci.md)
+- [CI and contributor automation](../ci-and-contributor-automation.md)
 - [Graph dependencies and blast radius](../guides/graph-dependencies-and-blast-radius.md)

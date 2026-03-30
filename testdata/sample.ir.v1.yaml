@@ -1,4 +1,4 @@
-# Sample omnigraph/ir/v1 — validate with: omnigraph ir validate --file testdata/sample.ir.v1.yaml
+# Sample omnigraph/ir/v1 — validated by pkg/emitter tests and e2e fixtures (go test ./pkg/emitter/... ./e2e/...)
 apiVersion: omnigraph/ir/v1
 kind: InfrastructureIntent
 metadata:

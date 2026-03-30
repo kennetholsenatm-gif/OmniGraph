@@ -16,7 +16,7 @@ When work **shifts to incident triage**, the same principle applies: **Topology*
 
 Split-brain UIs teach bad habits: they flash success before the network answers, then scramble when reality disagrees. OmniGraph **does not use optimistic UI updates** for authoritative outcomes. The **Go control plane** owns discovery, execution handoff, and aggregation; the **React/TypeScript client** is a **reactive projection** of that truth.
 
-The contract is: **material visual state for live control-plane-backed views is delivered through a unidirectional stream of Server-Sent Events (SSE)** (`GET /api/v1/workspace/stream` emits `workspace_summary` JSON on `omnigraph serve`). The client applies those events in order and does not fabricate summary success. If the stream stalls, the UI shows **disconnection or staleness**, not fiction. That separation is what keeps the workspace view from drifting away from the repo or the last indexed state the server actually read.
+The contract is: **material visual state for live control-plane-backed views is delivered through a unidirectional stream of Server-Sent Events (SSE)** (`GET /api/v1/workspace/stream` emits `workspace_summary` JSON from the **local workspace server**). The client applies those events in order and does not fabricate summary success. If the stream stalls, the UI shows **disconnection or staleness**, not fiction. That separation is what keeps the workspace view from drifting away from the repo or the last indexed state the server actually read.
 
 ## Contextual debugging (curing abstraction leaks)
 
@@ -26,9 +26,9 @@ You still read the real log lines, but you read them **beside the node that fail
 
 ## WASM boundary (Web IDE)
 
-The **shipping Topology experience** builds `omnigraph/graph/v1` in **Go** ([`internal/graph`](../../internal/graph), CLI in [`internal/cli/graph.go`](../../internal/cli/graph.go)) from project documents, optional plan/state paths, and merges—not from Wasm inside the CLI.
+The **shipping Topology experience** builds `omnigraph/graph/v1` in **Go** ([`internal/graph`](../../internal/graph)) from project documents, optional plan/state paths, and merges—not from Wasm in the browser.
 
-**What the bundled Wasm does:** the **Web IDE** loads [`wasm/hcldiag`](../../wasm/hcldiag) in the **browser** only. [`packages/web/src/hclWasm.ts`](../../packages/web/src/hclWasm.ts) instantiates it and exposes `omnigraphHclValidate` on `globalThis` so the UI can lint **HCL source strings** you type in the scratchpad. It does **not** read `terraform.tfstate`, plan JSON, or `.omnigraph.schema` from disk; those paths are handled by **Go** (`graph emit --tfstate`, `serve` discovery, Inventory paste) or by you pasting text into the workspace.
+**What the bundled Wasm does:** the **Web IDE** loads [`wasm/hcldiag`](../../wasm/hcldiag) in the **browser** only. [`packages/web/src/hclWasm.ts`](../../packages/web/src/hclWasm.ts) instantiates it and exposes `omnigraphHclValidate` on `globalThis` so the UI can lint **HCL source strings** you type in the scratchpad. It does **not** read `terraform.tfstate`, plan JSON, or `.omnigraph.schema` from disk; those paths are handled by **Go** (graph emit in the control plane, workspace server discovery, Inventory paste) or by you pasting text into the workspace.
 
 **What Wasm does not do:** it is not the authority for graph reconciliation, inventory, or OpenTofu/Terraform state. Treat Wasm as an **editor assist** for HCL-shaped text, separate from the control plane.
 

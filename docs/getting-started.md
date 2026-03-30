@@ -1,6 +1,6 @@
 # Getting started (workspace only)
 
-This guide follows a **“quiet until it needs to speak”** rhythm: you explore the product in the **browser workspace** first. No terminal or automation steps here—those live in [development/local-dev.md](development/local-dev.md) and [cli-and-ci.md](cli-and-ci.md).
+This guide follows a **“quiet until it needs to speak”** rhythm: you explore the product in the **browser workspace** first. No terminal or automation steps here—those live in [development/local-dev.md](development/local-dev.md) and [ci-and-contributor-automation.md](ci-and-contributor-automation.md).
 
 ## 1. Open the workspace
 

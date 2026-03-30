@@ -21,7 +21,7 @@ func TestFromDocument_Golden(t *testing.T) {
 	if _, err := schema.ValidateRawDocument(raw); err != nil {
 		t.Fatal(err)
 	}
-	doc, err := project.ParseDocument(raw)
+	doc, err := project.ParseProjectIntent(raw)
 	if err != nil {
 		t.Fatal(err)
 	}

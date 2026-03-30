@@ -53,7 +53,7 @@ type Options struct {
 	// SkipAnsible skips ansible-playbook steps (tests / tofu-only workspaces).
 	SkipAnsible bool
 
-	// IACEngine selects the infrastructure CLI family (only tofu is implemented).
+	// IACEngine selects the infrastructure tooling family (only tofu is implemented).
 	IACEngine string // tofu (default) or pulumi (stub)
 
 	// BlastPolicy gates apply when non-zero limits are exceeded (plan-time blast radius).
@@ -146,7 +146,7 @@ func Run(ctx context.Context, r runner.Runner, o Options, log func(phase, detail
 	if _, err := schema.ValidateRawDocument(raw); err != nil {
 		return fmt.Errorf("orchestrate: validate: %w", err)
 	}
-	doc, err := project.ParseDocument(raw)
+	doc, err := project.ParseProjectIntent(raw)
 	if err != nil {
 		return fmt.Errorf("orchestrate: parse document: %w", err)
 	}
