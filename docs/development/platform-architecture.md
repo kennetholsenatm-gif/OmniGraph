@@ -90,7 +90,7 @@ High-level paths in the monorepo (moved from the root README so the default read
 | [`internal/`](../../internal/) | Go control plane: graph emission, HTTP **`serve`** (SSE, optional ingest/sync), orchestration, policy, [`internal/state`](../../internal/state) parsing, repo discovery, [`internal/omnistate`](../../internal/omnistate) normalization. |
 | [`packages/web`](../../packages/web) | React workspace: Topology, Inventory, SSE client [`useWorkspaceSummaryStream.ts`](../../packages/web/src/mvp/useWorkspaceSummaryStream.ts). |
 | [`schemas/`](../../schemas/) | JSON Schema sources for versioned contracts. |
-| [`wasm/`](../../wasm/) | Browser Wasm ([`wasm/hcldiag`](../../wasm/hcldiag)) plus optional **WASI** parser plugins under [`wasm/plugins/`](../../wasm/plugins/) ([`internal/runner`](../../internal/runner)). |
+| [`wasm/`](../../wasm/) | Browser Wasm ([`wasm/hcldiag`](../../wasm/hcldiag)) plus **WASI** plugins under [`wasm/plugins/`](../../wasm/plugins/): **parser** guests ([`RunWASIParser`](../../internal/runner/wasiparser.go)) and **integration** micro-containers ([`RunIntegrationPlugin`](../../internal/runner/integration_host.go)). |
 | [`e2e/`](../../e2e/) | Contributor end-to-end harness. |
 | [`pkg/emitter`](../../pkg/emitter) | **IR → artifacts** (Emitter Engine): [`model.go`](../../pkg/emitter/model.go) carries `omnigraph/ir/v1`-shaped intent; backends compile into Ansible-oriented output. Manifest reconciliation lives in `internal/reconcile`. |
 

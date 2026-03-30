@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/signal"
@@ -15,10 +16,18 @@ import (
 )
 
 func main() {
+	if len(os.Args) >= 2 && os.Args[1] == "integration-run" {
+		if err := runIntegrationRun(os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	fs := flag.NewFlagSet("omnigraph", flag.ExitOnError)
 	fs.SetOutput(os.Stderr)
 	fs.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: omnigraph [flags]\n\nOmniGraph workspace server — HTTP API for the web UI.\n\nFlags:\n")
+		fmt.Fprintf(os.Stderr, "Usage: omnigraph [flags]\n       omnigraph integration-run --wasm=PATH < run.json\n\nWorkspace server — HTTP API for the web UI. Subcommand integration-run executes a WASM integration micro-container (stdin: omnigraph/integration-run/v1).\n\nServer flags:\n")
 		fs.PrintDefaults()
 	}
 	var (
@@ -26,7 +35,7 @@ func main() {
 		oidcIssuer, oidcClientID, oidcRequiredRoles                                              string
 		oidcSkipTLS                                                                              bool
 		enableSecurityScan, enableHostOps, enableInventoryAPI, hostOpsAllowWrites, enableMetrics bool
-		enableIngestLocal, enableSyncWS, enableWorkspaceDrift                                    bool
+		enableIngestLocal, enableSyncWS, enableWorkspaceDrift, enableIntegrationRun              bool
 		maxIngestBodyMB                                                                          int64
 		showVersion                                                                              bool
 	)
@@ -42,6 +51,7 @@ func main() {
 	fs.BoolVar(&enableIngestLocal, "enable-ingest-local-api", false, "register POST /api/v1/ingest/local (requires --auth-token)")
 	fs.BoolVar(&enableSyncWS, "enable-sync-ws-api", false, "register GET /api/v1/sync/ws (requires --auth-token)")
 	fs.BoolVar(&enableWorkspaceDrift, "enable-workspace-drift-api", false, "register POST /api/v1/workspace/drift (requires --auth-token)")
+	fs.BoolVar(&enableIntegrationRun, "enable-integration-run-api", false, "register POST /api/v1/integrations/run (WASM integrations; requires --auth-token)")
 	fs.Int64Var(&maxIngestBodyMB, "max-ingest-body-mb", 0, "max ingest JSON body in MiB (0 = default 64)")
 	fs.StringVar(&oidcIssuer, "oidc-issuer", "", "OIDC issuer URL for JWT validation")
 	fs.StringVar(&oidcClientID, "oidc-client-id", "", "expected OAuth2 client id (audience)")
@@ -84,6 +94,7 @@ func main() {
 		EnableIngestLocalAPI:    enableIngestLocal,
 		EnableSyncWSAPI:         enableSyncWS,
 		EnableWorkspaceDriftAPI: enableWorkspaceDrift,
+		EnableIntegrationRunAPI: enableIntegrationRun,
 		MaxIngestBodyBytes:      maxIngestBytes,
 		AuthToken:               tok,
 		OIDCIssuerURL:           strings.TrimSpace(oidcIssuer),
@@ -111,6 +122,34 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func runIntegrationRun(args []string) error {
+	fs := flag.NewFlagSet("integration-run", flag.ExitOnError)
+	fs.SetOutput(os.Stderr)
+	var wasm string
+	fs.StringVar(&wasm, "wasm", "", "path to integration .wasm (wasip1 module)")
+	fs.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: omnigraph integration-run --wasm=PATH < run.json\n\nstdin must be omnigraph/integration-run/v1 JSON. HTTP egress uses allowlisted prefixes from that document.\n")
+		fs.PrintDefaults()
+	}
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if strings.TrimSpace(wasm) == "" {
+		return fmt.Errorf("integration-run: --wasm is required")
+	}
+	stdin, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+	out, err := serve.RunIntegrationCLI(ctx, wasm, stdin)
+	if err != nil {
+		return err
+	}
+	_, err = os.Stdout.Write(out)
+	return err
 }
 
 func mustPort(addrs []net.Addr) string {

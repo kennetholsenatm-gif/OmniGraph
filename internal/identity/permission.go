@@ -12,6 +12,7 @@ const (
 	PermServeIngestLocal    = "serve:ingest:local"
 	PermServeSyncWS         = "serve:sync:ws"
 	PermServeWorkspaceDrift = "serve:workspace:drift"
+	PermServeIntegrationRun = "serve:integration:run"
 	PermIRValidate          = "ir:validate"
 	PermIREmit              = "ir:emit"
 	PermLockAcquire         = "lock:acquire"
