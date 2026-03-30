@@ -57,6 +57,8 @@ type Options struct {
 	EnableSyncWSAPI bool
 	// EnableWorkspaceDriftAPI registers POST /api/v1/workspace/drift (CompareIntendedVsRuntime).
 	EnableWorkspaceDriftAPI bool
+	// EnableIntegrationRunAPI registers POST /api/v1/integrations/run (WASM integration micro-containers; requires auth).
+	EnableIntegrationRunAPI bool
 	// MaxIngestBodyBytes caps JSON body size for ingest (default 64 MiB when zero).
 	MaxIngestBodyBytes int64
 }
@@ -76,7 +78,8 @@ type workspaceSummary struct {
 // Run starts the HTTP server and blocks until the context is cancelled.
 func Run(ctx context.Context, opts Options) error {
 	privilegedAPI := opts.EnableSecurityScanAPI || opts.EnableHostOpsAPI || opts.EnableInventoryAPI ||
-		opts.EnableIngestLocalAPI || opts.EnableSyncWSAPI || opts.EnableWorkspaceDriftAPI
+		opts.EnableIngestLocalAPI || opts.EnableSyncWSAPI || opts.EnableWorkspaceDriftAPI ||
+		opts.EnableIntegrationRunAPI
 	hasStatic := strings.TrimSpace(opts.AuthToken) != ""
 	hasOIDC := strings.TrimSpace(opts.OIDCIssuerURL) != "" && strings.TrimSpace(opts.OIDCClientID) != ""
 	if privilegedAPI && !hasStatic && !hasOIDC {
@@ -151,6 +154,9 @@ func Run(ctx context.Context, opts Options) error {
 	}
 	if opts.EnableWorkspaceDriftAPI {
 		mux.HandleFunc("POST /api/v1/workspace/drift", s.cors(s.requirePermission(identity.PermServeWorkspaceDrift, s.postWorkspaceDrift)))
+	}
+	if opts.EnableIntegrationRunAPI {
+		mux.HandleFunc("POST /api/v1/integrations/run", s.cors(s.requirePermission(identity.PermServeIntegrationRun, s.postIntegrationRun)))
 	}
 	if expAPI {
 		mux.HandleFunc("GET /api/v1/audit", s.cors(s.requirePermission(identity.PermServeAuditRead, s.getAudit)))

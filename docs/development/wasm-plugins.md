@@ -1,28 +1,69 @@
-# Backend WASI parser plugins
+# Backend WASI plugins
 
-The Go control plane can execute **WebAssembly** modules built with **`GOOS=wasip1` `GOARCH=wasm`** inside a **WASI** sandbox ([`internal/runner`](../../internal/runner)). This is a **deny-by-default** path: guests receive **stdin/stdout only**—no host directory mounts, no network, and environment variables are cleared except what the host explicitly sets (currently minimal/empty).
+The Go control plane runs **WebAssembly** modules built with **`GOOS=wasip1` `GOARCH=wasm`** inside **wazero** ([`internal/runner`](../../internal/runner)). There are **two** supported plugin classes with different contracts and capabilities.
 
-## Output contract
+## Class A — Parser plugins (stdio only, no network)
 
-Plugins must write a single JSON document to **stdout** that validates as **`omnigraph/graph/v1`** (see [`schemas/graph.v1.schema.json`](../../schemas/graph.v1.schema.json)): `apiVersion` = `omnigraph/graph/v1`, `kind` = `Graph`, `metadata.generatedAt` (RFC3339), and `spec.nodes` (each with `id`, `kind`, `label`).
+**Host API:** [`runner.RunWASIParser`](../../internal/runner/wasiparser.go) / `RunWASIParserLimit`.
 
-**Input** is domain-specific bytes on **stdin** (for example raw Ansible INI text). The host does not interpret stdin; the guest owns parsing.
+**Sandbox:** Deny-by-default: **stdin/stdout only**—no host directory mounts, **no network**, minimal environment.
 
-## Reference implementation
+### Contract
 
-- Source: [`wasm/plugins/ansibleini/main.go`](../../wasm/plugins/ansibleini/main.go) — reads INI from stdin, emits graph nodes for each host.
-- Build (from repository root):
+- **stdin:** opaque domain bytes (e.g. Ansible INI). The host does not interpret them.
+- **stdout:** a single JSON document validating as **`omnigraph/graph/v1`** ([`schemas/graph.v1.schema.json`](../../schemas/graph.v1.schema.json)).
+
+### Reference
+
+- Source: [`wasm/plugins/ansibleini/main.go`](../../wasm/plugins/ansibleini/main.go)
+- Build:
 
 ```bash
 GOOS=wasip1 GOARCH=wasm go build -o ansible-ini-parser.wasm ./wasm/plugins/ansibleini
 ```
 
-- Run through the host API from Go tests: see [`internal/runner/wasiparser_test.go`](../../internal/runner/wasiparser_test.go).
+- Tests: [`internal/runner/wasiparser_test.go`](../../internal/runner/wasiparser_test.go)
 
-## Contributing a plugin without a core PR
+## Class B — Integration micro-containers (stdio + allowlisted host HTTP)
 
-1. Implement a **`package main`** with `//go:build wasip1` that reads **stdin** and writes **graph/v1 JSON** to **stdout**.
-2. Build with **`GOOS=wasip1 GOARCH=wasm`** (Go 1.21+), or compile from **Rust/C++** to WASI using your toolchain, as long as the module runs under **wazero**’s WASI snapshot preview1 imports.
-3. Ship the **`.wasm`** artifact to operators; load it from your integration by calling **`runner.RunWASIParser`** (or a thin wrapper) with the bytes you want the guest to parse.
+**Host API:** [`runner.RunIntegrationPlugin`](../../internal/runner/integration_host.go).
 
-**Security:** Treat plugins as **untrusted** unless you built them yourself. The runtime caps stdout size (see `defaultMaxStdout` in [`wasiparser.go`](../../internal/runner/wasiparser.go)) and does not expose the host filesystem to the guest.
+**Sandbox:** Same WASI baseline as Class A, plus one host module **`omnigraph`** exporting **`http_fetch`**. The guest calls this import with a small JSON request; the host enforces **URL prefix allowlists**, **method allowlists**, **request/response size caps**, and **HTTP timeouts**. There is **no** general-purpose `net/http` API exposed to Go application code for vendor-specific clients—the only egress from the guest is through this import.
+
+### Contract
+
+- **stdin:** validates as **`omnigraph/integration-run/v1`** ([`schemas/integration-run.v1.schema.json`](../../schemas/integration-run.v1.schema.json)). The envelope’s `spec.allowedFetchPrefixes` must **exactly match** the host’s configured list for the invocation (defense in depth against stale or tampered guests).
+- **stdout:** validates as **`omnigraph/integration-result/v1`** ([`schemas/integration-result.v1.schema.json`](../../schemas/integration-result.v1.schema.json)). When `spec.inventorySnapshot` is set, it must also validate as **`omnigraph/inventory-source/v1`**.
+
+### Shipped examples
+
+| Plugin   | Source | Upstream API (inside guest) |
+|----------|--------|-----------------------------|
+| NetBox   | [`wasm/plugins/netbox/main.go`](../../wasm/plugins/netbox/main.go) | REST (`/api/dcim/devices/`, etc.) |
+| Zabbix   | [`wasm/plugins/zabbix/main.go`](../../wasm/plugins/zabbix/main.go) | JSON-RPC (`/api_jsonrpc.php`) |
+
+Build (from repository root):
+
+```bash
+GOOS=wasip1 GOARCH=wasm go build -o netbox.wasm ./wasm/plugins/netbox
+GOOS=wasip1 GOARCH=wasm go build -o zabbix.wasm ./wasm/plugins/zabbix
+```
+
+### Running
+
+- **CLI:** `omnigraph integration-run --wasm=path/to/netbox.wasm < run.json`. **`--wasm` must be relative to the process current directory** (absolute paths are rejected). Stdin is the integration-run document.
+- **HTTP (optional):** enable **`--enable-integration-run-api`** and **`POST /api/v1/integrations/run`** with JSON `{ "wasmPath": "…", "run": { … } }`. **`wasmPath` must be relative to the server workspace root** (absolute paths are rejected). Same auth model as other privileged APIs.
+
+### Security notes
+
+- Treat plugins as **untrusted** unless you built and pinned them yourself.
+- **Host HTTP imports are still privileged:** isolation is **allowlisting + budgets**, not “WASM magically blocks all egress.”
+- **Secrets:** pass tokens only through the stdin envelope assembled by the host operator; never commit them to repos.
+
+## Contributing without a core PR
+
+1. **Parser:** `//go:build wasip1` `main`, stdin → graph/v1 stdout; run under **`RunWASIParser`**.
+2. **Integration:** same build tag, stdin integration-run/v1 → integration-result/v1 stdout; implement `//go:wasmimport omnigraph http_fetch` with the JSON wire format expected by the host (see `ogFetchRequest` / `ogFetchResponse` in [`integration_host.go`](../../internal/runner/integration_host.go)).
+3. Build with **Go 1.21+** wasip1 or another WASI toolchain compatible with wazero’s **WASI snapshot preview1** plus the **`omnigraph`** host module.
+
+**Browser Wasm** (HCL diagnostics) is documented under [ADR 008](../core-concepts/adr/008-wasm-bridge-hardening.md); it is not the same ABI as backend WASI plugins.

@@ -41,3 +41,6 @@ deployments/local-control/semaphore/docker-compose.override.yml
 
 # Bootstrap USB bundle build output (large; run build-bundle.sh locally)
 deployments/bootstrap-usb-bundle/out/
+
+# Local Go build output (e.g. go build -o bin/omnigraph)
+/bin/

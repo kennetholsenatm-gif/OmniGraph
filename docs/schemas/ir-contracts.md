@@ -8,6 +8,17 @@ This page summarizes key OmniGraph schema contracts used across the web workspac
 - `omnigraph/run/v1` -> `schemas/run.v1.schema.json`
 - `omnigraph/graph/v1` -> `schemas/graph.v1.schema.json`
 - `omnigraph/security/v1` -> `schemas/security.v1.schema.json`
+- `omnigraph/inventory-source/v1` -> `schemas/inventory-source.v1.schema.json`
+- `omnigraph/integration-run/v1` -> `schemas/integration-run.v1.schema.json` (stdin for integration WASM guests)
+- `omnigraph/integration-result/v1` -> `schemas/integration-result.v1.schema.json` (stdout from those guests)
+
+## Integration runs vs IR
+
+**IR (`omnigraph/ir/v1`)** remains **declared infrastructure intent**: components, targets, and static relations. It is not silently rewritten by integration plugins.
+
+**Integration runs (`omnigraph/integration-run/v1`)** are a **separate** envelope the host passes on stdin to a WASM micro-container. They may carry an **`irContext`** object (labels, slices of intent, or correlation ids) for the guest to interpret, plus **`credentials`** and **`allowedFetchPrefixes`** supplied by the operator. The guest returns **`omnigraph/integration-result/v1`**, optionally embedding a normalized **`inventory-source/v1`** snapshot.
+
+Validation helpers: [`internal/schema/validate_integration.go`](../../internal/schema/validate_integration.go).
 
 ## Versioning policy
 
@@ -36,6 +47,8 @@ Wasm enclave documents (`omnigraph/enclave/v1`) are validated in Go with explici
 
 ## Related docs
 
+- [Backend Wasm plugins](../development/wasm-plugins.md) (parser vs integration plugins)
+- [Architecture overview](../core-concepts/architecture.md)
 - [Overview](../overview.md)
 - [Using the web workspace](../using-the-web.md)
 - [CI and contributor automation](../ci-and-contributor-automation.md)
