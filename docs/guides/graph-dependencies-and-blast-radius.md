@@ -1,7 +1,7 @@
 # Graph dependencies and blast radius
 
 OmniGraph’s **topology** is carried in **`omnigraph/graph/v1`** JSON: `spec.nodes` and `spec.edges`.  
-**This is not the same file as `.omnigraph.schema`.** The Project document (`.omnigraph.schema`, `omnigraph/v1alpha1`) holds **schema-first project intent** (network, tags, metadata). **Author that Project file in TOML** when you want the least friction for humans; the CLI and UI also accept YAML and JSON. **Dependency logic for incident triage** lives on **graph edges** in the **graph v1 JSON** so the canvas, emitters, and automation share one contract.
+**This is not the same file as `.omnigraph.schema`.** The Project document (`.omnigraph.schema`, `omnigraph/v1alpha1`) holds **schema-first project intent** (network, tags, metadata). **Author that Project file in TOML** when you want the least friction for humans; the Schema Contract tab and project parser also accept YAML and JSON. **Dependency logic for incident triage** lives on **graph edges** in the **graph v1 JSON** so the canvas, emitters, and automation share one contract.
 
 ## Where to declare dependency roles
 

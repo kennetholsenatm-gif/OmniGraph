@@ -274,7 +274,7 @@ func (s *server) getRootLanding(w http.ResponseWriter, r *http.Request) {
 <p><a href="/api/v1/health">GET /api/v1/health</a></p>
 <p>To load the React UI from this same port, build it and restart with <code>--web-dist</code> pointing at <code>packages/web/dist</code>:</p>
 <pre>cd packages/web &amp;&amp; npm run build
-omnigraph serve --web-dist packages/web/dist</pre>
+go run ./cmd/omnigraph --web-dist packages/web/dist</pre>
 </body>
 </html>`
 	_, _ = w.Write([]byte(page))

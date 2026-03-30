@@ -1,6 +1,6 @@
 # Architecture Overview
 
-The **presentation layer** (React web workspace in `packages/web`) is the **primary human interface**: users explore `omnigraph/graph/v1` and related context interactively. The Go control plane, CLI, and runners exist to validate intent, run optional pipelines, and **emit or refresh** the artifacts that layer consumes—alongside headless CI use cases.
+The **presentation layer** (React web workspace in `packages/web`) is the **primary human interface**: users explore `omnigraph/graph/v1` and related context interactively. The Go control plane and workspace server validate intent, aggregate discovery, and **emit or refresh** the artifacts that layer consumes—alongside **`go test`** and CI use cases.
 
 OmniGraph separates infrastructure intent, orchestration, and runtime execution into
 clear layers so teams can integrate their own providers and delivery workflows.
@@ -8,7 +8,7 @@ clear layers so teams can integrate their own providers and delivery workflows.
 ## Layers
 
 1. Presentation layer: web UI and developer-facing validation feedback
-2. Control plane: CLI and orchestration logic in Go
+2. Control plane: workspace server, graph emit, and orchestration libraries in Go
 3. Execution layer: host and container runners for external tools
 4. Integration layer: inventory, telemetry, identity, and policy adapters
 

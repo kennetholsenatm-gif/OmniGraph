@@ -1,10 +1,10 @@
 # Valid OmniGraph Project document (see schemas/omnigraph.schema.json).
 # Topology dependencies (necessary vs sufficient edges) live on omnigraph/graph/v1, not here—see docs/guides/graph-dependencies-and-blast-radius.md.
-# YAML comments are for humans only; the CLI and UI validate the structured fields below.
+# YAML comments are for humans only; the Schema Contract tab and go test validate the structured fields below.
 #
-# Typical layout next to this file (not stored in spec—use Pipeline / omnigraph orchestrate for paths):
+# Typical layout next to this file (not stored in spec—align paths with Pipeline context and your OpenTofu/Ansible roots):
 #   ansible/site.yml          — playbook entry
-#   inventory/hosts.ini       — or generate from state via: omnigraph inventory from-state <tfstate.json>
+#   inventory/hosts.ini       — or generate from Terraform/OpenTofu JSON state with your tooling
 
 apiVersion: omnigraph/v1alpha1
 kind: Project

@@ -42,7 +42,7 @@ Documenting this split keeps expectations honest: the IR and graph schemas remai
 - [Emitter Engine](emitter-engine.md) — how IR is compiled into execution artifacts
 - [Overview](../overview.md)
 - [Using the web workspace](../using-the-web.md)
-- [CLI and CI](../cli-and-ci.md)
+- [CI and contributor automation](../ci-and-contributor-automation.md)
 - [IR contracts reference](../schemas/ir-contracts.md)
 - [Security posture](../security/posture.md)
 - [Platform architecture for contributors](../development/platform-architecture.md)

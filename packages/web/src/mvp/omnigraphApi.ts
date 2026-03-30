@@ -1,4 +1,4 @@
-/** Base URL for `omnigraph serve` API. Empty = same origin (UI served by the binary). */
+/** Base URL for the local OmniGraph workspace server API. Empty = same origin (UI served with `--web-dist`). */
 export function omnigraphApiBase(): string {
   const v = import.meta.env.VITE_OMNIGRAPH_API
   if (typeof v === 'string' && v.trim()) {
@@ -28,7 +28,7 @@ export type WorkspaceSummary = {
   omnigraphIni: string
 }
 
-/** Requires `omnigraph serve --enable-security-scan --auth-token …` and same-origin or VITE_OMNIGRAPH_API. */
+/** Requires `--enable-security-scan`, `Authorization: Bearer`, and same-origin or `VITE_OMNIGRAPH_API`. */
 export async function fetchLocalSecurityScan(
   bearerToken: string,
   body: { mode?: string; profile?: string; tactic?: string; technique?: string; module?: string },
@@ -81,7 +81,7 @@ export type IngestLocalResponse = {
   errors?: IngestLocalError[]
 }
 
-/** Requires `serve --enable-ingest-local-api` and `Authorization: Bearer` (same token as other privileged APIs). */
+/** Requires `--enable-ingest-local-api` and `Authorization: Bearer` (same token as other privileged APIs). */
 export async function postLocalIngest(
   bearerToken: string,
   body: { clientSessionId?: string; files: IngestFileItem[] },

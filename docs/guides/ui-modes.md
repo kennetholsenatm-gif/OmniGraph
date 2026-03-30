@@ -36,7 +36,7 @@ The sidebar groups **Topology**, **Reconciliation** (Inventory + Pipeline), **Po
 | Mode | Question it answers | Sidebar tabs (current labels) | Primary artifacts / actions |
 |------|---------------------|-------------------------------|-----------------------------|
 | **Topology** | What exists in the declared model, and how is it wired? | **Topology** (tab id `visualizer`) | Edit or paste `omnigraph/graph/v1` JSON; explore the interactive graph; **Inspector** includes optional `attributes.debugLog` ([`GraphVisualizerTab`](../../packages/web/src/mvp/GraphVisualizerTab.tsx)). |
-| **Reconciliation** | Does reality match what we declared? | **Inventory**, **Pipeline** | Paste Terraform/OpenTofu **state** and **plan JSON**, Ansible **INI**; optional repo scan; **`omnigraph serve`** summary and **SSE** `GET /api/v1/workspace/stream` ([`InventoryTab`](../../packages/web/src/mvp/InventoryTab.tsx), [`PipelineTab`](../../packages/web/src/mvp/PipelineTab.tsx)). |
+| **Reconciliation** | Does reality match what we declared? | **Inventory**, **Pipeline** | Paste Terraform/OpenTofu **state** and **plan JSON**, Ansible **INI**; optional repo scan; **local workspace server** summary and **SSE** `GET /api/v1/workspace/stream` ([`InventoryTab`](../../packages/web/src/mvp/InventoryTab.tsx), [`PipelineTab`](../../packages/web/src/mvp/PipelineTab.tsx)). |
 | **Posture** | How risky or non-compliant is this shape? | **Posture** | Edit `omnigraph/security/v1` JSON; align with graph emit and policy workflows ([`PostureTab`](../../packages/web/src/mvp/PostureTab.tsx)); see also [Security posture](../security/posture.md). |
 
 ## Topology mode
@@ -66,7 +66,7 @@ Edge **`dependencyRole`** (`necessary` vs `sufficient`) defines what counts for 
 
 **Purpose:** Answer **“does the world match what we declared?”** using evidence from Terraform/OpenTofu state and plan artifacts, Ansible inventory, and pipeline/orchestration context.
 
-**What you do here:** Bring in **state JSON**, **plan JSON**, and **inventory** inputs; use **Pipeline** to see how orchestration maps to your repo; when `omnigraph serve` is available, pull **workspace summary** or rely on the **SSE** stream for recurring `workspace_summary` events.
+**What you do here:** Bring in **state JSON**, **plan JSON**, and **inventory** inputs; use **Pipeline** for execution-matrix context for your repo; when the **local workspace server** is running, pull **workspace summary** or rely on the **SSE** stream for recurring `workspace_summary` events.
 
 **Why it matters:** Reconciliation is where declarative models meet **mutable reality**. Keeping it in its own context prevents the topology view from becoming a dumping ground for every operational artifact.
 

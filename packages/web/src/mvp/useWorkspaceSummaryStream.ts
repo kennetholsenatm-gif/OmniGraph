@@ -50,7 +50,7 @@ export function useWorkspaceSummaryStream(
 
     es.onerror = () => {
       setConnected(false)
-      setError((prev) => prev ?? 'SSE disconnected (start omnigraph serve with --web-dist or set VITE_OMNIGRAPH_API)')
+      setError((prev) => prev ?? 'SSE disconnected (start the workspace server with --web-dist or set VITE_OMNIGRAPH_API)')
     }
 
     return () => {

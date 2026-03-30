@@ -20,7 +20,7 @@ What to understand first:
 - **[README](../README.md)** — web-first landing, differentiation, declarative Ansible model, and quickstart
 - **[Documentation index](../docs/README.md)** — full reading order
 - **[Overview](../docs/overview.md)** — who / what / where
-- [CLI and CI](../docs/cli-and-ci.md) — optional automation (off the main README on purpose)
+- [CI and contributor automation](../docs/ci-and-contributor-automation.md) — `go test`, workspace server, fixtures
 - [Security posture](../docs/security/posture.md)
 
 ## Topic stubs

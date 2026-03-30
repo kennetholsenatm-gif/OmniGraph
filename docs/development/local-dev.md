@@ -16,14 +16,16 @@ go work sync
 
 This keeps the **control plane** and **Wasm toolchains** independent of the frontend npm graph.
 
-## Build and test CLI
+## Build and test (Go)
 
 ```bash
 go vet ./...
 go test ./...
 go build -o bin/omnigraph ./cmd/omnigraph
-./bin/omnigraph --help
+./bin/omnigraph -h
 ```
+
+See [CI and contributor automation](../ci-and-contributor-automation.md) for smoke tests and HTTP routes.
 
 ## Run web frontend
 

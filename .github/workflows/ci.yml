@@ -70,18 +70,8 @@ jobs:
       - name: Fuzz tfpattern (short)
         run: cd wasm/tfpattern && go test -fuzz=FuzzScan -fuzztime=20s ./...
 
-      - name: Build
+      - name: Build workspace server
         run: mkdir -p bin && go build -o bin/omnigraph ./cmd/omnigraph
-
-      - name: Validate sample schema
-        run: ./bin/omnigraph validate testdata/sample.omnigraph.schema
-
-      - name: Emit graph JSON (smoke)
-        run: |
-          ./bin/omnigraph graph emit testdata/sample.omnigraph.schema \
-            --plan-json internal/plan/testdata/minimal-plan.json \
-            --tfstate internal/state/testdata/minimal.state.json \
-            | head -c 400
 
       - name: Build HCL diagnostics wasm
         run: |

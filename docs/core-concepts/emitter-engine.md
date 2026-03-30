@@ -2,7 +2,7 @@
 
 The **Emitter Engine** is OmniGraph’s **first-class translation layer**: it reads versioned **declarative intent** (`omnigraph/ir/v1`) and **emits concrete artifacts** that execution tools understand—**Ansible INI inventory** from `spec.targets` today, with additional formats registered over time. It is the architectural heart between “what the graph says” and “what Ansible (and siblings) can run.”
 
-For **manifest reconciliation** (desired vs actual infrastructure in `omnigraph apply`), see [Declarative reconciliation (reference architecture)](../reference-architectures/declarative-reconciliation.md). **Orchestration** (`orchestrate` / pipeline) chains OpenTofu and Ansible against a workspace. The Emitter Engine **materializes files and blobs from IR**; orchestration **invokes external programs** with those artifacts and other inputs.
+For **manifest reconciliation** (desired vs actual infrastructure via `internal/reconcile` and related libraries), see [Declarative reconciliation (reference architecture)](../reference-architectures/declarative-reconciliation.md). **Orchestration** (OpenTofu/Ansible pipeline stages) chains external tools against a workspace. The Emitter Engine **materializes files and blobs from IR**; orchestration **invokes external programs** with those artifacts and other inputs.
 
 ## Why it deserves its own name
 
@@ -20,7 +20,7 @@ The engine is implemented in Go as the **public** package [`pkg/emitter`](../../
 
 A **backend** implements a single output **format** and knows how to **emit** from an IR document:
 
-- **`Format() string`** — Stable identifier (for example `ansible-inventory-ini`). All known format ids are enumerated in code for CLI and docs parity.
+- **`Format() string`** — Stable identifier (for example `ansible-inventory-ini`). All known format ids are enumerated in code for docs and test parity.
 - **`Emit(ctx context.Context, doc *Document) ([]Artifact, error)`** — Produces zero or more **artifacts** (path, media type, description, raw bytes). A nil document is rejected with an error; partial success is expressed by returning an error, not a panic.
 
 A **registry** holds named backends:
@@ -38,7 +38,7 @@ The default registry wires **real emitters** where implemented and **stub backen
 3. **Register** your backend in the default registry constructor (alongside existing implementations).
 4. **Add tests** in the style of [`emit_ansible_test.go`](../../pkg/emitter/emit_ansible_test.go): table-driven cases, golden or string-stable expectations, and explicit error paths.
 
-Selection of which backends run for a given workflow may use **`spec.emitHints`** (ordering hints) or CLI flags, depending on the command; keep registration in one place so discovery stays centralized.
+Selection of which backends run for a given workflow may use **`spec.emitHints`** (ordering hints) or caller options in Go; keep registration in one place so discovery stays centralized.
 
 ## Related documentation
 

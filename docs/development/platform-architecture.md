@@ -7,14 +7,14 @@ OmniGraph is easier to extend when you see it as a **living ecosystem** of contr
 | Term | Meaning |
 |------|--------|
 | **Emitter Engine** | The **translation layer** that turns declarative **`omnigraph/ir/v1`** intent into **concrete execution artifacts** (Ansible inventory today; more backends over time). First-class, documented, and extended through Go interfaces. See [Emitter Engine](../core-concepts/emitter-engine.md). |
-| **Manifest reconciliation** | A **Kubernetes-style loop**: desired resources in a manifest versus actual provider state, driven by `omnigraph apply` and `internal/reconcile`. See [Declarative reconciliation (reference)](../reference-architectures/declarative-reconciliation.md). |
+| **Manifest reconciliation** | A **Kubernetes-style loop**: desired resources in a manifest versus actual provider state, driven by `internal/reconcile` and related libraries. See [Declarative reconciliation (reference)](../reference-architectures/declarative-reconciliation.md). |
 | **Orchestration** | **Chained execution** of external tools (OpenTofu plan/apply, inventory projection, Ansible check/apply) in [`internal/orchestrate`](../../internal/orchestrate/). It **consumes** workspaces and state; it is not the same as IR emission. |
 
 Keeping these distinct reserves **reconcile** for desired-vs-actual manifest control and avoids overloading it with IR compilation.
 
 ## The problem we left behind
 
-For a long time the repository felt **flat and coupled**: the Go control plane—schemas, CLI, orchestration, graph emission—sat beside the TypeScript workspace as if they shared one fate. In practice the Go tree dominated the line count (roughly **seven parts Go to two parts TypeScript** in application sources—re-verify with `cloc` after large refactors; see footnote below), and **every** backend change risked rippling into **frontend install and build** assumptions. Deep under `internal/`, the logic that turns declarative IR into Ansible-shaped outputs was **easy to miss** if you were not already inside the core team. New contributors had to infer boundaries instead of reading them.
+For a long time the repository felt **flat and coupled**: the Go control plane—schemas, workspace server, orchestration, graph emission—sat beside the TypeScript workspace as if they shared one fate. In practice the Go tree dominated the line count (roughly **seven parts Go to two parts TypeScript** in application sources—re-verify with `cloc` after large refactors; see footnote below), and **every** backend change risked rippling into **frontend install and build** assumptions. Deep under `internal/`, the logic that turns declarative IR into Ansible-shaped outputs was **easy to miss** if you were not already inside the core team. New contributors had to infer boundaries instead of reading them.
 
 **Footnote — reproducible language mix:** from the repository root, with [cloc](https://github.com/AlDanial/cloc) installed: `cloc --exclude-dir=node_modules,dist,.git,.cursor wasm packages/web cmd internal pkg schemas e2e`. Typical output centers near **~72% Go** and **~24% TypeScript**; YAML/JSON schemas and documentation make up the rest.
 
@@ -24,7 +24,7 @@ We **decoupled** repositories-within-the-repo using **Go workspaces**, **isolate
 
 ### 1. Workspaces and an isolated frontend
 
-The **root `go.work`** file lists every Go module that belongs to the platform: the main module (`./`), Wasm toolchains under `wasm/*`, and any shared libraries (for example under `pkg/`). Running `go work sync` keeps the workspace graph coherent. **Node does not participate in Go module resolution**, and a refactor in the CLI cannot silently change how npm resolves the UI.
+The **root `go.work`** file lists every Go module that belongs to the platform: the main module (`./`), Wasm toolchains under `wasm/*`, and any shared libraries (for example under `pkg/`). Running `go work sync` keeps the workspace graph coherent. **Node does not participate in Go module resolution**, and a refactor in the Go control plane cannot silently change how npm resolves the UI.
 
 The **React application** lives in **`packages/web`**: its own `package.json`, lockfile, and scripts. The repository root orchestrates CI and ships artifacts, but **day-to-day frontend work** happens entirely inside that package. Wasm binaries still build from Go modules under `wasm/` and land in static paths the UI loads at runtime.
 
@@ -35,14 +35,14 @@ flowchart TB
     WasmHost[Wasm_loader]
   end
   subgraph goWork [Go_workspace]
-    CLI[omnigraph_CLI]
+    CP[Go_control_plane]
     Emitter[Emitter_Engine]
     WasmMod[wasm_hcldiag_and_tools]
   end
   UI --> WasmHost
   WasmHost --> WasmMod
-  UI -. consumes_JSON_and_graph_artifacts .-> CLI
-  CLI --> Emitter
+  UI -. consumes_JSON_and_graph_artifacts .-> CP
+  CP --> Emitter
 ```
 
 ### 2. Emitter Engine as the visible heart
@@ -63,7 +63,7 @@ flowchart LR
     MockAnsible[Simulated_Ansible_endpoints]
     Fixtures[Mock_IR_and_state]
   end
-  Pipeline[CLI_and_emitter_paths]
+  Pipeline[go_test_and_emitter_paths]
   Fixtures --> Pipeline
   Pipeline --> MockAnsible
 ```
@@ -86,13 +86,13 @@ High-level paths in the monorepo (moved from the root README so the default read
 
 | Path | Role in the product |
 |------|---------------------|
-| [`cmd/omnigraph`](../../cmd/omnigraph) | CLI entry → [`internal/cli`](../../internal/cli) (validate, `graph emit`, `serve`, `orchestrate`, …). |
+| [`cmd/omnigraph`](../../cmd/omnigraph) | Workspace server entry → [`internal/serve`](../../internal/serve) (HTTP APIs, optional static UI). |
 | [`internal/`](../../internal/) | Go control plane: graph emission, HTTP **`serve`** (SSE, optional ingest/sync), orchestration, policy, [`internal/state`](../../internal/state) parsing, repo discovery, [`internal/omnistate`](../../internal/omnistate) normalization. |
 | [`packages/web`](../../packages/web) | React workspace: Topology, Inventory, SSE client [`useWorkspaceSummaryStream.ts`](../../packages/web/src/mvp/useWorkspaceSummaryStream.ts). |
 | [`schemas/`](../../schemas/) | JSON Schema sources for versioned contracts. |
 | [`wasm/`](../../wasm/) | Browser Wasm ([`wasm/hcldiag`](../../wasm/hcldiag)) plus optional **WASI** parser plugins under [`wasm/plugins/`](../../wasm/plugins/) ([`internal/runner`](../../internal/runner)). |
 | [`e2e/`](../../e2e/) | Contributor end-to-end harness. |
-| [`pkg/emitter`](../../pkg/emitter) | **IR → artifacts** (Emitter Engine): [`model.go`](../../pkg/emitter/model.go) carries `omnigraph/ir/v1`-shaped intent; backends compile into Ansible-oriented output. Manifest reconciliation lives in `internal/reconcile` / `omnigraph apply`. |
+| [`pkg/emitter`](../../pkg/emitter) | **IR → artifacts** (Emitter Engine): [`model.go`](../../pkg/emitter/model.go) carries `omnigraph/ir/v1`-shaped intent; backends compile into Ansible-oriented output. Manifest reconciliation lives in `internal/reconcile`. |
 
 **Live workspace stream (SSE):** `GET /api/v1/workspace/stream` — discovery-backed summaries with **fsnotify** debouncing when state or inventory files change; see [`internal/serve/server.go`](../../internal/serve/server.go).
 

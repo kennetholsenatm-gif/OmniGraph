@@ -54,7 +54,7 @@
           {
             "name": "schema-check",
             "description": "Validate OmniGraph schema",
-            "run": "omnigraph validate .omnigraph.schema"
+            "run": "go test ./internal/citest/ -run TestSampleOmniGraphSchemaValidates -count=1"
           },
           {
             "name": "terraform-fmt",
@@ -64,7 +64,7 @@
           {
             "name": "security-scan",
             "description": "Run security scanning",
-            "run": "omnigraph security scan --output security.json"
+            "run": "run-security-scan.sh --output security.json"
           }
         ],
         "timeout": "5m"
@@ -77,7 +77,7 @@
           {
             "name": "tofu-plan",
             "description": "Generate OpenTofu plan",
-            "run": "omnigraph orchestrate --skip-ansible --plan-file tfplan",
+            "run": "tofu plan -out=tfplan",
             "artifacts": [
               {
                 "path": "tfplan",
@@ -108,7 +108,7 @@
           {
             "name": "notify-approvers",
             "description": "Notify approval team",
-            "run": "omnigraph notify --channel slack --message 'Deployment awaiting approval'"
+            "run": "notify-slack.sh 'Deployment awaiting approval'"
           }
         ],
         "timeout": "24h"
@@ -121,7 +121,7 @@
           {
             "name": "tofu-apply",
             "description": "Apply OpenTofu plan",
-            "run": "omnigraph orchestrate --auto-approve",
+            "run": "tofu apply -auto-approve",
             "environment": {
               "TF_VAR_environment": "${variables.environment}",
               "TF_VAR_region": "${variables.region}"
@@ -130,7 +130,7 @@
           {
             "name": "verify-deployment",
             "description": "Verify deployment success",
-            "run": "omnigraph state diff --expected graph.json"
+            "run": "./scripts/verify-deployment.sh"
           }
         ],
         "timeout": "30m",
@@ -149,7 +149,7 @@
           {
             "name": "ansible-playbook",
             "description": "Run Ansible configuration",
-            "run": "omnigraph orchestrate --skip-tofu"
+            "run": "ansible-playbook site.yml"
           },
           {
             "name": "health-check",
@@ -167,12 +167,12 @@
           {
             "name": "success-notification",
             "description": "Notify successful deployment",
-            "run": "omnigraph notify --channel slack --message 'Deployment completed successfully'"
+            "run": "notify-slack.sh 'Deployment completed successfully'"
           },
           {
             "name": "update-cmdb",
             "description": "Update CMDB with new resources",
-            "run": "omnigraph netbox sync --action upsert"
+            "run": "netbox-sync.sh upsert"
           }
         ]
       }

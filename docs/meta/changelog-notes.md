@@ -6,7 +6,7 @@ This file tracks notable documentation and architecture-note transitions.
 
 - **Architecture refactor (merged via PR #24):** React app under `packages/web`; Emitter
   Engine in `pkg/emitter` (public; formerly `pkg/reconciler`); root `go.work` for Wasm modules; HCL Wasm handlers
-  hardened (`recover` + TS bridge resilience); `wasm/tfpattern` fuzzing in CI; `e2e/` CLI
+  hardened (`recover` + TS bridge resilience); `wasm/tfpattern` fuzzing in CI; `e2e/` harness
   and httptest fixtures. Narrative docs: [platform architecture](../development/platform-architecture.md),
   [Emitter Engine](../core-concepts/emitter-engine.md), [ADR 008](../core-concepts/adr/008-wasm-bridge-hardening.md),
   [E2E testing](../development/e2e-testing.md).

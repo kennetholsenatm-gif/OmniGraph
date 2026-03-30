@@ -45,6 +45,8 @@ func ValidateOmniGraph(instance map[string]any) error {
 }
 
 // ValidateRawDocument validates raw JSON, YAML, or TOML bytes by decoding to a generic map first.
+// It accepts the same encodings as the Schema Contract tab; TOML is the recommended human encoding.
+// Downstream machine artifacts (for example omnigraph/graph/v1) remain JSON per their contracts.
 // For non-JSON payloads, YAML is tried first (backward compatible with existing .omnigraph.schema files);
 // if YAML fails, TOML is attempted.
 func ValidateRawDocument(raw []byte) (map[string]any, error) {

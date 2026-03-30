@@ -1,39 +1,21 @@
 # Quickstart fixtures
 
-Minimal Terraform **JSON state** and a valid **Project** document for trying the Go CLI without a full cloud stack. Use [`.omnigraph.schema`](.omnigraph.schema) (YAML) or [`.omnigraph.schema.toml`](.omnigraph.schema.toml) (TOML)—both validate the same; TOML is often easier to edit by hand.
+Minimal Terraform **JSON state** and a valid **Project** document for learning **Topology** and contributor tests without a full cloud stack. Use [`.omnigraph.schema`](.omnigraph.schema) (YAML) or [`.omnigraph.schema.toml`](.omnigraph.schema.toml) (TOML)—both validate the same; TOML is often easier to edit by hand.
 
-## Build the binary
+## Graph JSON for the Topology tab
+
+The graph emit pipeline used in CI lives in Go (`go test`); see [docs/ci-and-contributor-automation.md](../../docs/ci-and-contributor-automation.md). For a quick manual loop, paste or load **`omnigraph/graph/v1`** JSON into **Topology** after your automation produces it.
+
+## Local workspace server (optional)
+
+Build and run the server so Inventory and SSE work same-origin:
 
 ```bash
 go build -o bin/omnigraph ./cmd/omnigraph
+./bin/omnigraph --web-dist packages/web/dist
 ```
 
-Windows (PowerShell):
-
-```powershell
-go build -o bin\omnigraph.exe .\cmd\omnigraph
-```
-
-Use `./bin/omnigraph` below, or `.\bin\omnigraph.exe` on Windows.
-
-## Emit graph JSON (Topology tab / CI artifact)
-
-Fold in OpenTofu/Terraform state (optional `--plan-json` for a plan file from `terraform show -json tfplan`):
-
-```bash
-./bin/omnigraph graph emit examples/quickstart/.omnigraph.schema \
-  --tfstate examples/quickstart/minimal.tfstate.json > graph.json
-```
-
-## Ansible INI from state
-
-```bash
-./bin/omnigraph inventory from-state examples/quickstart/minimal.tfstate.json
-```
-
-## Optional: same-origin UI + API
-
-Build the web app and run `serve` with `--web-dist` so Inventory and SSE work without CORS setup. See [docs/using-the-web.md](../../docs/using-the-web.md).
+(After `cd packages/web && npm run build`.) See [docs/using-the-web.md](../../docs/using-the-web.md) and [docs/development/local-dev.md](../../docs/development/local-dev.md).
 
 Parity sample used in tests: [testdata/sample.omnigraph.schema](../../testdata/sample.omnigraph.schema).
 
