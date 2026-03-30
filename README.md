@@ -58,7 +58,7 @@ The sidebar groups **Topology** (interactive **`omnigraph/graph/v1`** and per-no
 
 Open the workspace and land on **Topology**. You start with a **sample graph**—nodes and edges you can pan, select, and zoom. Click a node to open the **Inspector**: labels, kind, state, and optional debug lines attached to that vertex. Switch to **Reconciliation**-oriented tabs (**Inventory**) to see how state and inventory attach to the same story; use **Posture** when you are working security-shaped JSON alongside the graph. The UI stays **quiet until it needs to speak**: explore the sample graph first, then bring your own artifacts when you are ready.
 
-To **run the dev server** or a **production build** locally, follow **[docs/development/local-dev.md](docs/development/local-dev.md)**. For **CI, contributor checks, and the local workspace server** (HTTP APIs, `go test` smoke paths), see **[docs/ci-and-contributor-automation.md](docs/ci-and-contributor-automation.md)**. Background **sync agent** (WebSocket, writable roots): **[agent/README.md](agent/README.md)**.
+To **run the dev server** or a **production build** locally, follow **[docs/development/local-dev.md](docs/development/local-dev.md)**. **Copy-paste shell for contributors** (build, test, workspace server): **[docs/development/contributor-commands.md](docs/development/contributor-commands.md)**. For **CI, contributor checks, and the local workspace server** (HTTP APIs, `go test` smoke paths), see **[docs/ci-and-contributor-automation.md](docs/ci-and-contributor-automation.md)**. Background **sync agent** (WebSocket, writable roots): **[agent/README.md](agent/README.md)**.
 
 Same-origin workspace server with Inventory and SSE is described in **[docs/using-the-web.md](docs/using-the-web.md)**.
 

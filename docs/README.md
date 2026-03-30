@@ -1,5 +1,7 @@
 # OmniGraph documentation
 
+**Wayfinding:** You are in the **canonical documentation tree** (`docs/` on `main`). Pages under **`guides/`** are task-oriented; **`core-concepts/`** holds architecture and contracts; **`development/`** is for contributors building the product. The GitHub **Wiki** (`wiki/`) mirrors short navigation only—long-form content stays here.
+
 OmniGraph is a **graph-forward web workspace** backed by schema-first contracts (`.omnigraph.schema` in **TOML** recommended, or YAML/JSON; `omnigraph/*/v1` artifacts). The React UI lives in the isolated npm package [`packages/web`](../packages/web). The Go **workspace server** and **`go test`** paths validate and **emit** the JSON that feeds that view and CI—essential for contributors, not the elevator pitch. See [product-philosophy.md](product-philosophy.md).
 
 **Canonical copy lives here.** The GitHub wiki under `wiki/` links back to these paths.
@@ -20,7 +22,7 @@ OmniGraph is a **graph-forward web workspace** backed by schema-first contracts 
 12. [Execution matrix](core-concepts/execution-matrix.md) — runners; how orchestration feeds artifacts the UI consumes.
 13. [Security posture](security/posture.md) — policy, scans, `serve` hardening, Wasm boundary.
 
-Then: [CI and contributor automation](ci-and-contributor-automation.md) (`go test`, workspace server, `testdata/`), [IR model](core-concepts/omnigraph-ir.md), [Emitter Engine](core-concepts/emitter-engine.md), [E2E testing](development/e2e-testing.md), [schemas](schemas/), [reference architectures](reference-architectures/overview.md) (non-normative).
+Then: [CI and contributor automation](ci-and-contributor-automation.md) (`go test`, workspace server, `testdata/`), **[Contributor commands](development/contributor-commands.md)** (single copy-paste shell reference), [Cognitive design standards](development/cognitive-design-standards.md), [Cognitive validation gates](development/cognitive-validation-gates.md), [IR model](core-concepts/omnigraph-ir.md), [Emitter Engine](core-concepts/emitter-engine.md), [E2E testing](development/e2e-testing.md), [schemas](schemas/), [reference architectures](reference-architectures/overview.md) (non-normative).
 
 ## Find documentation by intent
 
@@ -33,20 +35,20 @@ Then: [CI and contributor automation](ci-and-contributor-automation.md) (`go tes
 | NOC/SRE or SOC/SecOps shaped tours | [guides/workflows-noc-sre.md](guides/workflows-noc-sre.md), [guides/workflows-soc-secops.md](guides/workflows-soc-secops.md) |
 | Use the graph and workspace in the browser | [using-the-web.md](using-the-web.md) |
 | What is this and for whom? | [overview.md](overview.md) |
-| Automation, CI, contributor verification | [ci-and-contributor-automation.md](ci-and-contributor-automation.md), [examples/quickstart/README.md](../examples/quickstart/README.md) |
+| Automation, CI, contributor verification | [ci-and-contributor-automation.md](ci-and-contributor-automation.md), [Contributor commands](development/contributor-commands.md), [examples/quickstart/README.md](../examples/quickstart/README.md) |
 | How is the system structured? | [core-concepts/architecture.md](core-concepts/architecture.md) |
 | How runs produce graph/run artifacts | [core-concepts/execution-matrix.md](core-concepts/execution-matrix.md) |
 | Schema and API contracts | [schemas/](schemas/), [core-concepts/omnigraph-ir.md](core-concepts/omnigraph-ir.md) |
 | Policy, scans, serve safety | [security/posture.md](security/posture.md) |
 | Example deployment patterns (illustrative only) | [reference-architectures/](reference-architectures/) |
-| Build, test, contribute | [development/local-dev.md](development/local-dev.md), [CONTRIBUTING.md](../CONTRIBUTING.md) |
+| Build, test, contribute | [development/local-dev.md](development/local-dev.md), [Contributor commands](development/contributor-commands.md), [Cognitive design standards](development/cognitive-design-standards.md), [CONTRIBUTING.md](../CONTRIBUTING.md) |
 
 ## Section map
 
 - **`examples/quickstart/`** (repo root) — minimal `.tfstate.json` + `.omnigraph.schema` for graph emit tests and Topology fixtures.
 - **guides/** — task-oriented guides (UI modes, graph dependencies / blast radius, persona workflows).
 - **core-concepts/** — architecture, UX architecture, IR, state, integrations, execution, ADRs, inventory.
-- **development/** — platform architecture narrative, local builds, web frontend, E2E, contributing pointers, [WASI parser plugins](development/wasm-plugins.md).
+- **development/** — platform architecture narrative, local builds, web frontend, E2E, **[Contributor commands](development/contributor-commands.md)** (shell reference), [Cognitive standards](development/cognitive-design-standards.md), [Validation gates](development/cognitive-validation-gates.md), [WASI parser plugins](development/wasm-plugins.md).
 - **reference-architectures/** — example topologies; adapt to your standards.
 - **schemas/** — contract references for IR, run, and related formats.
 - **security/** — policy, scans, operational hardening for `serve`.

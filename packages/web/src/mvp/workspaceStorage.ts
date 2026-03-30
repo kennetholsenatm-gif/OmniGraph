@@ -10,8 +10,8 @@ export type WorkspaceSnapshotV1 = {
   projectLabel: string
   /** Local clone root; drives portable paths and omnigraph.workspace.json export. */
   gitRepoRoot?: string
-  /** On-disk path hint for schema file (exports / manifest). */
-  schemaCliPath: string
+  /** Path to schema file relative to repo root (exports / manifest). */
+  schemaManifestRelativePath: string
   schemaFileNameHint?: string
   graphFileNameHint?: string
   /** OpenTofu/Terraform workspace root (pipeline context). */
@@ -56,7 +56,7 @@ export function defaultWorkspaceSnapshot(): WorkspaceSnapshotV1 {
     graphText: defaultGraphJson,
     hclText: defaultHcl,
     projectLabel: 'demo',
-    schemaCliPath: '.omnigraph.schema',
+    schemaManifestRelativePath: '.omnigraph.schema',
     postureSecurityJson: defaultPostureSecurityJson,
   }
 }
@@ -79,8 +79,13 @@ export function loadWorkspace(): WorkspaceSnapshotV1 | null {
     const graphText = typeof j.graphText === 'string' ? j.graphText : null
     const hclText = typeof j.hclText === 'string' ? j.hclText : null
     const projectLabel = typeof j.projectLabel === 'string' ? j.projectLabel : null
-    const schemaCliPath = typeof j.schemaCliPath === 'string' ? j.schemaCliPath : null
-    if (!schemaText || !graphText || !hclText || !projectLabel || !schemaCliPath) {
+    const schemaManifestRelativePath =
+      typeof j.schemaManifestRelativePath === 'string'
+        ? j.schemaManifestRelativePath
+        : typeof j.schemaCliPath === 'string'
+          ? j.schemaCliPath
+          : null
+    if (!schemaText || !graphText || !hclText || !projectLabel || !schemaManifestRelativePath) {
       return null
     }
     const optStr = (k: string) => (typeof j[k] === 'string' ? (j[k] as string) : undefined)
@@ -93,7 +98,7 @@ export function loadWorkspace(): WorkspaceSnapshotV1 | null {
       hclText,
       projectLabel,
       gitRepoRoot: optStr('gitRepoRoot'),
-      schemaCliPath,
+      schemaManifestRelativePath,
       schemaFileNameHint: typeof j.schemaFileNameHint === 'string' ? j.schemaFileNameHint : undefined,
       graphFileNameHint: typeof j.graphFileNameHint === 'string' ? j.graphFileNameHint : undefined,
       pipelineWorkdir: optStr('pipelineWorkdir'),

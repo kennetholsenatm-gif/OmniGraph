@@ -12,6 +12,8 @@ For the **architectural story** (Go workspaces, Emitter Engine, Wasm hardening, 
 
 This guide covers local setup for **both** the web app and the control plane.
 
+**All copy-paste shell sequences** (clone, `go work sync`, npm, builds, E2E): **[docs/development/contributor-commands.md](docs/development/contributor-commands.md)**.
+
 
 
 ## Development Prerequisites
@@ -26,7 +28,7 @@ This guide covers local setup for **both** the web app and the control plane.
 
 - **Node.js 20 LTS** and npm - For the web UI (`packages/web`)
 
-- **Git** - Version control
+- **Git**
 
 
 
@@ -52,13 +54,7 @@ This guide covers local setup for **both** the web app and the control plane.
 
 
 
-```bash
-
-git clone https://github.com/<ORG_OR_USER>/<REPOSITORY>.git
-
-cd <REPOSITORY>
-
-```
+Clone the repository and open its root. Exact `git` commands: **[docs/development/contributor-commands.md](docs/development/contributor-commands.md)**.
 
 
 
@@ -66,19 +62,9 @@ cd <REPOSITORY>
 
 
 
-From the repository root, ensure the **workspace** is synced so all listed modules resolve together:
+From the repository root, ensure the **workspace** is synced so all listed modules resolve together. See **[docs/development/contributor-commands.md](docs/development/contributor-commands.md)** (`go work sync`).
 
-
-
-```bash
-
-go work sync
-
-```
-
-
-
-Then build and test the Go control plane (see below). The root **`go.work`** file groups the main module, **`wasm/*`** toolchains, and any shared **`pkg/`** libraries so backend work stays **decoupled** from the frontend’s npm graph.
+Then build and test the Go control plane using the same document. The root **`go.work`** file groups the main module, **`wasm/*`** toolchains, and any shared **`pkg/`** libraries so backend work stays **decoupled** from the frontend’s npm graph.
 
 
 
@@ -86,33 +72,9 @@ Then build and test the Go control plane (see below). The root **`go.work`** fil
 
 
 
-```bash
+From **`packages/web`**, install dependencies and start the dev server—see **[docs/development/contributor-commands.md](docs/development/contributor-commands.md)**.
 
-cd packages/web
-
-npm ci
-
-npm run dev
-
-```
-
-
-
-CI parity commands:
-
-
-
-```bash
-
-cd packages/web
-
-npm ci
-
-npm run lint
-
-npm run build
-
-```
+CI parity (`npm run lint`, `npm run build`) is in the same document.
 
 
 
@@ -120,43 +82,9 @@ npm run build
 
 
 
-The browser UI uses WebAssembly for HCL diagnostics. Build it with:
-
-
-
-```bash
-
-make wasm-hcldiag
-
-```
-
-
+The browser UI uses WebAssembly for HCL diagnostics. Rebuild commands (`make wasm-hcldiag`) and optional spike flags are in **[docs/development/contributor-commands.md](docs/development/contributor-commands.md)**.
 
 Wasm artifacts are consumed from the web package’s static directory (for example `public/wasm/` under the UI root).
-
-
-
-Optional Wasm spike test:
-
-
-
-```bash
-
-cd packages/web
-
-# Bash/Linux/macOS
-
-VITE_ENABLE_WASM_SPIKE=true npm run dev
-
-
-
-# PowerShell
-
-$env:VITE_ENABLE_WASM_SPIKE = "true"
-
-npm run dev
-
-```
 
 
 
@@ -168,53 +96,7 @@ End-user-oriented tab reference: [docs/using-the-web.md](docs/using-the-web.md).
 
 
 
-Build and test the workspace server and libraries:
-
-
-
-```bash
-
-# Run tests (includes schema + graph emit smoke)
-
-go vet ./...
-
-go test ./...
-
-
-
-# Build workspace server binary
-
-go build -o bin/omnigraph ./cmd/omnigraph
-
-./bin/omnigraph -h
-
-```
-
-
-
-**Windows PowerShell:**
-
-```powershell
-
-go build -o bin\omnigraph.exe .\cmd\omnigraph
-
-.\bin\omnigraph.exe -h
-
-```
-
-
-
-**Using Make (optional):**
-
-```bash
-
-make vet
-
-make test
-
-make build
-
-```
+Build and test the workspace server and libraries: **[docs/development/contributor-commands.md](docs/development/contributor-commands.md)** (Go vet, test, build, Windows variants, optional Make).
 
 
 
@@ -226,17 +108,7 @@ make build
 
 
 
-Full-pipeline tests with **simulated Ansible endpoints** and **fixture state** live under **`e2e/`**:
-
-
-
-```bash
-
-go test ./e2e/...
-
-```
-
-
+Full-pipeline tests with **simulated Ansible endpoints** and **fixture state** live under **`e2e/`**. Run them from the repo root as in **[docs/development/contributor-commands.md](docs/development/contributor-commands.md)**.
 
 See [docs/development/e2e-testing.md](docs/development/e2e-testing.md).
 
@@ -316,7 +188,7 @@ Exercise **OpenTofu/Terraform** and **Ansible** directly against your lab roots.
 
 - Follow [Effective Go](https://go.dev/doc/effective-go)
 
-- Run `go vet ./...` and `go test ./...` before committing
+- Run `go vet ./...` and `go test ./...` before committing (commands: [Contributor commands](docs/development/contributor-commands.md))
 
 - Use table-driven tests
 
@@ -332,7 +204,7 @@ Exercise **OpenTofu/Terraform** and **Ansible** directly against your lab roots.
 
 - Follow ESLint configuration (`packages/web/eslint.config.js`)
 
-- Run `npm run lint` before committing
+- Run `npm run lint` before committing ([Contributor commands](docs/development/contributor-commands.md))
 
 - Use functional components with hooks
 
@@ -348,21 +220,7 @@ Exercise **OpenTofu/Terraform** and **Ansible** directly against your lab roots.
 
 3. **Make your changes** with tests and documentation
 
-4. **Run the test suite** to ensure CI parity:
-
-   ```bash
-
-   go work sync
-
-   go vet ./...
-
-   go test ./...
-
-   go test ./e2e/...
-
-   cd packages/web && npm run lint
-
-   ```
+4. **Run the test suite** to ensure CI parity—use the **PR / CI verification checklist** in **[docs/development/contributor-commands.md](docs/development/contributor-commands.md)**
 
 5. **Submit a pull request** with a clear description
 
@@ -430,5 +288,4 @@ Start with these resources:
 
 - Check discussions in your upstream repository
 
-- Review the canonical docs under `docs/`. Short wiki navigation lives in `wiki/`; to update the GitHub **Wiki** tab, follow [`wiki/SYNC.md`](wiki/SYNC.md) after enabling Wikis in repo settings.
-
+- Review the canonical docs under `docs/`. Short wiki navigation lives in `wiki/`; to update the GitHub **Wiki** tab, follow [`wiki/SYNC.md`](wiki/SYNC.md) after enabling Wikis in repo settings (manual git steps: [Contributor commands](docs/development/contributor-commands.md)).

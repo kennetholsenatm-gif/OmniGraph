@@ -144,7 +144,7 @@ func runIntegrationRun(args []string) error {
 		return err
 	}
 	ctx := context.Background()
-	out, err := serve.RunIntegrationCLI(ctx, wasm, stdin)
+	out, err := serve.RunIntegrationStdio(ctx, wasm, stdin)
 	if err != nil {
 		return err
 	}

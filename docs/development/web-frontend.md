@@ -22,26 +22,12 @@ Workspace state persists as **v1** in `localStorage` ([`workspaceStorage.ts`](..
 
 ## Start development server
 
-```bash
-cd packages/web
-npm ci
-npm run dev
-```
+Install dependencies and start Vite from **`packages/web`**: **[Contributor commands](contributor-commands.md)**.
 
 ## Validate frontend changes
 
-```bash
-cd packages/web
-npm run lint
-npm run build
-```
+Lint and production build: **[Contributor commands](contributor-commands.md)**.
 
 ## Optional Wasm flow
 
-If you are changing WebAssembly-backed diagnostics, rebuild Wasm assets first, then
-run the web app for integration testing.
-
-```bash
-make wasm-hcldiag
-cd packages/web && npm run dev
-```
+If you are changing WebAssembly-backed diagnostics, rebuild Wasm assets first, then run the web app for integration testing. Commands: **[Contributor commands](contributor-commands.md)** (HCL diagnostics / optional spike).

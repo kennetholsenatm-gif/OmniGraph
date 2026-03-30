@@ -59,7 +59,7 @@ export function buildWorkspaceManifest(args: {
   pipelineWorkdir: string
   pipelineAnsibleRoot: string
   pipelinePlaybookRel: string
-  schemaCliPath: string
+  schemaManifestRelativePath: string
 }): OmnigraphWorkspaceManifestV1 {
   const root = args.gitRepositoryRoot.trim()
   const wd = args.pipelineWorkdir.trim()
@@ -81,7 +81,7 @@ export function buildWorkspaceManifest(args: {
         }
       : {}),
     schema: {
-      path: args.schemaCliPath.trim() || '.omnigraph.schema',
+      path: args.schemaManifestRelativePath.trim() || '.omnigraph.schema',
     },
   }
 }

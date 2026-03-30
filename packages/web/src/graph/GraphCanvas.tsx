@@ -368,6 +368,26 @@ function selectionFromNodeData(n: Node): GraphNodeSelection {
   }
 }
 
+type GraphCanvasViewModel =
+  | { ok: true; doc: GraphDocument; nodes: Node[]; edges: Edge[] }
+  | { ok: false; error: string }
+
+function buildGraphCanvasViewModel(
+  graphText: string,
+  drillHighlight?: Record<string, DrillHighlightKind>,
+): GraphCanvasViewModel {
+  const parsed = parseGraphDocument(graphText)
+  if (!parsed.ok) {
+    return { ok: false, error: parsed.error }
+  }
+  try {
+    const { nodes, edges } = mapGraphV1ToFlow(parsed.doc, { drillHighlight })
+    return { ok: true, doc: parsed.doc, nodes, edges }
+  } catch {
+    return { ok: false, error: 'Graph mapping failed for the current document.' }
+  }
+}
+
 function GraphCanvasInner({
   graphText,
   onNodeSelect,
@@ -387,38 +407,28 @@ function GraphCanvasInner({
     onSelectRef.current = onNodeSelect
   }, [onNodeSelect])
 
-  const parsed = useMemo(() => parseGraphDocument(graphText), [graphText])
-
-  const applyLayout = useCallback(
-    (doc: GraphDocument) => {
-      try {
-        const { nodes: n, edges: e } = mapGraphV1ToFlow(doc, { drillHighlight })
-        setNodes(n)
-        setEdges(e)
-      } catch {
-        setNodes([])
-        setEdges([])
-      }
-    },
-    [drillHighlight, setEdges, setNodes],
+  const viewModel = useMemo(
+    () => buildGraphCanvasViewModel(graphText, drillHighlight),
+    [graphText, drillHighlight],
   )
 
   useEffect(() => {
-    if (parsed.ok) {
-      applyLayout(parsed.doc)
+    if (viewModel.ok) {
+      setNodes(viewModel.nodes)
+      setEdges(viewModel.edges)
     } else {
       setNodes([])
       setEdges([])
     }
     onSelectRef.current?.(null)
-  }, [parsed, applyLayout, setEdges, setNodes])
+  }, [viewModel, setEdges, setNodes])
 
-  if (!parsed.ok) {
+  if (!viewModel.ok) {
     return (
       <div
         className={`flex min-h-[280px] w-full flex-1 items-center justify-center rounded-xl border border-rose-900/50 bg-rose-950/20 p-4 text-sm text-rose-200 ${className ?? ''}`}
       >
-        {parsed.error}
+        {viewModel.error}
       </div>
     )
   }
@@ -455,8 +465,8 @@ function GraphCanvasInner({
         />
         <Panel position="top-left" className="max-w-[min(100%,280px)] rounded bg-slate-900/90 px-2 py-1.5 text-xs text-slate-400">
           <div>
-            phase: {parsed.doc.spec.phase}
-            {parsed.doc.metadata.project ? ` · ${parsed.doc.metadata.project}` : ''}
+            phase: {viewModel.doc.spec.phase}
+            {viewModel.doc.metadata.project ? ` · ${viewModel.doc.metadata.project}` : ''}
           </div>
           <div className="mt-0.5 text-[10px] leading-snug text-slate-500">
             Shaded regions = enclave / trust zone (<code className="text-slate-500">attributes.enclave</code> or{' '}

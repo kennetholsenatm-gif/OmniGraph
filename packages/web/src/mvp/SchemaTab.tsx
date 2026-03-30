@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronDown, FileCode, FileJson, Lock, RefreshCw, ShieldAlert, TerminalSquare, Upload } from 'lucide-react'
+import { AlertTriangle, ArrowLeftRight, ChevronDown, FileCode, FileJson, Lock, RefreshCw, ShieldAlert, TerminalSquare, Upload } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 
 import { validateOmnigraphText } from '../validateOmnigraph'
@@ -26,19 +26,24 @@ function SchemaFieldReadOnly({ name, typeLabel, value }: { name: string; typeLab
 export type SchemaTabProps = {
   schemaText: string
   onSchemaChange: (value: string) => void
-  schemaCliPath: string
-  onSchemaCliPathChange: (value: string) => void
+  schemaManifestRelativePath: string
+  onSchemaManifestRelativePathChange: (value: string) => void
   schemaFileNameHint?: string
   onSchemaFileNameHintChange?: (value: string | undefined) => void
+  /** Pipeline preview uses a separate field; optional one-way sync from this manifest path. */
+  pipelineSchemaPath?: string
+  onApplyManifestPathToPipeline?: () => void
 }
 
 export function SchemaTab({
   schemaText,
   onSchemaChange,
-  schemaCliPath,
-  onSchemaCliPathChange,
+  schemaManifestRelativePath,
+  onSchemaManifestRelativePathChange,
   schemaFileNameHint,
   onSchemaFileNameHintChange,
+  pipelineSchemaPath,
+  onApplyManifestPathToPipeline,
 }: SchemaTabProps) {
   const [debounced, setDebounced] = useState(schemaText)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -52,6 +57,10 @@ export function SchemaTab({
   }, [schemaText])
 
   const documentValidation = useMemo(() => validateOmnigraphText(debounced), [debounced])
+
+  const manifestEffective = schemaManifestRelativePath.trim() || '.omnigraph.schema'
+  const pipelineEffective = (pipelineSchemaPath ?? '').trim() || '.omnigraph.schema'
+  const pathsMatch = manifestEffective === pipelineEffective
 
   const handlePortChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
@@ -136,18 +145,39 @@ export function SchemaTab({
           <p className="mb-2 font-mono text-xs text-gray-500">Loaded: {schemaFileNameHint}</p>
         ) : null}
 
-        <label htmlFor="schema-cli-path" className="mb-1 text-xs font-medium text-gray-400">
-          On-disk path hint (exports / workspace manifest)
+        <label htmlFor="schema-manifest-path" className="mb-1 text-xs font-medium text-gray-400">
+          Schema path in repo (exports / workspace manifest)
         </label>
         <input
-          id="schema-cli-path"
+          id="schema-manifest-path"
           type="text"
-          value={schemaCliPath}
-          onChange={(e) => onSchemaCliPathChange(e.target.value)}
+          value={schemaManifestRelativePath}
+          onChange={(e) => onSchemaManifestRelativePathChange(e.target.value)}
           spellCheck={false}
-          className="mb-4 w-full rounded-lg border border-gray-800 bg-gray-950 px-3 py-2 font-mono text-sm text-gray-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+          className="mb-2 w-full rounded-lg border border-gray-800 bg-gray-950 px-3 py-2 font-mono text-sm text-gray-200 outline-none focus:ring-2 focus:ring-blue-500/40"
           placeholder=".omnigraph.schema"
         />
+        {onApplyManifestPathToPipeline ? (
+          <div className="mb-4 rounded-lg border border-gray-800/80 bg-gray-900/35 p-3">
+            <p className="mb-2 text-[11px] leading-relaxed text-gray-500">
+              The <strong className="text-gray-400">Pipeline</strong> tab keeps its own schema path for execution-context
+              previews. It can match this manifest path or differ on purpose—use the control below to align them after you
+              change the contract path.
+            </p>
+            {pathsMatch ? (
+              <p className="text-[11px] text-emerald-600/90">Matches Pipeline schema path ({pipelineEffective}).</p>
+            ) : (
+              <button
+                type="button"
+                onClick={onApplyManifestPathToPipeline}
+                className="flex items-center gap-2 rounded-lg border border-blue-500/35 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-200 hover:bg-blue-500/15"
+              >
+                <ArrowLeftRight size={14} aria-hidden />
+                Copy manifest path to Pipeline ({manifestEffective})
+              </button>
+            )}
+          </div>
+        ) : null}
 
         <label htmlFor="mvp-schema-doc" className="mb-2 text-sm font-medium text-gray-300">
           Project document
@@ -242,7 +272,7 @@ export function SchemaTab({
         <h2 className="mb-2 text-lg font-bold text-gray-100">Illustrative handoff snippets</h2>
         <p className="mb-4 text-xs text-gray-500">
           Fictional variables for onboarding only — not generated from your document. Align the path on the left with{' '}
-          <code className="text-gray-400">{schemaCliPath || '.omnigraph.schema'}</code> when exporting manifests.
+          <code className="text-gray-400">{schemaManifestRelativePath || '.omnigraph.schema'}</code> when exporting manifests.
         </p>
 
         <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-300">

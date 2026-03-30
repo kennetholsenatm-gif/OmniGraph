@@ -121,7 +121,7 @@ func RunIntegrationPlugin(ctx context.Context, cfg IntegrationHostConfig, stdin 
 	}
 	wasmBytes, err := os.ReadFile(absWasm)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read wasm module: %w", err)
 	}
 
 	rt := wazero.NewRuntime(ctx)

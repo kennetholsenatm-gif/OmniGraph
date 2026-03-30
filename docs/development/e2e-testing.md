@@ -27,11 +27,7 @@ E2E scenarios **must** include **unhappy paths**: slow responses, truncated JSON
 
 ## Running locally and in CI
 
-From the repository root (after `go work sync`):
-
-```bash
-go test ./e2e/...
-```
+From the repository root (after `go work sync`), use the **`e2e/`** test target in **[Contributor commands](contributor-commands.md)**.
 
 Some suites may require tags or environment variables (for example skipping container-based cases); see comments in `e2e/` once the harness is present. **CI** runs the same target so merges cannot drift from documented behavior. For automation context, see [CI and contributor automation](../ci-and-contributor-automation.md).
 
@@ -40,3 +36,4 @@ Some suites may require tags or environment variables (for example skipping cont
 - [Platform architecture](platform-architecture.md) — why E2E exists in the overall design
 - [Execution matrix](../core-concepts/execution-matrix.md) — runners and real orchestration
 - [CONTRIBUTING.md](../../CONTRIBUTING.md) — full verification checklist before a PR
+- [Contributor commands](contributor-commands.md)

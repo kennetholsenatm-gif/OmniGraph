@@ -31,30 +31,13 @@ Official reference: [About wikis](https://docs.github.com/en/communities/documen
 
 Until the first push, the wiki repo may not exist yet; creating the first page in the GitHub UI, or an initial push, initializes it.
 
-```bash
-git clone https://github.com/kennetholsenatm-gif/OmniGraph.wiki.git
-cd OmniGraph.wiki
-```
+Exact `git clone` / `cd` commands: **[Contributor commands](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/development/contributor-commands.md)** (Wiki manual sync).
 
 Use SSH if that is how you authenticate to GitHub.
 
 ## 3. Copy markdown from `main`
 
-From a checkout of **OmniGraph** (`main`):
-
-```bash
-# example: OmniGraph = main repo, OmniGraph.wiki = wiki clone (sibling dirs)
-cp ../OmniGraph/wiki/*.md .
-```
-
-Review diffs. Commit and push:
-
-```bash
-git add .
-git status
-git commit -m "docs: sync wiki from main"
-git push
-```
+From a checkout of **OmniGraph** (`main`), copy files from **`wiki/`** into the wiki clone (`cp` / review / commit / push). Full sequence: **[Contributor commands](https://github.com/kennetholsenatm-gif/OmniGraph/blob/main/docs/development/contributor-commands.md)**.
 
 Repeat whenever you change `wiki/` on `main` and want the Wiki tab updated without waiting for CI (or if CI is not configured).
 

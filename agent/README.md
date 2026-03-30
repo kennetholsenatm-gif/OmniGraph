@@ -15,7 +15,7 @@ The **sync agent** is an optional **long-running process** (sidecar, systemd uni
 | `OMNIGRAPH_SYNC_TOKEN` | Yes | Bearer token (must match `serve` auth) |
 | `OMNIGRAPH_SYNC_WRITABLE_PATHS` | Yes | Comma- or path-list-separated **directory roots** on the agent host; all reads/writes are confined here |
 
-The control plane must be started with **`--enable-sync-ws-api`** (and authentication) for the route to exist. See the workspace server flags in [docs/ci-and-contributor-automation.md](../docs/ci-and-contributor-automation.md).
+The control plane must be started with **`--enable-sync-ws-api`** (and authentication) for the route to exist. Workspace server invocation and flags: **[docs/development/contributor-commands.md](../docs/development/contributor-commands.md)** and [docs/ci-and-contributor-automation.md](../docs/ci-and-contributor-automation.md).
 
 ## Security notes
 

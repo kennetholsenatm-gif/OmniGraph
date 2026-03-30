@@ -2,6 +2,9 @@
 
 Security teams care about **exposure paths**, **control coverage**, and **evidence**—not a second CMDB that duplicates scanners. OmniGraph supports **posture as a lens** on the same **topology** operators use for incidents.
 
+**You are here:** `docs/guides` -> workflow guide -> **SOC/SecOps exposure path**.
+**Next decision:** begin from a finding-linked node id in Topology, then determine primary impact via necessary edges.
+
 ## What to use in the workspace
 
 | Goal | Mode / area | Why |
@@ -11,6 +14,15 @@ Security teams care about **exposure paths**, **control coverage**, and **eviden
 | Incident-style correlation | **Triage mode** | When enabled, keeps reconciliation and posture references **node-scoped** |
 
 ## Tracing “security blast radius”
+
+```mermaid
+flowchart LR
+  finding[Finding_or_asset_signal] --> locate[Map_to_graph_node_id]
+  locate --> topology[Trace_in_Topology]
+  topology --> edges[Follow_necessary_edges_primary_impact]
+  edges --> posture[Open_Posture_for_remediation_context]
+  posture --> handoff[Share_same_node_scope_with_NOC]
+```
 
 1. Start from a **finding** or **asset** tied to a **graph node id** (or label you can map to a node).
 2. In **Topology**, follow **necessary** edges for **primary** dependency impact—optional or contextual links use **`sufficient`**. See [Graph dependencies and blast radius](graph-dependencies-and-blast-radius.md).

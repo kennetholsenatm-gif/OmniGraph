@@ -37,6 +37,7 @@ func newSyncHub() *syncHub {
 func (h *syncHub) replaceState(st omnistate.OmniGraphState) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	// Side effect boundary: complete authoritative state replacement for all subsequent snapshots.
 	h.state = st
 }
 
@@ -49,6 +50,7 @@ func (h *syncHub) snapshot() omnistate.OmniGraphState {
 func (h *syncHub) applyPatch(p omnistate.StatePatch) omnistate.OmniGraphState {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	// Side effect boundary: mutates hub state and increments revision via omnistate.ApplyPatch.
 	h.state = omnistate.ApplyPatch(h.state, p)
 	return h.state
 }
@@ -110,6 +112,16 @@ func (s *server) syncReadLoop(ctx context.Context, conn *websocket.Conn) error {
 				_ = writeWSError(conn, "invalid_payload", err.Error())
 				continue
 			}
+			current := s.syncHub.snapshot()
+			if m.BaseRevision > 0 && m.BaseRevision != current.Revision {
+				_ = conn.WriteJSON(wsError{
+					Type:            "error",
+					Code:            "reconciliation_revision_conflict",
+					Message:         "sync/ws: baseRevision does not match current revision; refresh and retry",
+					CurrentRevision: current.Revision,
+				})
+				continue
+			}
 			next := s.syncHub.applyPatch(m.Patch)
 			_ = conn.WriteJSON(wsStateAck{Type: "state_ack", Revision: next.Revision})
 		case "mutation_result":
@@ -156,9 +168,10 @@ type wsGeneric struct {
 }
 
 type wsError struct {
-	Type    string `json:"type"`
-	Code    string `json:"code"`
-	Message string `json:"message"`
+	Type            string `json:"type"`
+	Code            string `json:"code"`
+	Message         string `json:"message"`
+	CurrentRevision int64  `json:"currentRevision,omitempty"`
 }
 
 func writeWSError(conn *websocket.Conn, code, msg string) error {

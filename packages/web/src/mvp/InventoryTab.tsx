@@ -1,20 +1,11 @@
 import { Check, Cloud, Copy, Download, FileJson, FileText, FolderSync, HardDrive, LayoutGrid, Server, Upload } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
 
-import { joinDisplayPath } from './gitWorkspace'
-import {
-  buildOmnigraphIni,
-  extractHostsFromPlanJson,
-  extractHostsFromTfStateJson,
-  mergeInventoryRows,
-  parseAnsibleIni,
-  rowsFromIngestOmniState,
-  sourceLabel,
-  type InventoryRow,
-  type InventorySourceKind,
-} from './inventorySources'
+import { buildInventoryViewModel, filterInventoryRows, formatLocalIngestSummary } from './buildInventoryViewModel'
+import { buildReconciliationViewModel } from './buildReconciliationViewModel'
+import { rowsFromIngestOmniState, type InventoryRow, type InventorySourceKind } from './inventorySources'
 import { isFileSystemAccessSupported, pickInfrastructureFiles, readFilesForIngest } from './localFilePick'
-import { omnigraphApiBase, postLocalIngest, type WorkspaceSummary } from './omnigraphApi'
+import { omnigraphApiBase, postLocalIngest, type ReconciliationSnapshot, type WorkspaceSummary } from './omnigraphApi'
 import { isRepoFolderPickerSupported, type RepoScanSession } from './repoFolderScan'
 
 export type InventoryTabProps = {
@@ -37,6 +28,7 @@ export type InventoryTabProps = {
   onLoadServer: () => Promise<void>
   serverLoading: boolean
   serverError: string | null
+  reconciliationSnapshot: ReconciliationSnapshot | null
   /** SSE workspace stream (GET /api/v1/workspace/stream); summary updates only from events. */
   workspaceStreamConnected: boolean
   workspaceStreamError: string | null
@@ -48,14 +40,6 @@ type SourceTab = 'state' | 'plan' | 'ini'
 
 const segBtn =
   'flex-1 rounded-md px-3 py-2 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60'
-
-function withOrigin(rows: InventoryRow[], origin: string): InventoryRow[] {
-  return rows.map((r) => ({
-    ...r,
-    id: `${r.id}@origin:${origin}`,
-    originPath: origin,
-  }))
-}
 
 function FileOpenButton({ accept, onText }: { accept: string; onText: (text: string) => void }) {
   const ref = useRef<HTMLInputElement>(null)
@@ -96,116 +80,50 @@ export function InventoryTab(p: InventoryTabProps) {
   const [ingestBusy, setIngestBusy] = useState(false)
   const [ingestErr, setIngestErr] = useState<string | null>(null)
   const [ingestNote, setIngestNote] = useState<string | null>(null)
+  const [ingestDetailLines, setIngestDetailLines] = useState<string[]>([])
   const [ingestRows, setIngestRows] = useState<InventoryRow[]>([])
 
-  const parsed = useMemo(() => {
-    const stateRows: InventoryRow[] = []
-    const stateErrs: string[] = []
-    for (const sf of p.repoSession?.stateFiles ?? []) {
-      const r = extractHostsFromTfStateJson(sf.text)
-      if (r.error) {
-        stateErrs.push(`${sf.path}: ${r.error}`)
-      }
-      stateRows.push(...withOrigin(r.rows, sf.path))
-    }
-    if (p.tfStateText.trim()) {
-      const r = extractHostsFromTfStateJson(p.tfStateText)
-      if (r.error) {
-        stateErrs.push(`Overrides: ${r.error}`)
-      }
-      stateRows.push(...withOrigin(r.rows, 'Overrides (paste)'))
-    }
+  const vm = useMemo(
+    () =>
+      buildInventoryViewModel({
+        tfStateText: p.tfStateText,
+        planJsonText: p.planJsonText,
+        ansibleIniText: p.ansibleIniText,
+        repoSession: p.repoSession,
+        serverSummary: p.serverSummary,
+        ingestRows,
+        pipelineWorkdir: p.pipelineWorkdir,
+        pipelineStateFile: p.pipelineStateFile,
+        pipelinePlanFile: p.pipelinePlanFile,
+        pipelineAnsibleRoot: p.pipelineAnsibleRoot,
+      }),
+    [
+      p.repoSession,
+      p.tfStateText,
+      p.planJsonText,
+      p.ansibleIniText,
+      p.serverSummary,
+      ingestRows,
+      p.pipelineWorkdir,
+      p.pipelineStateFile,
+      p.pipelinePlanFile,
+      p.pipelineAnsibleRoot,
+    ],
+  )
 
-    const planRows: InventoryRow[] = []
-    const planErrs: string[] = []
-    if (p.planJsonText.trim()) {
-      const r = extractHostsFromPlanJson(p.planJsonText)
-      if (r.error) {
-        planErrs.push(r.error)
-      }
-      planRows.push(...withOrigin(r.rows, 'Overrides (paste)'))
-    }
+  const stateErrDisplay = vm.stateErrors.length ? vm.stateErrors.join(' · ') : undefined
+  const planErrDisplay = vm.planErrors.length ? vm.planErrors.join(' · ') : undefined
 
-    const iniRows: InventoryRow[] = []
-    for (const inf of p.repoSession?.iniFiles ?? []) {
-      const r = parseAnsibleIni(inf.text)
-      iniRows.push(...withOrigin(r.rows, inf.path))
-    }
-    if (p.ansibleIniText.trim()) {
-      iniRows.push(...withOrigin(parseAnsibleIni(p.ansibleIniText).rows, 'Overrides (paste)'))
-    }
-
-    if (p.serverSummary?.stateInventory?.length) {
-      let i = 0
-      for (const r of p.serverSummary.stateInventory) {
-        stateRows.push({
-          id: `server:${r.origin}:${r.name}:${i}`,
-          name: r.name,
-          ansibleHost: r.ansibleHost,
-          source: 'terraform-state',
-          originPath: `${r.origin} (server)`,
-        })
-        i++
-      }
-    }
-    if (p.serverSummary?.stateErrors?.length) {
-      for (const e of p.serverSummary.stateErrors) {
-        stateErrs.push(`Server: ${e}`)
-      }
-    }
-
-    const ingestMerged = ingestRows.length ? withOrigin(ingestRows, 'POST /ingest/local') : []
-    const merged = mergeInventoryRows(stateRows, planRows, [...iniRows, ...ingestMerged])
-    return {
-      stateErr: stateErrs.join(' · ') || undefined,
-      planErr: planErrs.join(' · ') || undefined,
-      merged,
-    }
-  }, [p.repoSession, p.tfStateText, p.planJsonText, p.ansibleIniText, p.serverSummary, ingestRows])
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return parsed.merged.filter((r) => {
-      if (filterSource !== 'all' && r.source !== filterSource) {
-        return false
-      }
-      if (!q) {
-        return true
-      }
-      const g = (r.group ?? '').toLowerCase()
-      const o = (r.originPath ?? '').toLowerCase()
-      return (
-        r.name.toLowerCase().includes(q) ||
-        r.ansibleHost.toLowerCase().includes(q) ||
-        g.includes(q) ||
-        o.includes(q) ||
-        sourceLabel(r.source).toLowerCase().includes(q)
-      )
-    })
-  }, [parsed.merged, filterSource, search])
-
-  const omnigraphIni = useMemo(() => buildOmnigraphIni(parsed.merged), [parsed.merged])
-
-  const statePathHint = useMemo(() => {
-    const wd = p.pipelineWorkdir.trim()
-    const sf = p.pipelineStateFile.trim() || 'terraform.tfstate'
-    return wd ? joinDisplayPath(wd, sf) : sf
-  }, [p.pipelineWorkdir, p.pipelineStateFile])
-
-  const planPathHint = useMemo(() => {
-    const wd = p.pipelineWorkdir.trim()
-    const pf = p.pipelinePlanFile.trim() || 'tfplan'
-    return wd ? `${joinDisplayPath(wd, pf)} → tofu show -json` : `tfplan → tofu show -json`
-  }, [p.pipelineWorkdir, p.pipelinePlanFile])
-
-  const ansiblePathHint = useMemo(() => {
-    const ar = p.pipelineAnsibleRoot.trim()
-    return ar ? joinDisplayPath(ar, 'inventory') : 'inventory/ under Ansible root'
-  }, [p.pipelineAnsibleRoot])
+  const filtered = useMemo(
+    () => filterInventoryRows(vm.mergedRows, filterSource, search),
+    [vm.mergedRows, filterSource, search],
+  )
+  const reconVm = useMemo(() => buildReconciliationViewModel(p.reconciliationSnapshot), [p.reconciliationSnapshot])
 
   const onPickLocalForIngest = useCallback(async () => {
     setIngestErr(null)
     setIngestNote(null)
+    setIngestDetailLines([])
     const tok = p.serveApiToken.trim()
     if (!tok) {
       setIngestErr('Set the Bearer token below (same value as serve --auth-token) before ingesting.')
@@ -227,12 +145,15 @@ export function InventoryTab(p: InventoryTabProps) {
       const res = await postLocalIngest(tok, { files: payloads })
       const rows = rowsFromIngestOmniState(res.state)
       setIngestRows(rows)
-      const pe = res.state.partialErrors as { message?: string }[] | undefined
-      const errCount = (res.errors?.length ?? 0) + (pe?.length ?? 0)
-      setIngestNote(
-        `Normalized ${res.state.nodes?.length ?? 0} node(s) from ${files.length} file(s)` +
-          (errCount ? ` (${errCount} partial issue(s); check server response for detail)` : ''),
+      const pe = res.state.partialErrors as { path?: string; code?: string; message?: string }[] | undefined
+      const { note, detailLines } = formatLocalIngestSummary(
+        files.length,
+        res.state.nodes?.length ?? 0,
+        res.errors,
+        pe,
       )
+      setIngestNote(note)
+      setIngestDetailLines(detailLines)
     } catch (e) {
       setIngestErr(e instanceof Error ? e.message : String(e))
     } finally {
@@ -242,7 +163,7 @@ export function InventoryTab(p: InventoryTabProps) {
 
   const copyIni = async () => {
     try {
-      await navigator.clipboard.writeText(omnigraphIni)
+      await navigator.clipboard.writeText(vm.omnigraphIni)
       setIniCopied(true)
       window.setTimeout(() => setIniCopied(false), 2000)
     } catch {
@@ -251,7 +172,7 @@ export function InventoryTab(p: InventoryTabProps) {
   }
 
   const downloadIni = () => {
-    const blob = new Blob([omnigraphIni], { type: 'text/plain;charset=utf-8' })
+    const blob = new Blob([vm.omnigraphIni], { type: 'text/plain;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -266,16 +187,7 @@ export function InventoryTab(p: InventoryTabProps) {
     'ansible-ini': 'bg-amber-950/40 text-amber-200 ring-1 ring-amber-500/25',
   }
 
-  const byKind = useMemo(() => {
-    const m = new Map<string, number>()
-    for (const d of p.repoSession?.discovered ?? []) {
-      m.set(d.kind, (m.get(d.kind) ?? 0) + 1)
-    }
-    for (const d of p.serverSummary?.discover.files ?? []) {
-      m.set(d.kind, (m.get(d.kind) ?? 0) + 1)
-    }
-    return m
-  }, [p.repoSession, p.serverSummary])
+  const byKind = vm.discoveredByKind
 
   const pickerOk = isRepoFolderPickerSupported()
   const apiHint = omnigraphApiBase() || '(same origin as this page)'
@@ -345,6 +257,15 @@ export function InventoryTab(p: InventoryTabProps) {
                 </button>
               </div>
             ) : null}
+            {p.reconciliationSnapshot ? (
+              <p className="text-[10px] text-gray-600">
+                BOM entities <span className="font-mono text-gray-500">{reconVm.bom.totalEntities}</span> · relations{' '}
+                <span className="font-mono text-gray-500">{reconVm.bom.totalRelations}</span> · drift cues{' '}
+                <span className="font-mono text-gray-500">
+                  {reconVm.degradedNodeCount + reconVm.fracturedEdgeCount + reconVm.relationDriftCount}
+                </span>
+              </p>
+            ) : null}
           </div>
 
           <div className="mb-4 rounded-xl border border-gray-800 bg-gray-900/40 p-3">
@@ -384,6 +305,7 @@ export function InventoryTab(p: InventoryTabProps) {
                   onClick={() => {
                     setIngestRows([])
                     setIngestNote(null)
+                    setIngestDetailLines([])
                   }}
                   className="rounded-lg border border-gray-700 px-3 py-2 text-xs text-gray-400 hover:bg-gray-900"
                 >
@@ -396,6 +318,15 @@ export function InventoryTab(p: InventoryTabProps) {
             ) : null}
             {ingestErr ? <p className="mt-2 text-[11px] text-rose-400">{ingestErr}</p> : null}
             {ingestNote ? <p className="mt-2 text-[11px] text-emerald-500/90">{ingestNote}</p> : null}
+            {ingestDetailLines.length ? (
+              <ul className="mt-2 max-h-24 list-inside list-disc overflow-auto text-[10px] text-amber-200/90">
+                {ingestDetailLines.map((line, i) => (
+                  <li key={i} className="font-mono">
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
 
           <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -455,15 +386,15 @@ export function InventoryTab(p: InventoryTabProps) {
           <ul className="space-y-2 text-[12px] text-gray-400">
             <li className="flex gap-2">
               <span className="shrink-0 font-mono text-[10px] text-gray-600">STATE</span>
-              <span className="min-w-0 break-all font-mono text-gray-300">{statePathHint}</span>
+              <span className="min-w-0 break-all font-mono text-gray-300">{vm.statePathHint}</span>
             </li>
             <li className="flex gap-2">
               <span className="shrink-0 font-mono text-[10px] text-gray-600">PLAN</span>
-              <span className="min-w-0 break-all font-mono text-gray-300">{planPathHint}</span>
+              <span className="min-w-0 break-all font-mono text-gray-300">{vm.planPathHint}</span>
             </li>
             <li className="flex gap-2">
               <span className="shrink-0 font-mono text-[10px] text-gray-600">INI</span>
-              <span className="min-w-0 break-all font-mono text-gray-300">{ansiblePathHint}</span>
+              <span className="min-w-0 break-all font-mono text-gray-300">{vm.ansiblePathHint}</span>
             </li>
           </ul>
         </div>
@@ -503,7 +434,7 @@ export function InventoryTab(p: InventoryTabProps) {
               <div className="flex min-h-[200px] flex-col gap-2 lg:min-h-[180px]">
                 {activeSource === 'state' ? (
                   <SourcePanel
-                    error={parsed.stateErr}
+                    error={stateErrDisplay}
                     value={p.tfStateText}
                     onChange={p.onTfStateTextChange}
                     accept=".json,application/json,.tfstate,text/plain"
@@ -512,7 +443,7 @@ export function InventoryTab(p: InventoryTabProps) {
                 ) : null}
                 {activeSource === 'plan' ? (
                   <SourcePanel
-                    error={parsed.planErr}
+                    error={planErrDisplay}
                     value={p.planJsonText}
                     onChange={p.onPlanJsonTextChange}
                     accept=".json,application/json,text/plain"
@@ -593,8 +524,8 @@ export function InventoryTab(p: InventoryTabProps) {
             </table>
           </div>
           <p className="mt-3 text-center text-[11px] text-gray-600">
-            {filtered.length} of {parsed.merged.length} rows
-            {parsed.merged.length !== filtered.length ? ' (filtered)' : ''}
+            {filtered.length} of {vm.mergedRows.length} rows
+            {vm.mergedRows.length !== filtered.length ? ' (filtered)' : ''}
           </p>
         </div>
 
@@ -626,7 +557,7 @@ export function InventoryTab(p: InventoryTabProps) {
             </div>
           </div>
           <pre className="mt-3 max-h-36 overflow-auto rounded-lg bg-black/40 p-3 font-mono text-[11px] leading-relaxed text-gray-400 ring-1 ring-gray-800/80">
-            {omnigraphIni}
+            {vm.omnigraphIni}
           </pre>
         </div>
       </main>

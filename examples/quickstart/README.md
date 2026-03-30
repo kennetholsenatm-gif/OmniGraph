@@ -8,14 +8,9 @@ The graph emit pipeline used in CI lives in Go (`go test`); see [docs/ci-and-con
 
 ## Local workspace server (optional)
 
-Build and run the server so Inventory and SSE work same-origin:
+Build the web app, then start the workspace server with **`--web-dist packages/web/dist`** so **Inventory** and **SSE** work same-origin. Exact steps: **[docs/development/contributor-commands.md](../../docs/development/contributor-commands.md)**.
 
-```bash
-go build -o bin/omnigraph ./cmd/omnigraph
-./bin/omnigraph --web-dist packages/web/dist
-```
-
-(After `cd packages/web && npm run build`.) See [docs/using-the-web.md](../../docs/using-the-web.md) and [docs/development/local-dev.md](../../docs/development/local-dev.md).
+Then see [docs/using-the-web.md](../../docs/using-the-web.md) and [docs/development/local-dev.md](../../docs/development/local-dev.md).
 
 Parity sample used in tests: [testdata/sample.omnigraph.schema](../../testdata/sample.omnigraph.schema).
 

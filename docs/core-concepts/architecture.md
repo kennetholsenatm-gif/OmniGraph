@@ -4,6 +4,10 @@ The **presentation layer** (React web workspace in `packages/web`) is the **prim
 
 OmniGraph separates infrastructure intent, orchestration, and runtime execution into clear layers. **External system integrations** (CMDB, monitoring, IPAM, etc.) are not implemented as native HTTP clients inside business logic: they run as **WASM micro-containers** behind a single **host-mediated HTTP** capability (see below).
 
+**You are here:** `docs/core-concepts` -> system structure -> **layer and boundary model**.
+**Next decision:** if your change is UI behavior, stay in presentation/control-plane contracts; if vendor API behavior changes, stay in WASM integration boundaries.
+For BOM/dependency automation flow (source -> projection -> triage), see [BOM automation](bom-automation.md).
+
 ## Layers
 
 1. Presentation layer: web UI and developer-facing validation feedback
@@ -34,7 +38,7 @@ Each layer consumes the one below for orchestration: the UI sits on the Go contr
 
 **Blast radius:** Faulty or malicious plugin code cannot open arbitrary network destinations (prefix allowlist per run), cannot read arbitrary host files (unchanged from parser plugins), and cannot exceed configured stdout/HTTP body limits.
 
-**Lifecycle:** Stateless, one-shot: stdin carries the run envelope; stdout carries a single JSON result. Operators invoke plugins via **`omnigraph integration-run --wasm=…`** ([`cmd/omnigraph`](../../cmd/omnigraph)) or, when enabled, **`POST /api/v1/integrations/run`** on the workspace server ([`internal/serve`](../../internal/serve)).
+**Lifecycle:** Stateless, one-shot: stdin carries the run envelope; stdout carries a single JSON result. Operators invoke plugins through the workspace server **`POST /api/v1/integrations/run`** when **`--enable-integration-run-api`** is enabled ([`internal/serve`](../../internal/serve)); the host loads the `.wasm` guest and applies the same stdin/stdout contract. Maintainer-only automation on the binary entrypoint is documented in [Contributor commands](../development/contributor-commands.md).
 
 **Parser vs integration plugins:** *Parser* plugins ([`RunWASIParser`](../../internal/runner/wasiparser.go)) are **stdio-only** and emit **`omnigraph/graph/v1`**. *Integration* plugins ([`RunIntegrationPlugin`](../../internal/runner/integration_host.go)) may trigger **allowlisted** HTTP through the host import. Do not conflate them with **browser** Wasm (HCL diagnostics in `packages/web`), which is a separate trust and ABI surface (see [ADR 008](adr/008-wasm-bridge-hardening.md)).
 
