@@ -38,9 +38,9 @@ type fetchReqWire struct {
 }
 
 type fetchRespWire struct {
-	StatusCode int               `json:"statusCode"`
-	BodyB64    string            `json:"bodyB64,omitempty"`
-	Error      string            `json:"error,omitempty"`
+	StatusCode int    `json:"statusCode"`
+	BodyB64    string `json:"bodyB64,omitempty"`
+	Error      string `json:"error,omitempty"`
 }
 
 type zbxRPCResp struct {
@@ -48,7 +48,9 @@ type zbxRPCResp struct {
 		HostID string `json:"hostid"`
 		Host   string `json:"host"`
 	} `json:"result"`
-	Error *struct{ Data string `json:"data"` } `json:"error"`
+	Error *struct {
+		Data string `json:"data"`
+	} `json:"error"`
 }
 
 func main() {
@@ -154,8 +156,8 @@ func main() {
 			"idempotencyKey": strings.TrimSpace(env.Metadata.IdempotencyKey),
 		},
 		"spec": map[string]any{
-			"status":              "ok",
-			"errors":              []string{},
+			"status":            "ok",
+			"errors":            []string{},
 			"inventorySnapshot": snap,
 		},
 	}

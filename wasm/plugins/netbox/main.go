@@ -50,9 +50,11 @@ type fetchRespWire struct {
 
 type nbDeviceList struct {
 	Results []struct {
-		ID         int    `json:"id"`
-		Name       string `json:"name"`
-		PrimaryIP  *struct{ Address string `json:"address"` } `json:"primary_ip"`
+		ID        int    `json:"id"`
+		Name      string `json:"name"`
+		PrimaryIP *struct {
+			Address string `json:"address"`
+		} `json:"primary_ip"`
 		CustomFields map[string]any `json:"custom_fields"`
 	} `json:"results"`
 }
@@ -148,13 +150,13 @@ func main() {
 		"apiVersion": "omnigraph/integration-result/v1",
 		"kind":       "IntegrationResult",
 		"metadata": map[string]any{
-			"generatedAt":      now,
-			"plugin":           "netbox",
-			"idempotencyKey":   strings.TrimSpace(env.Metadata.IdempotencyKey),
+			"generatedAt":    now,
+			"plugin":         "netbox",
+			"idempotencyKey": strings.TrimSpace(env.Metadata.IdempotencyKey),
 		},
 		"spec": map[string]any{
-			"status":              "ok",
-			"errors":              []string{},
+			"status":            "ok",
+			"errors":            []string{},
 			"inventorySnapshot": snap,
 		},
 	}
