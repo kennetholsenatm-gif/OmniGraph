@@ -73,6 +73,12 @@ jobs:
       - name: Build workspace server
         run: mkdir -p bin && go build -o bin/omnigraph ./cmd/omnigraph
 
+      - name: Build integration WASI plugins (NetBox, Zabbix)
+        run: |
+          mkdir -p bin/wasm-plugins
+          GOOS=wasip1 GOARCH=wasm go build -o bin/wasm-plugins/netbox.wasm ./wasm/plugins/netbox
+          GOOS=wasip1 GOARCH=wasm go build -o bin/wasm-plugins/zabbix.wasm ./wasm/plugins/zabbix
+
       - name: Build HCL diagnostics wasm
         run: |
           mkdir -p packages/web/public/wasm

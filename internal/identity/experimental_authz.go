@@ -31,7 +31,7 @@ func experimentalPermitted(perm string) bool {
 	switch perm {
 	case PermServeSecurityScan, PermServeHostOpsRead, PermServeHostOpsWrite,
 		PermServeInventoryRead, PermServeAuditRead, PermServeIngestLocal, PermServeSyncWS,
-		PermServeWorkspaceDrift:
+		PermServeWorkspaceDrift, PermServeIntegrationRun:
 		return true
 	default:
 		return false

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kennetholsenatm-gif/omnigraph/schemas/integration-result.v1.schema.json",
+  "title": "OmniGraphIntegrationResult",
+  "description": "stdout contract from integration WASM plugins (omnigraph/integration-result/v1). inventorySnapshot is set when the plugin produced normalized inventory.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": { "type": "string", "const": "omnigraph/integration-result/v1" },
+    "kind": { "type": "string", "const": "IntegrationResult" },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "idempotencyKey": { "type": "string" },
+        "plugin": { "type": "string", "enum": ["netbox", "zabbix"] }
+      },
+      "required": ["generatedAt", "plugin"]
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["ok", "partial", "failed"]
+        },
+        "errors": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "inventorySnapshot": {
+          "type": "object",
+          "description": "When present, must validate as omnigraph/inventory-source/v1"
+        },
+        "sync": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Optional push-style sync metadata (e.g. webhook correlation)"
+        }
+      },
+      "required": ["status", "errors"]
+    }
+  },
+  "required": ["apiVersion", "kind", "metadata", "spec"]
+}

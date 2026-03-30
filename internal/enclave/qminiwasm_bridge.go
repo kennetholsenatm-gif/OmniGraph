@@ -8,7 +8,10 @@ import (
 	"time"
 )
 
-// QminiWasmBridge manages the bridge between OmniGraph and QminiWasm-core
+// QminiWasmBridge is experimental scaffolding for an optional remote “QminiWasm-core” control plane.
+// It does not load or run repository integration plugins; outbound CMDB/monitoring integrations
+// are WASI micro-containers (see internal/runner.RunIntegrationPlugin and host import omnigraph.http_fetch).
+// Methods that return mock data are placeholders only—not production behavior.
 type QminiWasmBridge struct {
 	mu          sync.RWMutex
 	connector   *GraphConnector
