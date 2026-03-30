@@ -28,6 +28,8 @@ Then: [CI and contributor automation](ci-and-contributor-automation.md) (`go tes
 
 | Intent | Start here |
 |--------|------------|
+| Terms and acronyms (graph, schema shapes, WASM-backed HCL) | [GLOSSARY.md](GLOSSARY.md) |
+| Why graph/UI leads; anti-“generic CLI” | [product-philosophy.md](product-philosophy.md) |
 | Why graph/UI leads; workspace-first product | [product-philosophy.md](product-philosophy.md) |
 | First session in the browser only | [getting-started.md](getting-started.md) |
 | Dependency roles + blast radius on graph edges | [guides/graph-dependencies-and-blast-radius.md](guides/graph-dependencies-and-blast-radius.md) |

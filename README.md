@@ -1,5 +1,28 @@
 # OmniGraph
 
+**[Glossary](docs/GLOSSARY.md)** — terms and acronyms used below.
+
+**OmniGraph** is a browser workspace that shows **infrastructure as a graph** so intent, topology, pipeline context, inventory, and security posture live in one place instead of scattered across HCL, playbooks, CI YAML, and logs.
+
+## Run it (quickstart)
+
+**Node.js 20+**
+
+```bash
+cd web
+npm ci
+npm run dev
+```
+
+Open the URL Vite shows (typically `http://localhost:5173`). The app ships with **sample graph and schema** so you can explore the UI quickly—then point it at your repo root and your own JSON from the sidebar.
+
+Optional: same-origin **API + static build** for Inventory/server features is in **[docs/using-the-web.md](docs/using-the-web.md)** (not required to try the graph). Full documentation map: **[docs/README.md](docs/README.md)**.
+
+---
+
+**Infrastructure as a visible, declarative graph—not scattered pipeline glue.**
+
+If your stack mixes OpenTofu/Terraform and Ansible, the real deployment story is usually split across HCL, playbooks, CI YAML, and job logs. Teams spend time reconstructing intent, handoffs, and drift from terminal output instead of seeing one trustworthy view. OmniGraph keeps your existing tools, but puts that story on one canvas so teams can reason about changes before and after they run.
 **Infrastructure as a visible, declarative graph—not scattered pipeline glue.**
 
 Teams face intense friction when they try to collaborate while reconstructing topology from scattered fragments of Terraform, Ansible, HCL, and YAML CI pipelines. Intent and handoffs live in incompatible places; everyone rebuilds the same mental model from logs and diffs instead of **shared understanding** in one place.
@@ -40,6 +63,11 @@ flowchart LR
 - **Browser workspace** — Topology, schema, pipeline context, inventory, and posture live together in one canvas.
 - **Live backend truth** — When you use same-origin **workspace server**, **Server-Sent Events** and optional **WebSocket** sync keep the view aligned with normalized state (see **[docs/core-concepts/ux-architecture.md](docs/core-concepts/ux-architecture.md)**).
 
+- **Pipeline opacity → shared visibility**: job stages, infra changes, and handoffs are visible in one workspace.
+- **Brittle IaC-to-Ansible glue → model-based handoff**: fewer one-off scripts and fewer hidden assumptions between stages.
+- **Environment drift surprises → earlier detection**: state/plan/inventory context is compared against desired graph intent.
+- **Slow incident triage → faster root cause**: topology, change context, and posture are co-located instead of split across tools.
+- **Context switching fatigue → single workspace**: less hopping between CI UI, terminals, state files, and docs.
 ## How OmniGraph supports declarative Ansible handoff
 
 - **Intent is visible** — Graph and schema context sit beside inventory and plan-shaped data so handoffs are inspectable.
@@ -48,10 +76,26 @@ flowchart LR
 
 ## What you see in the web app
 
+- **Visualizer** — Paste or load **`omnigraph/graph/v1`** and explore it as an **interactive graph** (nodes, edges, relationships—not log lines).
+- **Schema Contract** — Work on your **`.omnigraph.schema`** project document **in the UI** with checks that meet you where you edit.
+- **GitOps Pipeline** — See how **plan → apply → Ansible handoff** maps to paths and options, as **context for the map**, not a black-box script you memorize.
+- **Inventory** — Bring in **state**, **plan JSON**, **Ansible inventory**, optional **folder scans**, or (when you add a backend) **workspace summary** from the same app.
+- **Posture** — Keep **`omnigraph/security/v1`**-shaped posture data **next to the graph story** so compliance isn’t a separate PDF trail.
+- **Web IDE** — Optional **WASM-backed HCL** feedback when you’re tweaking Terraform-flavored text (see [Glossary](docs/GLOSSARY.md) for what “WASM-backed” means here).
 The sidebar groups **Topology** (interactive **`omnigraph/graph/v1`** and per-node **Inspector**), **Schema Contract**, **Pipeline** context, **Inventory** (including optional **File System Access** uploads when the API is enabled), **Posture**, and **Web IDE** (WASM-backed HCL hints). Full tab tour: **[docs/using-the-web.md](docs/using-the-web.md)**.
 
 **New here?** Start with **[docs/getting-started.md](docs/getting-started.md)** (graph-first, no terminal steps).
 
+## Ecosystem context
+
+| Piece | Role |
+|--------|------|
+| **OmniGraph** | Graph-first **infrastructure** workspace: OpenTofu/Terraform, Ansible, CI context, inventory, posture—not an ML runtime. |
+| **qminiwasm-core** (QMiniWasm) | **ML inference/training runtime** with a sandboxed WebAssembly boundary and optional quantum-assisted routing. |
+
+**There is no shipped integration** between OmniGraph and qminiwasm-core today: no shared schema import, no API bridge, and **OmniGraph does not visualize QMiniWasm enclaves or model graphs** unless you deliberately model that infrastructure yourself as graph JSON.
+
+**Optional operator workflow:** you may use OmniGraph to visualize or govern **the same IaC** that provisions training or inference hosts (for example OpenTofu under `qminiwasm-core/infra/runpod`). That is **manual** alignment of two tools, not a built-in connector.
 ---
 
 ## Quickstart (browser experience)
