@@ -4,21 +4,6 @@
 
 **OmniGraph** is a browser workspace that shows **infrastructure as a graph** so intent, topology, pipeline context, inventory, and security posture live in one place instead of scattered across HCL, playbooks, CI YAML, and logs.
 
-## Run it (quickstart)
-
-**Node.js 20+**
-
-```bash
-cd web
-npm ci
-npm run dev
-```
-
-Open the URL Vite shows (typically `http://localhost:5173`). The app ships with **sample graph and schema** so you can explore the UI quickly—then point it at your repo root and your own JSON from the sidebar.
-
-Optional: same-origin **API + static build** for Inventory/server features is in **[docs/using-the-web.md](docs/using-the-web.md)** (not required to try the graph). Full documentation map: **[docs/README.md](docs/README.md)**.
-
----
 
 **Infrastructure as a visible, declarative graph—not scattered pipeline glue.**
 
