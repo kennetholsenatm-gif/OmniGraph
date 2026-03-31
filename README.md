@@ -78,7 +78,7 @@ The sidebar groups **Topology** (interactive **`omnigraph/graph/v1`** and per-no
 | **OmniGraph** | Graph-first **infrastructure** workspace: OpenTofu/Terraform, Ansible, CI context, inventory, posture—not an ML runtime. |
 | **qminiwasm-core** (QMiniWasm) | **ML inference/training runtime** with a sandboxed WebAssembly boundary and optional quantum-assisted routing. |
 
-**There is no shipped integration** between OmniGraph and qminiwasm-core today: no shared schema import, no API bridge, and **OmniGraph does not visualize QMiniWasm enclaves or model graphs** unless you deliberately model that infrastructure yourself as graph JSON.
+**There is no shipped integration YET** between OmniGraph and qminiwasm-core today: no shared schema import, no API bridge, and **OmniGraph does not visualize QMiniWasm enclaves or model graphs** unless you deliberately model that infrastructure yourself as graph JSON.
 
 **Optional operator workflow:** you may use OmniGraph to visualize or govern **the same IaC** that provisions training or inference hosts (for example OpenTofu under `qminiwasm-core/infra/runpod`). That is **manual** alignment of two tools, not a built-in connector.
 ---
